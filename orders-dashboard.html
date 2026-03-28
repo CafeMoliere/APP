@@ -211,7 +211,9 @@ async function deleteOrder(id) {
 
 function sendWhatsApp(phone, name) {
   const msg = `Hello ${name}! Your order at Café Molière is ready for delivery. Thank you!`;
-  window.open(`https://wa.me/961${phone.replace(/^0/, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+  // phone is already stored as +961XXXXXXX, just remove the + for wa.me
+  const cleanPhone = phone.replace(/\D/g, '');
+  window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 // ── RENDER CARD ──
