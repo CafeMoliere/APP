@@ -211,9 +211,12 @@ async function deleteOrder(id) {
 
 function sendWhatsApp(phone, name) {
   const msg = `Hello ${name}! Your order at Café Molière is ready for delivery. Thank you!`;
-  // phone is already stored as +961XXXXXXX, just remove the + for wa.me
-  const cleanPhone = phone.replace(/\D/g, '');
-  window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+  // Strip everything except digits
+  let clean = (phone || '').replace(/\D/g, '');
+  // If starts with 961 already, keep it. If not, add it.
+  if (!clean.startsWith('961')) clean = '961' + clean;
+  console.log('WhatsApp URL:', `https://wa.me/${clean}`);
+  window.open(`https://wa.me/${clean}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 // ── RENDER CARD ──
@@ -230,7 +233,7 @@ function renderCard(id, o) {
     <button class="btn btn-ready" onclick="event.stopPropagation();moveOrder('${id}','ready')">→ Ready</button>
     <button class="btn btn-del" onclick="event.stopPropagation();deleteOrder('${id}')">🗑</button>
   ` : `
-    <button class="btn btn-wa" onclick="event.stopPropagation();sendWhatsApp('${o.phone||''}','${o.name}')">WhatsApp Client</button>
+    <button class="btn btn-wa" data-phone="${o.phone||''}" data-name="${o.name}" onclick="event.stopPropagation();sendWhatsApp(this.dataset.phone,this.dataset.name)">WhatsApp Client</button>
     <button class="btn btn-clear" onclick="event.stopPropagation();clearToHistory('${id}')">Clear ✓</button>
   `;
 

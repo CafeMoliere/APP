@@ -767,8 +767,8 @@ function confirmOrder() { /* kept for input listeners */ }
 
 async function placeOrder() {
   const name     = document.getElementById('client-name').value.trim();
-  const phoneRaw = document.getElementById('client-phone').value.replace(/\s+/g, '').replace(/^0+/, '');
-  const phone    = '+961' + phoneRaw;
+  const phoneRaw = document.getElementById('client-phone').value.replace(/\s+/g, '').replace(/\D/g, '').replace(/^0+/, '');
+  const phone    = '961' + phoneRaw;
   const location = document.getElementById('client-location').value.trim();
 
   if (!name)          { document.getElementById('client-name').focus();     alert('Please enter your name.');            return; }
