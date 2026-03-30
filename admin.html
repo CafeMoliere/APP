@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Café Molière — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1A1A1A;color:#fff;font-family:'DM Sans',sans-serif;min-height:100vh}
+
+/* LOGIN */
+.login-screen{position:fixed;inset:0;background:#1A1A1A;display:flex;align-items:center;justify-content:center;z-index:9999;padding:24px}
+.login-screen.hidden{display:none}
+.login-box{background:#2A2A2A;border-radius:20px;padding:40px 32px;width:100%;max-width:380px;border:1px solid #333;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+.login-title{font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:400;color:#FCECBB;text-align:center}
+.login-title em{font-style:italic;color:#FF5E00}
+.login-sub{font-size:11px;color:#555;letter-spacing:0.12em;text-transform:uppercase;margin-top:4px;text-align:center}
+.login-bar{width:40px;height:2px;background:#FF5E00;margin:12px auto 24px;border-radius:2px}
+.login-error{background:rgba(255,94,0,0.1);border:1px solid rgba(255,94,0,0.3);color:#FF5E00;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:16px;display:none}
+.ms-btn{width:100%;padding:14px;background:#fff;color:#333;border:1.5px solid #ddd;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background 0.2s}
+.ms-btn:hover{background:#f5f5f5}
+.ms-btn:disabled{opacity:0.5;cursor:not-allowed}
+
+/* HEADER */
+.header{background:#FF5E00;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.header-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:#fff;font-weight:400}
+.header-title em{font-style:italic}
+.header-right{display:flex;align-items:center;gap:10px}
+.logout-btn{background:none;border:1px solid rgba(255,255,255,0.4);color:#fff;padding:5px 12px;border-radius:20px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s}
+.logout-btn:hover{background:rgba(255,255,255,0.15)}
+
+/* TABS */
+.tabs{display:flex;background:#222;border-bottom:1px solid #333;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:13px 20px;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#555;background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;white-space:nowrap}
+.tab.active{color:#FF5E00;border-bottom-color:#FF5E00}
+
+/* CONTENT */
+.content{max-width:900px;margin:0 auto;padding:20px 16px 80px}
+
+/* DAILY SPECIAL */
+.special-card{background:#2A2A2A;border-radius:14px;padding:20px;border:1px solid #FF5E00;margin-bottom:24px}
+.special-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:#FCECBB;margin-bottom:4px}
+.special-sub{font-size:11px;color:#888;margin-bottom:16px}
+.special-inputs{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end}
+@media(max-width:600px){.special-inputs{grid-template-columns:1fr}}
+
+/* SECTION HEADER */
+.section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;margin-top:24px}
+.section-name{font-family:'Playfair Display',serif;font-size:1.2rem;color:#FCECBB}
+.section-name em{font-style:italic;color:#FF5E00}
+.add-btn{background:#FF5E00;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:opacity 0.2s}
+.add-btn:hover{opacity:0.85}
+
+/* ITEM ROW */
+.item-row{background:#2A2A2A;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;border:1px solid #333;transition:border-color 0.2s}
+.item-row:hover{border-color:#444}
+.item-row.unavailable{opacity:0.45}
+.item-emoji-display{font-size:1.5rem;width:38px;text-align:center;flex-shrink:0}
+.item-details{flex:1;min-width:0}
+.item-row-name{font-weight:600;font-size:0.9rem;color:#FCECBB;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-row-desc{font-size:11px;color:#666;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-row-price{font-weight:700;color:#FF5E00;font-size:0.9rem;white-space:nowrap;flex-shrink:0}
+.item-actions{display:flex;gap:6px;flex-shrink:0}
+.ia-btn{padding:6px 10px;border:none;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;transition:opacity 0.2s;font-family:'DM Sans',sans-serif}
+.ia-btn:hover{opacity:0.8}
+.ia-edit{background:#333;color:#FCECBB}
+.ia-toggle{background:#333;color:#888;font-size:13px}
+.ia-toggle.on{color:#4CAF50}
+.ia-del{background:rgba(192,57,43,0.2);color:#e74c3c}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.3s}
+.modal-overlay.visible{opacity:1;pointer-events:auto}
+.modal{background:#222;border-radius:20px 20px 0 0;padding:28px 24px 36px;width:100%;max-width:500px;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.34,1.2,0.64,1)}
+.modal-overlay.visible .modal{transform:translateY(0)}
+.modal-handle{width:36px;height:3px;background:#444;border-radius:2px;margin:0 auto 20px}
+.modal-title{font-family:'Playfair Display',serif;font-size:1.2rem;color:#FCECBB;margin-bottom:16px}
+.modal-title em{font-style:italic;color:#FF5E00}
+.field-label{font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin-bottom:5px;display:block}
+.field-input{width:100%;padding:12px 14px;background:#1A1A1A;border:1.5px solid #333;border-radius:10px;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s;margin-bottom:14px}
+.field-input:focus{border-color:#FF5E00}
+.field-input::placeholder{color:#444}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-actions{display:flex;gap:8px;margin-top:4px}
+.modal-save{flex:1;padding:13px;background:#FF5E00;color:#fff;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:opacity 0.2s}
+.modal-save:hover{opacity:0.9}
+.modal-cancel-btn{padding:13px 18px;background:#333;color:#888;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer}
+
+/* FIELD INPUT inline */
+.fi{padding:10px 12px;background:#1A1A1A;border:1.5px solid #333;border-radius:8px;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color 0.2s;width:100%}
+.fi:focus{border-color:#FF5E00}
+.fi::placeholder{color:#444}
+.save-special-btn{padding:10px 16px;background:#FF5E00;color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#FF5E00;color:#fff;padding:11px 20px;border-radius:10px;font-size:13px;font-weight:500;z-index:999;animation:toastIn 0.3s ease;white-space:nowrap}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div class="login-title">Café <em>Molière</em></div>
+    <div class="login-sub">Admin Panel</div>
+    <div class="login-bar"></div>
+    <div class="login-error" id="login-error"></div>
+    <button class="ms-btn" id="login-btn" onclick="doLogin()">
+      <svg width="20" height="20" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+        <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+        <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+        <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+      </svg>
+      Sign in with Microsoft
+    </button>
+    <p style="text-align:center;font-size:11px;color:#555;margin-top:14px">Only @cafemoliere.com accounts</p>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="admin-content" style="display:none">
+
+<div class="header">
+  <div class="header-title">Café <em>Molière</em> — Admin</div>
+  <div class="header-right">
+    <span id="user-email" style="font-size:11px;color:rgba(255,255,255,0.7)"></span>
+    <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('menu',this)">🍽️ Menu Items</button>
+  <button class="tab" onclick="switchTab('special',this)">⭐ Plat du Jour</button>
+</div>
+
+<!-- MENU TAB -->
+<div id="tab-menu" class="content">
+  <div id="menu-sections"></div>
+</div>
+
+<!-- SPECIAL TAB -->
+<div id="tab-special" class="content" style="display:none">
+  <div class="special-card">
+    <div class="special-title">⭐ Plat du Jour</div>
+    <div class="special-sub">This appears as a highlighted item at the top of the menu for customers</div>
+    <div class="special-inputs">
+      <div>
+        <label class="field-label">Item Name</label>
+        <input class="fi" id="sp-name" placeholder="e.g. Poulet rôti aux herbes" />
+      </div>
+      <div>
+        <label class="field-label">Price (LL)</label>
+        <input class="fi" id="sp-price" type="number" placeholder="500000" />
+      </div>
+      <button class="save-special-btn" onclick="saveSpecial()">Save</button>
+    </div>
+    <div style="margin-top:12px">
+      <label class="field-label">Description</label>
+      <input class="fi" id="sp-desc" placeholder="Short description of today's special" />
+    </div>
+    <div id="current-special" style="margin-top:16px;padding:12px;background:#1A1A1A;border-radius:8px;font-size:12px;color:#888;display:none"></div>
+  </div>
+</div>
+
+</div><!-- end admin-content -->
+
+<!-- ITEM MODAL -->
+<div class="modal-overlay" id="item-modal" onclick="handleModalClick(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title">Add <em>Item</em></div>
+    <div class="field-row">
+      <div>
+        <label class="field-label">Emoji</label>
+        <input class="field-input" id="f-emoji" placeholder="🍕" maxlength="4" />
+      </div>
+      <div>
+        <label class="field-label">Category</label>
+        <select class="field-input" id="f-cat">
+          <option value="hot">Boissons Chaudes</option>
+          <option value="cold">Boissons Froides</option>
+          <option value="snacks">Snacks & Viennoiseries</option>
+          <option value="mains">Plats Principaux</option>
+          <option value="desserts">Desserts</option>
+        </select>
+      </div>
+    </div>
+    <label class="field-label">Item Name</label>
+    <input class="field-input" id="f-name" placeholder="e.g. Cappuccino" />
+    <label class="field-label">Description</label>
+    <input class="field-input" id="f-desc" placeholder="Short description" />
+    <label class="field-label">Price (LL)</label>
+    <input class="field-input" id="f-price" type="number" placeholder="150000" />
+    <input type="hidden" id="f-id" />
+    <div class="modal-actions">
+      <button class="modal-save" onclick="saveItem()">Save Item</button>
+      <button class="modal-cancel-btn" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── FIREBASE CONFIG ──
+const firebaseConfig = {
+  apiKey:     "AIzaSyANahV1JOHQqEweg6e8i_LvltXNCTW-kIw",
+  authDomain: "cafe-moliere.firebaseapp.com",
+  projectId:  "cafe-moliere",
+};
+firebase.initializeApp(firebaseConfig);
+const db   = firebase.firestore();
+const auth = firebase.auth();
+
+// ── CATEGORIES ──
+const CATS = {
+  hot:      'Boissons Chaudes',
+  cold:     'Boissons Froides',
+  snacks:   'Snacks & Viennoiseries',
+  mains:    'Plats Principaux',
+  desserts: 'Desserts'
+};
+
+const CAT_EMOJI = { hot:'☕', cold:'🧊', snacks:'🥐', mains:'🍽️', desserts:'🍰' };
+
+let menuItems = {};
+
+// ── TABS ──
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-menu').style.display   = name === 'menu'    ? 'block' : 'none';
+  document.getElementById('tab-special').style.display = name === 'special' ? 'block' : 'none';
+}
+
+// ── TOAST ──
+function toast(msg) {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2500);
+}
+
+// ── RENDER MENU ──
+function renderMenu() {
+  const container = document.getElementById('menu-sections');
+  container.innerHTML = '';
+
+  Object.entries(CATS).forEach(([catKey, catName]) => {
+    const items = Object.entries(menuItems)
+      .filter(([,v]) => v.category === catKey)
+      .sort((a,b) => (a[1].order||0) - (b[1].order||0));
+
+    const sec = document.createElement('div');
+    sec.innerHTML = `
+      <div class="section-hdr">
+        <div class="section-name">${CAT_EMOJI[catKey]} <em>${catName}</em></div>
+        <button class="add-btn" onclick="openModal(null,'${catKey}')">+ Add Item</button>
+      </div>
+      <div id="cat-${catKey}">
+        ${items.length ? items.map(([id,item]) => renderItemRow(id,item)).join('') : `<div style="color:#555;font-size:12px;padding:10px 0">No items yet — click + Add Item</div>`}
+      </div>`;
+    container.appendChild(sec);
+  });
+}
+
+function renderItemRow(id, item) {
+  const avail = item.available !== false;
+  return `
+    <div class="item-row ${avail ? '' : 'unavailable'}">
+      <div class="item-emoji-display">${item.emoji || '🍽️'}</div>
+      <div class="item-details">
+        <div class="item-row-name">${item.name}</div>
+        <div class="item-row-desc">${item.desc || ''}</div>
+      </div>
+      <div class="item-row-price">LL ${Number(item.price).toLocaleString()}</div>
+      <div class="item-actions">
+        <button class="ia-btn ia-toggle ${avail ? 'on' : ''}" title="${avail ? 'Available' : 'Unavailable'}" onclick="toggleAvailable('${id}',${avail})">
+          ${avail ? '✓' : '✗'}
+        </button>
+        <button class="ia-btn ia-edit" onclick="openModal('${id}','${item.category}')">Edit</button>
+        <button class="ia-btn ia-del" onclick="deleteItem('${id}')">Del</button>
+      </div>
+    </div>`;
+}
+
+// ── MODAL ──
+function openModal(id, catKey) {
+  const modal = document.getElementById('item-modal');
+  document.getElementById('f-id').value = id || '';
+  document.getElementById('f-cat').value = catKey || 'hot';
+
+  if (id && menuItems[id]) {
+    const item = menuItems[id];
+    document.getElementById('modal-title').innerHTML = 'Edit <em>Item</em>';
+    document.getElementById('f-emoji').value = item.emoji || '';
+    document.getElementById('f-name').value  = item.name  || '';
+    document.getElementById('f-desc').value  = item.desc  || '';
+    document.getElementById('f-price').value = item.price || '';
+  } else {
+    document.getElementById('modal-title').innerHTML = 'Add <em>Item</em>';
+    document.getElementById('f-emoji').value = '';
+    document.getElementById('f-name').value  = '';
+    document.getElementById('f-desc').value  = '';
+    document.getElementById('f-price').value = '';
+  }
+  modal.classList.add('visible');
+  setTimeout(() => document.getElementById('f-name').focus(), 350);
+}
+
+function closeModal() {
+  document.getElementById('item-modal').classList.remove('visible');
+}
+
+function handleModalClick(e) {
+  if (e.target === document.getElementById('item-modal')) closeModal();
+}
+
+// ── SAVE ITEM ──
+async function saveItem() {
+  const id    = document.getElementById('f-id').value;
+  const name  = document.getElementById('f-name').value.trim();
+  const price = parseInt(document.getElementById('f-price').value);
+  const emoji = document.getElementById('f-emoji').value.trim() || '🍽️';
+  const desc  = document.getElementById('f-desc').value.trim();
+  const cat   = document.getElementById('f-cat').value;
+
+  if (!name)        { alert('Please enter item name.');  return; }
+  if (!price || price < 0) { alert('Please enter a valid price.'); return; }
+
+  const data = { name, price, emoji, desc, category: cat, available: true };
+
+  if (id) {
+    await db.collection('menu').doc(id).update(data);
+    toast('Item updated!');
+  } else {
+    data.order = Date.now();
+    await db.collection('menu').doc().set(data);
+    toast('Item added!');
+  }
+  closeModal();
+}
+
+// ── TOGGLE AVAILABLE ──
+async function toggleAvailable(id, current) {
+  await db.collection('menu').doc(id).update({ available: !current });
+  toast(current ? 'Item marked unavailable' : 'Item marked available');
+}
+
+// ── DELETE ITEM ──
+async function deleteItem(id) {
+  if (!confirm('Delete this item? This cannot be undone.')) return;
+  await db.collection('menu').doc(id).delete();
+  toast('Item deleted');
+}
+
+// ── SPECIAL ──
+async function loadSpecial() {
+  const doc = await db.collection('settings').doc('special').get();
+  if (doc.exists) {
+    const s = doc.data();
+    document.getElementById('sp-name').value  = s.name  || '';
+    document.getElementById('sp-price').value = s.price || '';
+    document.getElementById('sp-desc').value  = s.desc  || '';
+    const cur = document.getElementById('current-special');
+    cur.style.display = 'block';
+    cur.innerHTML = `<b style="color:#FF5E00">Current:</b> ${s.emoji||'⭐'} ${s.name} — LL ${Number(s.price).toLocaleString()}<br><span style="color:#666">${s.desc||''}</span>`;
+  }
+}
+
+async function saveSpecial() {
+  const name  = document.getElementById('sp-name').value.trim();
+  const price = parseInt(document.getElementById('sp-price').value);
+  const desc  = document.getElementById('sp-desc').value.trim();
+  if (!name || !price) { alert('Please fill in name and price.'); return; }
+  await db.collection('settings').doc('special').set({ name, price, desc, emoji:'⭐', available: true, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+  toast('Plat du Jour saved!');
+  loadSpecial();
+}
+
+// ── REAL-TIME MENU LISTENER ──
+function startListening() {
+  db.collection('menu').onSnapshot(snapshot => {
+    snapshot.docChanges().forEach(change => {
+      if (change.type === 'removed') delete menuItems[change.doc.id];
+      else menuItems[change.doc.id] = { ...change.doc.data(), id: change.doc.id };
+    });
+    renderMenu();
+  });
+  loadSpecial();
+}
+
+// ── AUTH ──
+function doLogin() {
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-error');
+  err.style.display = 'none';
+  btn.textContent = 'Connecting...';
+  btn.disabled = true;
+  const provider = new firebase.auth.OAuthProvider('microsoft.com');
+  provider.setCustomParameters({ tenant: 'cafemoliere.com' });
+  auth.signInWithPopup(provider).catch(e => {
+    err.textContent = e.code === 'auth/popup-closed-by-user'
+      ? 'Window closed. Please try again.'
+      : 'Sign-in failed. Use your @cafemoliere.com account.';
+    err.style.display = 'block';
+    btn.textContent = 'Sign in with Microsoft';
+    btn.disabled = false;
+  });
+}
+
+function doLogout() { auth.signOut(); }
+
+auth.onAuthStateChanged(user => {
+  if (user) {
+    if (!user.email || !user.email.endsWith('@cafemoliere.com')) {
+      auth.signOut();
+      const err = document.getElementById('login-error');
+      err.textContent = 'Access restricted to @cafemoliere.com accounts.';
+      err.style.display = 'block';
+      return;
+    }
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('admin-content').style.display = 'block';
+    document.getElementById('user-email').textContent = user.email;
+    startListening();
+  } else {
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('admin-content').style.display = 'none';
+    document.getElementById('login-btn').textContent = 'Sign in with Microsoft';
+    document.getElementById('login-btn').disabled = false;
+    menuItems = {};
+  }
+});
+</script>
+</body>
+</html>
