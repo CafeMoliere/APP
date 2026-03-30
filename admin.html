@@ -62,7 +62,10 @@ body{background:#1A1A1A;color:#fff;font-family:'DM Sans',sans-serif;min-height:1
 .ia-edit{background:#333;color:#FCECBB}
 .ia-del{background:rgba(192,57,43,0.2);color:#e74c3c}
 /* CATEGORY ROW */
-.cat-row{background:#1A1A1A;border-radius:9px;padding:10px 13px;margin-bottom:7px;display:flex;align-items:center;gap:10px;border:1px solid #2A2A2A}
+.cat-row{background:#1A1A1A;border-radius:9px;padding:10px 13px;margin-bottom:7px;display:flex;align-items:center;gap:10px;border:1px solid #2A2A2A;cursor:grab;transition:background 0.15s,transform 0.15s}
+.cat-row:active{cursor:grabbing}
+.cat-row.drag-over{border-color:#FF5E00;background:#222;transform:scale(1.01)}
+.cat-drag-handle{color:#444;font-size:16px;cursor:grab;padding:0 4px;user-select:none;flex-shrink:0}
 .cat-emoji-input{width:52px;padding:8px;background:#222;border:1.5px solid #333;border-radius:7px;color:#fff;font-size:14px;text-align:center;outline:none}
 .cat-name-input{flex:1;padding:8px 11px;background:#222;border:1.5px solid #333;border-radius:7px;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;outline:none}
 .cat-name-input:focus,.cat-emoji-input:focus{border-color:#FF5E00}
@@ -249,11 +252,44 @@ async function loadCategories() {
 function renderCategoryList() {
   const list = document.getElementById('cat-list');
   list.innerHTML = catOrder.map(key => `
-    <div class="cat-row" id="catrow-${key}">
+    <div class="cat-row" id="catrow-${key}" draggable="true" ondragstart="dragStart(event,'${key}')" ondragover="dragOver(event,'${key}')" ondragleave="dragLeave(event)" ondrop="dragDrop(event,'${key}')">
+      <span class="cat-drag-handle" title="Drag to reorder">⠿</span>
       <input class="cat-emoji-input" id="ce-${key}" value="${catEmojis[key]||''}" placeholder="☕" maxlength="4" />
       <input class="cat-name-input"  id="cn-${key}" value="${catNames[key]||key}" placeholder="Category name" />
-      <button class="cat-del" onclick="deleteCategory('${key}')" title="Delete category">🗑</button>
+      <button class="cat-del" onclick="deleteCategory('${key}')" title="Delete">🗑</button>
     </div>`).join('');
+}
+
+// ── DRAG & DROP ──
+let dragKey = null;
+
+function dragStart(e, key) {
+  dragKey = key;
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function dragOver(e, key) {
+  e.preventDefault();
+  if (key !== dragKey) {
+    document.getElementById('catrow-'+key)?.classList.add('drag-over');
+  }
+}
+
+function dragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function dragDrop(e, targetKey) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!dragKey || dragKey === targetKey) return;
+  const fromIdx = catOrder.indexOf(dragKey);
+  const toIdx   = catOrder.indexOf(targetKey);
+  catOrder.splice(fromIdx, 1);
+  catOrder.splice(toIdx, 0, dragKey);
+  dragKey = null;
+  renderCategoryList();
+  toast('Order changed — click Save to apply');
 }
 
 function addCategory() {
