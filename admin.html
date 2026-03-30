@@ -48,8 +48,14 @@ body{background:#1A1A1A;color:#fff;font-family:'DM Sans',sans-serif;min-height:1
 .section-name{font-family:'Playfair Display',serif;font-size:1.1rem;color:#FCECBB}
 .section-name em{font-style:italic;color:#FF5E00}
 .add-btn{background:#FF5E00;color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer}
-.item-row{background:#2A2A2A;border-radius:10px;padding:11px 13px;margin-bottom:7px;display:flex;align-items:center;gap:10px;border:1px solid #333}
+.item-row{background:#2A2A2A;border-radius:10px;padding:11px 13px;margin-bottom:7px;display:flex;align-items:center;gap:10px;border:1px solid #333;transition:border-color 0.15s,transform 0.15s,opacity 0.15s}
 .item-row.unavailable{opacity:0.4}
+.item-row.dragging{opacity:0.4;transform:scale(0.98)}
+.item-row.drag-item-over{border-color:#FF5E00;background:#333}
+.item-drag-handle{color:#444;font-size:15px;cursor:grab;padding:0 2px;user-select:none;flex-shrink:0}
+.item-drag-handle:hover{color:#666}
+.cat-drop-zone{min-height:36px;border:2px dashed #333;border-radius:8px;margin-bottom:7px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#444;transition:border-color 0.15s,background 0.15s}
+.cat-drop-zone.drag-item-over{border-color:#FF5E00;background:rgba(255,94,0,0.05);color:#FF5E00}
 .item-emoji-disp{font-size:1.4rem;width:34px;text-align:center;flex-shrink:0}
 .item-details{flex:1;min-width:0}
 .item-row-name{font-weight:600;font-size:0.88rem;color:#FCECBB;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -345,16 +351,25 @@ function renderMenu() {
     const items = Object.entries(menuItems)
       .filter(([,v]) => v.category === catKey)
       .sort((a,b) => (a[1].order||0) - (b[1].order||0));
+
     const sec = document.createElement('div');
+    sec.dataset.cat = catKey;
+
+    const itemsHtml = items.length
+      ? items.map(([id,item]) => renderItemRow(id,item)).join('')
+      : '';
+
     sec.innerHTML = `
       <div class="section-hdr">
         <div class="section-name">${emoji} <em>${name}</em></div>
         <button class="add-btn" onclick="openModal(null,'${catKey}')">+ Add</button>
       </div>
-      <div>
-        ${items.length
-          ? items.map(([id,item]) => renderItemRow(id,item)).join('')
-          : `<div style="color:#555;font-size:12px;padding:8px 0">No items — click + Add</div>`}
+      <div class="item-list" id="list-${catKey}"
+        ondragover="itemDragOver(event,'${catKey}')"
+        ondragleave="itemDragLeaveList(event)"
+        ondrop="itemDrop(event,'${catKey}')">
+        ${itemsHtml}
+        <div class="cat-drop-zone" id="dz-${catKey}">Drop item here to move to <b>${name}</b></div>
       </div>`;
     container.appendChild(sec);
   });
@@ -363,7 +378,12 @@ function renderMenu() {
 function renderItemRow(id, item) {
   const avail = item.available !== false;
   return `
-    <div class="item-row ${avail?'':'unavailable'}">
+    <div class="item-row ${avail?'':'unavailable'}" id="irow-${id}" draggable="true"
+      ondragstart="itemDragStart(event,'${id}')"
+      ondragover="itemDragOverRow(event,'${id}')"
+      ondragleave="itemDragLeaveRow(event)"
+      ondrop="itemDropOnRow(event,'${id}','${item.category}')">
+      <span class="item-drag-handle" title="Drag to reorder or move category">⠿</span>
       <div class="item-emoji-disp">${item.emoji||'🍽️'}</div>
       <div class="item-details">
         <div class="item-row-name">${item.name}</div>
@@ -376,6 +396,105 @@ function renderItemRow(id, item) {
         <button class="ia ia-del"  onclick="deleteItem('${id}')">Del</button>
       </div>
     </div>`;
+}
+
+// ── ITEM DRAG & DROP ──
+let dragItemId = null;
+
+function itemDragStart(e, id) {
+  dragItemId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => document.getElementById('irow-'+id)?.classList.add('dragging'), 0);
+}
+
+function itemDragOverRow(e, id) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (id !== dragItemId) {
+    document.getElementById('irow-'+id)?.classList.add('drag-item-over');
+  }
+}
+
+function itemDragLeaveRow(e) {
+  e.currentTarget.classList.remove('drag-item-over');
+}
+
+function itemDragOver(e, catKey) {
+  e.preventDefault();
+  document.getElementById('dz-'+catKey)?.classList.add('drag-item-over');
+}
+
+function itemDragLeaveList(e) {
+  // Only fire if leaving the list entirely
+  if (!e.currentTarget.contains(e.relatedTarget)) {
+    e.currentTarget.querySelectorAll('.cat-drop-zone').forEach(dz => dz.classList.remove('drag-item-over'));
+  }
+}
+
+async function itemDropOnRow(e, targetId, targetCat) {
+  e.preventDefault();
+  e.stopPropagation();
+  document.getElementById('irow-'+targetId)?.classList.remove('drag-item-over');
+  document.getElementById('irow-'+dragItemId)?.classList.remove('dragging');
+  if (!dragItemId || dragItemId === targetId) { dragItemId = null; return; }
+
+  const dragItem   = menuItems[dragItemId];
+  const targetItem = menuItems[targetId];
+  if (!dragItem || !targetItem) { dragItemId = null; return; }
+
+  // Get ordered items for the target category
+  const catItems = Object.entries(menuItems)
+    .filter(([,v]) => v.category === targetCat)
+    .sort((a,b) => (a[1].order||0) - (b[1].order||0));
+
+  const targetIdx = catItems.findIndex(([id]) => id === targetId);
+
+  // Reassign order values: insert dragItem before targetItem
+  const batch = db.batch();
+
+  // Remove drag item from its position, insert at target
+  const filtered = catItems.filter(([id]) => id !== dragItemId);
+  filtered.splice(targetIdx, 0, [dragItemId, dragItem]);
+
+  filtered.forEach(([id], idx) => {
+    batch.update(db.collection('menu').doc(id), {
+      order: idx * 10,
+      category: targetCat
+    });
+  });
+
+  await batch.commit();
+  dragItemId = null;
+  toast('Item moved!');
+}
+
+async function itemDrop(e, catKey) {
+  e.preventDefault();
+  document.getElementById('dz-'+catKey)?.classList.remove('drag-item-over');
+  document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+  if (!dragItemId) return;
+
+  const dragItem = menuItems[dragItemId];
+  if (!dragItem) { dragItemId = null; return; }
+
+  if (dragItem.category === catKey) { dragItemId = null; return; }
+
+  // Move to end of target category
+  const catItems = Object.entries(menuItems)
+    .filter(([,v]) => v.category === catKey)
+    .sort((a,b) => (a[1].order||0) - (b[1].order||0));
+
+  const newOrder = catItems.length > 0
+    ? (catItems[catItems.length-1][1].order||0) + 10
+    : 0;
+
+  await db.collection('menu').doc(dragItemId).update({
+    category: catKey,
+    order: newOrder
+  });
+
+  dragItemId = null;
+  toast(`Moved to ${catNames[catKey]||catKey}!`);
 }
 
 // ── MODAL ──
