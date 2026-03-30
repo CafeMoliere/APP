@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Café Molière — Menu Migration</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1A1A1A;color:#fff;font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.box{background:#2A2A2A;border-radius:20px;padding:36px 32px;width:100%;max-width:500px;border:1px solid #333}
+.title{font-size:1.4rem;font-weight:700;color:#FCECBB;margin-bottom:6px}
+.sub{font-size:13px;color:#666;margin-bottom:24px;line-height:1.5}
+.warn{background:rgba(255,94,0,0.1);border:1px solid rgba(255,94,0,0.3);color:#FF5E00;padding:12px 14px;border-radius:8px;font-size:12px;margin-bottom:20px;line-height:1.5}
+.btn{width:100%;padding:15px;background:#FF5E00;color:#fff;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:opacity 0.2s}
+.btn:hover{opacity:0.9}
+.btn:disabled{opacity:0.4;cursor:not-allowed}
+.log{margin-top:20px;background:#1A1A1A;border-radius:10px;padding:14px;max-height:280px;overflow-y:auto;font-size:12px;line-height:1.8;display:none}
+.log-line{padding:2px 0;border-bottom:1px solid #222}
+.log-line.ok{color:#4CAF50}
+.log-line.err{color:#e74c3c}
+.log-line.info{color:#888}
+.done-msg{text-align:center;padding:20px;font-size:14px;color:#4CAF50;font-weight:600;display:none}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="title">Menu Migration Tool</div>
+  <div class="sub">This will upload all your existing menu items to Firebase Firestore so you can manage them from the Admin panel.</div>
+  <div class="warn">⚠️ Run this <b>only once</b>. If you run it again it will create duplicate items. Delete this file after use!</div>
+  <button class="btn" id="migrate-btn" onclick="migrate()">Upload All Menu Items to Firebase</button>
+  <div class="log" id="log"></div>
+  <div class="done-msg" id="done-msg">✅ All done! You can now manage your menu from the Admin panel.<br><br>Please delete this file from your GitHub repo.</div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey:     "AIzaSyANahV1JOHQqEweg6e8i_LvltXNCTW-kIw",
+  authDomain: "cafe-moliere.firebaseapp.com",
+  projectId:  "cafe-moliere",
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ── ALL MENU ITEMS ──
+const ALL_ITEMS = [
+  // HOT DRINKS
+  { emoji:'☕', name:'Expresso',        desc:'Café américain',             price:100000, category:'hot' },
+  { emoji:'☕', name:'Café Libanais',   desc:'Café traditionnel libanais', price:100000, category:'hot' },
+  { emoji:'☕', name:'Mochaccino',      desc:'Espresso, chocolat & lait',  price:150000, category:'hot' },
+  { emoji:'🍵', name:'Thés & Tisanes',  desc:'Sélection de thés chauds',   price:150000, category:'hot' },
+  { emoji:'🍫', name:'Chocolat Chaud',  desc:'Chocolat onctueux et chaud', price:150000, category:'hot' },
+  // COLD DRINKS
+  { emoji:'🥛', name:'Ayran',                desc:'Boisson au yaourt fraîche',     price:100000, category:'cold' },
+  { emoji:'🧋', name:'Ice Tea',              desc:'Thé glacé maison',              price:100000, category:'cold' },
+  { emoji:'💧', name:'Eau Plate',            desc:'Eau minérale plate',            price:50000,  category:'cold' },
+  { emoji:'💧', name:'Eau Pétillante',       desc:'Eau minérale gazeuse',          price:100000, category:'cold' },
+  { emoji:'🥤', name:'Milkshake',            desc:'Milkshake onctueux',            price:100000, category:'cold' },
+  { emoji:'🍋', name:'Limonade Fraîche',     desc:'Limonade pressée maison',       price:150000, category:'cold' },
+  { emoji:'🍊', name:"Jus d'Orange Frais",   desc:"Orange pressée à la minute",   price:150000, category:'cold' },
+  // SNACKS
+  { emoji:'🥐', name:"Croissant Nature — L'Avare",             desc:'Croissant nature pur beurre',           price:150000, category:'snacks' },
+  { emoji:'🌿', name:'Croissant Thym — Harpagon',              desc:'Croissant au thym',                     price:150000, category:'snacks' },
+  { emoji:'🧀', name:'Croissant Fromage — Le Valet',           desc:'Croissant au fromage',                  price:150000, category:'snacks' },
+  { emoji:'🍫', name:"Pain au Chocolat — L'Intendant",         desc:'Pain au chocolat feuilleté',            price:150000, category:'snacks' },
+  { emoji:'🫓', name:"Mané2touché Thym — La Désargentée",      desc:'Mané2touché au thym · Extra LL 150,000',price:120000, category:'snacks' },
+  { emoji:'🧀', name:"Mané2touché Fromage — L'Embourgeoisée",  desc:'Mané2touché au fromage · Extra LL 250,000',price:200000,category:'snacks'},
+  { emoji:'🫙', name:'Moelleux Labné',        desc:'Moelleux garni au labné',          price:100000, category:'snacks' },
+  { emoji:'🍫', name:'Moelleux Chocolat',     desc:'Moelleux au chocolat fondant',     price:100000, category:'snacks' },
+  { emoji:'🧀', name:'Moelleux Halloumi',     desc:'Moelleux au halloumi grillé',      price:100000, category:'snacks' },
+  { emoji:'🍫', name:'Crêpe Chocolat — Jean-Baptiste',   desc:'Crêpe au chocolat',          price:350000, category:'snacks' },
+  { emoji:'🍌', name:'Crêpe Choco-Banane — Poquelin',    desc:'Crêpe chocolat et banane',   price:400000, category:'snacks' },
+  { emoji:'🥦', name:'Assiette Crudités',  desc:'Légumes frais de saison',      price:100000, category:'snacks' },
+  { emoji:'🌰', name:'Noix Crues',         desc:'Mélange de noix fraîches',     price:250000, category:'snacks' },
+  { emoji:'🍿', name:'Pop Corn',           desc:'Pop corn maison',              price:150000, category:'snacks' },
+  { emoji:'🍎', name:'Fruit de Saison',    desc:'Un fruit frais du jour',       price:50000,  category:'snacks' },
+  // MAINS
+  { emoji:'🥗', name:'Salade Crabe — La Précieuse',          desc:'Salade au crabe · Mini LL 250,000',       price:450000, category:'mains' },
+  { emoji:'🥗', name:'Salade Pâtes Thon — Le Vicomte',       desc:'Pâtes au thon · Mini LL 250,000',         price:450000, category:'mains' },
+  { emoji:'🥗', name:'Salade César Poulet — Le Marquis',     desc:'César au poulet · Mini LL 250,000',       price:450000, category:'mains' },
+  { emoji:'🥗', name:'Salade Grecque — La Galante',          desc:'Salade grecque classique · Mini LL 250,000',price:450000,category:'mains'},
+  { emoji:'🥪', name:"Sandwich Dinde Fromage — L'Aristocrate",desc:'Dinde et fromage froids',                price:400000, category:'mains' },
+  { emoji:'🥪', name:'Sandwich Feta Tomates — Elvire',       desc:'Feta et tomates fraîches',               price:400000, category:'mains' },
+  { emoji:'🥪', name:'Sandwich Halloumi Pesto — Sganarelle', desc:'Halloumi grillé et pesto',               price:400000, category:'mains' },
+  { emoji:'🥪', name:'Sandwich Poulet Avocat — Don Carlos',  desc:'Poulet et avocat frais',                 price:400000, category:'mains' },
+  { emoji:'🥪', name:'Club Sandwich — Le Commandeur',        desc:'Club sandwich classique',                price:350000, category:'mains' },
+  { emoji:'🥙', name:'Sandwich Rôti — Le Classique',         desc:'Sandwich chaud au rôti',                 price:450000, category:'mains' },
+  { emoji:'🥙', name:'Chich Taouk — Le Comique',             desc:'Sandwich chaud chich taouk',             price:450000, category:'mains' },
+  { emoji:'🥙', name:'Honey Mustard Chicken — Le Tragique',  desc:'Poulet sauce honey mustard chaud',       price:450000, category:'mains' },
+  { emoji:'🍔', name:'Burger Viande — Le Hambourgeois',      desc:'Burger au bœuf',                         price:500000, category:'mains' },
+  { emoji:'🍔', name:'Burger Poulet — Le Gentilhomme',       desc:'Burger au poulet',                       price:500000, category:'mains' },
+  { emoji:'🍗', name:'Chicken Strips — Les Jourdains',       desc:'Strips poulet sauce honey mustard',      price:400000, category:'mains' },
+  { emoji:'🍟', name:'Frites',                               desc:'Frites maison croustillantes',           price:200000, category:'mains' },
+  { emoji:'🍝', name:'Pâtes Beurre-Parmesan — Bélise',       desc:'Pâtes au beurre et parmesan',            price:400000, category:'mains' },
+  { emoji:'🍝', name:'Pâtes Sauce Rosée — Armande',          desc:'Pâtes à la sauce rosée',                 price:400000, category:'mains' },
+  { emoji:'🍝', name:'Pâtes Sauce Tomate — Henriette',       desc:'Pâtes à la tomate',                      price:400000, category:'mains' },
+  { emoji:'🍝', name:"Pâtes à la Crème — L'Intellectuelle",  desc:'Pâtes à la crème fraîche',               price:400000, category:'mains' },
+  { emoji:'🧀', name:"Mac & Cheese — L'Érudite",             desc:'Macaroni au fromage',                    price:250000, category:'mains' },
+  { emoji:'🍕', name:'Pizza Libanaise — Octave',             desc:'Pizza libanaise · Mini LL 200,000',      price:500000, category:'mains' },
+  { emoji:'🍕', name:'Pizza Pepperoni — Silvestre',          desc:'Pizza pepperoni',                        price:500000, category:'mains' },
+  { emoji:'🍕', name:'Pizza Margherita — Naples',            desc:'Pizza margherita classique',             price:450000, category:'mains' },
+  { emoji:'🍲', name:'Soupe du Jour — Malade Imaginaire',    desc:'Soupe ou velouté du jour',               price:300000, category:'mains' },
+  { emoji:'🌿', name:'Plat Végétarien — Tartuffe',           desc:'Plat du jour végétarien',                price:500000, category:'mains' },
+  { emoji:'🥩', name:'Plat Protéiné — Tartuffe',             desc:'Plat du jour protéiné',                  price:600000, category:'mains' },
+  // DESSERTS
+  { emoji:'🍓', name:'Salade de Fruits Frais',               desc:'Fruits frais de saison',                 price:250000, category:'desserts' },
+  { emoji:'🍮', name:'Jello',                                desc:'Gelée maison',                           price:150000, category:'desserts' },
+  { emoji:'🍮', name:'Custard',                              desc:'Crème anglaise onctueuse',               price:150000, category:'desserts' },
+  { emoji:'🍰', name:'Lazy Cake',                            desc:'Gâteau biscuits et chocolat',            price:200000, category:'desserts' },
+  { emoji:'🍫', name:'Brownies',                             desc:'Brownies au chocolat fondant',           price:200000, category:'desserts' },
+  { emoji:'🧁', name:'Muffins',                              desc:'Muffins moelleux du jour',               price:200000, category:'desserts' },
+  { emoji:'🍩', name:'Donuts',                               desc:'Donuts glacés maison',                   price:200000, category:'desserts' },
+  { emoji:'🎂', name:'Cheesecake',                           desc:'Cheesecake crémeux',                     price:250000, category:'desserts' },
+  { emoji:'🍪', name:'Cookies',                              desc:'Cookies maison croustillants',           price:200000, category:'desserts' },
+  { emoji:'🍫', name:'Tarte au Chocolat',                    desc:'Tarte chocolat maison',                  price:250000, category:'desserts' },
+  { emoji:'🍞', name:'Cakes — Marbré / Orange / Brioche',   desc:'Sous cloche ou en sachet',               price:150000, category:'desserts' },
+  { emoji:'🍶', name:'Yaourts aux Fruits',                   desc:'Yaourt avec fruits frais',               price:150000, category:'desserts' },
+  { emoji:'🍶', name:'Yaourts Nature',                       desc:'Yaourt nature frais',                    price:150000, category:'desserts' },
+];
+
+function log(msg, type='info') {
+  const logEl = document.getElementById('log');
+  logEl.style.display = 'block';
+  const line = document.createElement('div');
+  line.className = `log-line ${type}`;
+  line.textContent = msg;
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+async function migrate() {
+  const btn = document.getElementById('migrate-btn');
+  btn.disabled = true;
+  btn.textContent = 'Uploading...';
+
+  log(`Starting upload of ${ALL_ITEMS.length} items...`, 'info');
+
+  let success = 0, failed = 0;
+
+  for (let i = 0; i < ALL_ITEMS.length; i++) {
+    const item = { ...ALL_ITEMS[i], available: true, order: i };
+    try {
+      await db.collection('menu').add(item);
+      log(`✓ ${item.name}`, 'ok');
+      success++;
+    } catch(e) {
+      log(`✗ ${item.name}: ${e.message}`, 'err');
+      failed++;
+    }
+  }
+
+  log(`─────────────────────`, 'info');
+  log(`Done! ${success} uploaded, ${failed} failed.`, success === ALL_ITEMS.length ? 'ok' : 'err');
+
+  document.getElementById('done-msg').style.display = 'block';
+  btn.textContent = 'Done!';
+}
+</script>
+</body>
+</html>
