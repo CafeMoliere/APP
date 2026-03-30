@@ -967,8 +967,11 @@ async function loadMenu() {
 }
 
 function showSpecial(s) {
+  const specialId = 'special-item';
+  cart[specialId] = cart[specialId] || 0;
   const main = document.querySelector('main');
   const specialDiv = document.createElement('div');
+  specialDiv.id = 'special-section';
   specialDiv.style.cssText = 'margin:16px 20px 0;padding:14px 16px;background:#FF5E00;border-radius:14px;display:flex;align-items:center;gap:12px;';
   specialDiv.innerHTML = `
     <div style="font-size:1.8rem">${s.emoji||'⭐'}</div>
@@ -977,9 +980,98 @@ function showSpecial(s) {
       <div style="font-weight:700;color:#FCECBB;font-size:1rem">${s.name}</div>
       <div style="font-size:11px;color:rgba(252,236,187,0.7)">${s.desc||''}</div>
     </div>
-    <div style="font-weight:700;color:#FCECBB;font-size:0.95rem;white-space:nowrap">LL ${Number(s.price).toLocaleString()}</div>
-  `;
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+      <div style="font-weight:700;color:#FCECBB;font-size:0.9rem">LL ${Number(s.price).toLocaleString()}</div>
+      <div style="display:flex;align-items:center;gap:8px;background:rgba(252,236,187,0.2);border:1px solid rgba(252,236,187,0.3);border-radius:50px;padding:3px 8px;">
+        <button style="width:20px;height:20px;border:none;background:none;cursor:pointer;font-size:16px;color:#FCECBB;display:flex;align-items:center;justify-content:center;border-radius:50%;line-height:1;" onclick="changeSpecialQty(-1,'${specialId}','${s.name}',${s.price})">−</button>
+        <span id="qty-${specialId}" style="font-size:12px;font-weight:500;color:#FCECBB;min-width:12px;text-align:center;">${cart[specialId]||0}</span>
+        <button style="width:20px;height:20px;border:none;background:none;cursor:pointer;font-size:16px;color:#FCECBB;display:flex;align-items:center;justify-content:center;border-radius:50%;line-height:1;" onclick="changeSpecialQty(1,'${specialId}','${s.name}',${s.price})">+</button>
+      </div>
+    </div>`;
   main.prepend(specialDiv);
+
+  // Store special as a findable item
+  window._specialItem = { id: specialId, name: s.name, price: s.price, emoji: s.emoji||'⭐', desc: s.desc||'' };
+}
+
+function changeSpecialQty(delta, id, name, price) {
+  cart[id] = Math.max(0, (cart[id] || 0) + delta);
+  const el = document.getElementById('qty-' + id);
+  if (el) el.textContent = cart[id];
+  updateCart();
+}
+
+// Override findItem to also check special
+const _origFindItem = findItem;
+function findItem(id) {
+  if (id === 'special-item' && window._specialItem) return window._specialItem;
+  return _origFindItem(id);
+}
+
+// ── LOAD MENU FROM FIRESTORE (dynamic categories) ──
+async function loadMenu() {
+  try {
+    // Load categories config from Firestore
+    let catOrder = ['hot','cold','snacks','mains','desserts'];
+    let catNames = { hot:'Boissons Chaudes', cold:'Boissons Froides', snacks:'Snacks & Viennoiseries', mains:'Plats Principaux', desserts:'Desserts' };
+    let catEmojis = { hot:'☕', cold:'🧊', snacks:'🥐', mains:'🍽️', desserts:'🍰' };
+
+    const catDoc = await db.collection('settings').doc('categories').get();
+    if (catDoc.exists) {
+      const cd = catDoc.data();
+      if (cd.order)  catOrder  = cd.order;
+      if (cd.names)  catNames  = cd.names;
+      if (cd.emojis) catEmojis = cd.emojis;
+    }
+
+    // Build tabs and sections dynamically
+    const tabsEl  = document.querySelector('.tabs');
+    const mainEl  = document.querySelector('main');
+    tabsEl.innerHTML  = '';
+    mainEl.innerHTML  = '';
+
+    catOrder.forEach((key, i) => {
+      MENU[key] = [];
+      // Tab
+      const tab = document.createElement('div');
+      tab.className = 'tab' + (i === 0 ? ' active' : '');
+      tab.textContent = (catEmojis[key]||'') + ' ' + (catNames[key]||key);
+      tab.onclick = function(e) { showSection(key); e.target.classList.add('active'); };
+      tabsEl.appendChild(tab);
+      // Section
+      const sec = document.createElement('div');
+      sec.className = 'section' + (i === 0 ? ' active' : '');
+      sec.id = 'sec-' + key;
+      const [first, ...rest] = (catNames[key]||key).split(' ');
+      sec.innerHTML = `
+        <div class="section-header">
+          <h2 class="section-title">${first} <em>${rest.join(' ')}</em></h2>
+          <div class="section-line"></div>
+        </div>
+        <div id="items-${key}"></div>`;
+      mainEl.appendChild(sec);
+    });
+
+    // Load items
+    const snapshot = await db.collection('menu').get();
+    snapshot.forEach(doc => {
+      const item = { id: doc.id, ...doc.data() };
+      if (item.available === false) return;
+      if (!MENU[item.category]) MENU[item.category] = [];
+      MENU[item.category].push(item);
+    });
+
+    Object.keys(MENU).forEach(cat => MENU[cat].sort((a,b) => (a.order||0) - (b.order||0)));
+
+    // Load plat du jour
+    const special = await db.collection('settings').doc('special').get();
+    if (special.exists && special.data().available !== false) showSpecial(special.data());
+
+    catOrder.forEach(renderSection);
+    updateCart();
+  } catch(e) {
+    console.error('Failed to load menu:', e);
+  }
 }
 
 // Clear hardcoded menu and load from Firestore

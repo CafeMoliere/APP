@@ -231,8 +231,9 @@ body{background:#1A1A1A;color:#fff;font-family:'DM Sans',sans-serif;min-height:1
       <button class="htbtn htbtn-del" onclick="confirmClearAll()">Clear All</button>
     </div>
     <div class="history-toolbar-right">
+      <button class="htbtn htbtn-xls" onclick="exportExcel(true)">⬇ Export Selected</button>
+      <button class="htbtn htbtn-xls" onclick="exportExcel(false)">⬇ Export All</button>
       <button class="htbtn htbtn-pdf" onclick="exportPDF()">⬇ PDF</button>
-      <button class="htbtn htbtn-xls" onclick="exportExcel()">⬇ Excel</button>
     </div>
   </div>
   <div id="history-content"></div>
@@ -362,9 +363,14 @@ function exportPDF() {
 }
 
 // ── EXPORT EXCEL ──
-function exportExcel() {
+function exportExcel(selectedOnly) {
+  let toExport = Object.entries(historyOrders);
+  if (selectedOnly) {
+    toExport = toExport.filter(([id]) => selectedItems.has(id));
+    if (!toExport.length) { alert('No items selected. Please select orders to export.'); return; }
+  }
   const rows = [['Date','Time','Name','Phone','Address','Items','Total (LL)']];
-  Object.values(historyOrders).forEach(o => {
+  toExport.forEach(([,o]) => {
     const itemStr = (o.items||[]).map(i => `${i.name} x${i.qty}`).join(', ');
     rows.push([o.date||'', o.time||'', o.name||'', o.phone||'', o.address||'', itemStr, o.total||0]);
   });
@@ -372,7 +378,19 @@ function exportExcel() {
   ws['!cols'] = [{wch:12},{wch:8},{wch:20},{wch:14},{wch:25},{wch:40},{wch:14}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'History');
-  XLSX.writeFile(wb, `cafe-moliere-history-${new Date().toISOString().slice(0,10)}.xlsx`);
+  const suffix = selectedOnly ? '-selected' : '-all';
+  XLSX.writeFile(wb, `cafe-moliere-history${suffix}-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ── SELECT DAY ──
+function selectDay(date, checked) {
+  const entries = Object.entries(historyOrders).filter(([,o]) => (o.date||'Unknown date') === date);
+  entries.forEach(([id]) => {
+    if (checked) selectedItems.add(id);
+    else selectedItems.delete(id);
+  });
+  document.getElementById('sel-count').textContent = selectedItems.size;
+  renderHistory();
 }
 
 // ── RENDER CARD ──
@@ -453,10 +471,12 @@ function renderHistory() {
   if (!hCount) { container.innerHTML = '<div class="history-empty">No history yet</div>'; return; }
 
   container.innerHTML = Object.entries(byDate).sort((a,b) => b[0].localeCompare(a[0])).map(([date, entries]) => {
-    const isOpen = openDays.has(date);
+    const isOpen   = openDays.has(date);
     const dayTotal = entries.reduce((s,[,o]) => s + (o.total||0), 0);
+    const allDaySelected = entries.every(([id]) => selectedItems.has(id));
+
     const items = entries.map(([id,o]) => {
-      const iOpen = openHistoryItems.has(id);
+      const iOpen      = openHistoryItems.has(id);
       const isSelected = selectedItems.has(id);
       return `
         <div class="history-item">
@@ -477,10 +497,15 @@ function renderHistory() {
 
     return `
       <div class="history-day">
-        <div class="history-day-header" onclick="toggleDay('${date}')">
-          <span class="history-day-title">📅 ${date}</span>
-          <div class="history-day-meta">
-            <span class="history-day-count">${entries.length} order${entries.length>1?'s':''} · ${formatLL(dayTotal)}</span>
+        <div class="history-day-header">
+          <div style="display:flex;align-items:center;gap:10px;flex:1" onclick="toggleDay('${date}')">
+            <input type="checkbox" style="width:15px;height:15px;accent-color:#FF5E00;flex-shrink:0;cursor:pointer"
+              ${allDaySelected?'checked':''} onclick="event.stopPropagation();selectDay('${date}',this.checked)">
+            <span class="history-day-title">📅 ${date}</span>
+          </div>
+          <div class="history-day-meta" onclick="toggleDay('${date}')">
+            <span class="history-day-count">${entries.length} order${entries.length>1?'s':''}</span>
+            <span style="color:#FF5E00;font-weight:700;font-size:12px;margin-left:6px">${formatLL(dayTotal)}</span>
             <span class="history-day-chevron ${isOpen?'open':''}">▼</span>
           </div>
         </div>
