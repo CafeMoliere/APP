@@ -532,8 +532,8 @@ footer {
 /* ── ANIMATIONS ── */
 .reveal {
   opacity: 0;
-  transform: translateY(30px);
-  transition: opacity 0.8s ease, transform 0.8s ease;
+  transform: translateY(24px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
 }
 
 .reveal.visible {
@@ -561,7 +561,7 @@ footer {
     </a>
     <!-- Auth buttons -->
     <div id="nav-auth">
-      <button class="nav-btn secondary" id="nav-login-btn" onclick="doLogin()" style="display:none">
+      <button class="nav-btn secondary" id="nav-login-btn" onclick="doLogin()">
         Connexion Staff
       </button>
       <button class="nav-btn secondary" id="nav-logout-btn" onclick="doLogout()" style="display:none">
@@ -759,10 +759,19 @@ window.addEventListener('scroll', () => {
 });
 
 // ── SCROLL REVEAL ──
-const observer = new IntersectionObserver(entries => {
-  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
-}, { threshold: 0.12 });
-document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+const revealAll = () => document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
+
+if ('IntersectionObserver' in window) {
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.05, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  // Fallback: reveal everything after 3s in case observer fails
+  setTimeout(revealAll, 3000);
+} else {
+  // No IntersectionObserver support - reveal all immediately
+  revealAll();
+}
 
 // ── AUTH ──
 function doLogin() {
@@ -791,11 +800,10 @@ auth.onAuthStateChanged(user => {
   const isStaff = user && user.email && user.email.endsWith('@cafemoliere.com');
 
   // Navbar
-  document.getElementById('nav-login-btn').style.display  = isStaff ? 'none'         : 'inline-flex';
-  document.getElementById('nav-logout-btn').style.display = isStaff ? 'inline-flex'  : 'none';
+  document.getElementById('nav-login-btn').style.display  = isStaff ? 'none'        : 'inline-flex';
+  document.getElementById('nav-logout-btn').style.display = isStaff ? 'inline-flex' : 'none';
   if (isStaff) {
-    const name = user.email.split('@')[0];
-    document.getElementById('nav-user-name').textContent = name;
+    document.getElementById('nav-user-name').textContent = user.email.split('@')[0];
   }
 
   // Staff portal
@@ -803,11 +811,6 @@ auth.onAuthStateChanged(user => {
   document.getElementById('portal-logged-in').style.display  = isStaff ? 'block' : 'none';
   if (isStaff) {
     document.getElementById('portal-email').textContent = user.email;
-  }
-
-  // Show login btn after auth check
-  if (!user) {
-    document.getElementById('nav-login-btn').style.display = 'inline-flex';
   }
 });
 </script>
