@@ -6,9 +6,9 @@
 <title>Café Molière — Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -261,9 +261,19 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 
-// ── APP CHECK (reCAPTCHA v3) ──
-const appCheck = firebase.appCheck();
-appCheck.activate('6LfyGp8sAAAAAKzKqpkNNEV_Xm0VpcUqIgZNu2hl', true);
+// ── APP CHECK ──
+try {
+  const appCheck = firebase.appCheck();
+  appCheck.activate(
+    new firebase.appCheck.ReCaptchaV3Provider('6LfyGp8sAAAAAKzKqpkNNEV_Xm0VpcUqIgZNu2hl'),
+    true
+  );
+} catch(e) { console.warn('AppCheck:', e); }
+
+
+} catch(e) {
+  console.warn('App Check init error:', e);
+}
 const db = firebase.firestore();
 
 // ── STATE ──
