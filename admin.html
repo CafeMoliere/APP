@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Café Molière — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1A1A1A;color:#fff;font-family:'DM Sans',sans-serif;min-height:100vh}
+.login-screen{position:fixed;inset:0;background:#1A1A1A;display:flex;align-items:center;justify-content:center;z-index:9999;padding:24px}
+.login-screen.hidden{display:none}
+.login-box{background:#2A2A2A;border-radius:20px;padding:40px 32px;width:100%;max-width:380px;border:1px solid #333}
+.login-title{font-family:'Playfair Display',serif;font-size:1.8rem;color:#FCECBB;text-align:center}
+.login-title em{font-style:italic;color:#FF5E00}
+.login-sub{font-size:11px;color:#555;letter-spacing:0.12em;text-transform:uppercase;margin:4px 0 4px;text-align:center}
+.login-bar{width:40px;height:2px;background:#FF5E00;margin:12px auto 24px;border-radius:2px}
+.login-error{background:rgba(255,94,0,0.1);border:1px solid rgba(255,94,0,0.3);color:#FF5E00;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:16px;display:none}
+.ms-btn{width:100%;padding:14px;background:#fff;color:#333;border:1.5px solid #ddd;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px}
+.ms-btn:hover{background:#f5f5f5}
+.ms-btn:disabled{opacity:0.5;cursor:not-allowed}
+.header{background:#FF5E00;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.header-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:#fff;font-weight:400}
+.header-title em{font-style:italic}
+.logout-btn{background:none;border:1px solid rgba(255,255,255,0.4);color:#fff;padding:5px 12px;border-radius:20px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.tabs{display:flex;background:#222;border-bottom:1px solid #333;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:13px 20px;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#555;background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;white-space:nowrap}
+.tab.active{color:#FF5E00;border-bottom-color:#FF5E00}
+.content{max-width:900px;margin:0 auto;padding:20px 16px 80px}
+.card{background:#2A2A2A;border-radius:14px;padding:20px;border:1px solid #333;margin-bottom:16px}
+.card-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:#FCECBB;margin-bottom:4px}
+.card-title em{font-style:italic;color:#FF5E00}
+.card-sub{font-size:11px;color:#666;margin-bottom:16px}
+.field-label{font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin-bottom:5px;display:block;margin-top:12px}
+.field-label:first-of-type{margin-top:0}
+.fi{width:100%;padding:11px 13px;background:#1A1A1A;border:1.5px solid #333;border-radius:9px;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color 0.2s}
+.fi:focus{border-color:#FF5E00}
+.fi::placeholder{color:#444}
+.fi-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:500px){.fi-row{grid-template-columns:1fr}}
+.save-btn{padding:10px 20px;background:#FF5E00;color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;margin-top:14px;transition:opacity 0.2s}
+.save-btn:hover{opacity:0.85}
+.section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;margin-top:20px}
+.section-name{font-family:'Playfair Display',serif;font-size:1.1rem;color:#FCECBB}
+.section-name em{font-style:italic;color:#FF5E00}
+.add-btn{background:#FF5E00;color:#fff;border:none;border-radius:8px;padding:7px 13px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer}
+.item-row{background:#2A2A2A;border-radius:10px;padding:11px 13px;margin-bottom:7px;display:flex;align-items:center;gap:10px;border:1px solid #333;transition:border-color 0.15s,transform 0.15s,opacity 0.15s}
+.item-row.unavailable{opacity:0.4}
+.item-row.dragging{opacity:0.4;transform:scale(0.98)}
+.item-row.drag-item-over{border-color:#FF5E00;background:#333}
+.item-drag-handle{color:#444;font-size:15px;cursor:grab;padding:0 2px;user-select:none;flex-shrink:0}
+.item-drag-handle:hover{color:#666}
+.cat-drop-zone{min-height:36px;border:2px dashed #333;border-radius:8px;margin-bottom:7px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#444;transition:border-color 0.15s,background 0.15s}
+.cat-drop-zone.drag-item-over{border-color:#FF5E00;background:rgba(255,94,0,0.05);color:#FF5E00}
+.item-emoji-disp{font-size:1.4rem;width:34px;text-align:center;flex-shrink:0}
+.item-details{flex:1;min-width:0}
+.item-row-name{font-weight:600;font-size:0.88rem;color:#FCECBB;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-row-desc{font-size:11px;color:#555;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-row-price{font-weight:700;color:#FF5E00;font-size:0.85rem;white-space:nowrap;flex-shrink:0}
+.item-actions{display:flex;gap:5px;flex-shrink:0}
+.ia{padding:5px 9px;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
+.ia-toggle{background:#333;color:#888}
+.ia-toggle.on{color:#4CAF50}
+.ia-edit{background:#333;color:#FCECBB}
+.ia-del{background:rgba(192,57,43,0.2);color:#e74c3c}
+/* CATEGORY ROW */
+.cat-row{background:#1A1A1A;border-radius:9px;padding:10px 13px;margin-bottom:7px;display:flex;align-items:center;gap:10px;border:1px solid #2A2A2A;cursor:grab;transition:background 0.15s,transform 0.15s}
+.cat-row:active{cursor:grabbing}
+.cat-row.drag-over{border-color:#FF5E00;background:#222;transform:scale(1.01)}
+.cat-drag-handle{color:#444;font-size:16px;cursor:grab;padding:0 4px;user-select:none;flex-shrink:0}
+.cat-emoji-input{width:52px;padding:8px;background:#222;border:1.5px solid #333;border-radius:7px;color:#fff;font-size:14px;text-align:center;outline:none}
+.cat-name-input{flex:1;padding:8px 11px;background:#222;border:1.5px solid #333;border-radius:7px;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;outline:none}
+.cat-name-input:focus,.cat-emoji-input:focus{border-color:#FF5E00}
+.cat-del{padding:7px 10px;background:rgba(192,57,43,0.15);color:#e74c3c;border:none;border-radius:7px;cursor:pointer;font-size:13px}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.3s}
+.modal-overlay.visible{opacity:1;pointer-events:auto}
+.modal{background:#222;border-radius:20px 20px 0 0;padding:26px 22px 34px;width:100%;max-width:500px;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.34,1.2,0.64,1)}
+.modal-overlay.visible .modal{transform:translateY(0)}
+.modal-handle{width:36px;height:3px;background:#444;border-radius:2px;margin:0 auto 18px}
+.modal-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:#FCECBB;margin-bottom:14px}
+.modal-title em{font-style:italic;color:#FF5E00}
+.modal-actions{display:flex;gap:8px;margin-top:6px}
+.modal-save{flex:1;padding:13px;background:#FF5E00;color:#fff;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer}
+.modal-cancel-btn{padding:13px 18px;background:#333;color:#888;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#FF5E00;color:#fff;padding:11px 20px;border-radius:10px;font-size:13px;font-weight:500;z-index:999;animation:toastIn 0.3s ease;white-space:nowrap}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+</style>
+</head>
+<body>
+
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div class="login-title">Café <em>Molière</em></div>
+    <div class="login-sub">Admin Panel</div>
+    <div class="login-bar"></div>
+    <div class="login-error" id="login-error"></div>
+    <button class="ms-btn" id="login-btn" onclick="doLogin()">
+      <svg width="20" height="20" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+        <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+        <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+        <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+      </svg>
+      Sign in with Microsoft
+    </button>
+    <p style="text-align:center;font-size:11px;color:#555;margin-top:14px">Only @cafemoliere.com accounts</p>
+  </div>
+</div>
+
+<div id="admin-content" style="display:none">
+<div class="header">
+  <div class="header-title">Café <em>Molière</em> — Admin</div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <span id="user-email" style="font-size:11px;color:rgba(255,255,255,0.6)"></span>
+    <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('menu',this)">🍽️ Menu Items</button>
+  <button class="tab" onclick="switchTab('categories',this)">📂 Categories</button>
+  <button class="tab" onclick="switchTab('special',this)">⭐ Plat du Jour</button>
+</div>
+
+<!-- MENU TAB -->
+<div id="tab-menu" class="content">
+  <div id="menu-sections"></div>
+</div>
+
+<!-- CATEGORIES TAB -->
+<div id="tab-categories" class="content" style="display:none">
+  <div class="card">
+    <div class="card-title">📂 Manage <em>Categories</em></div>
+    <div class="card-sub">Add, rename, reorder or delete categories. Changes reflect immediately on the menu page.</div>
+    <div id="cat-list"></div>
+    <button class="save-btn" onclick="addCategory()">+ Add Category</button>
+    <button class="save-btn" style="background:#333;color:#FCECBB;margin-left:8px" onclick="saveCategories()">Save All Changes</button>
+  </div>
+</div>
+
+<!-- SPECIAL TAB -->
+<div id="tab-special" class="content" style="display:none">
+  <div class="card" style="border-color:#FF5E00">
+    <div class="card-title">⭐ Plat du <em>Jour</em></div>
+    <div class="card-sub">Appears highlighted at the top of the customer menu with +/- quantity buttons</div>
+    <div class="fi-row">
+      <div>
+        <label class="field-label">Item Name</label>
+        <input class="fi" id="sp-name" placeholder="e.g. Poulet rôti aux herbes" />
+      </div>
+      <div>
+        <label class="field-label">Price (LL)</label>
+        <input class="fi" id="sp-price" type="number" placeholder="500000" />
+      </div>
+    </div>
+    <label class="field-label">Description</label>
+    <input class="fi" id="sp-desc" placeholder="Short description of today's special" />
+    <div class="fi-row" style="margin-top:0">
+      <div>
+        <label class="field-label">Emoji</label>
+        <input class="fi" id="sp-emoji" placeholder="⭐" maxlength="4" />
+      </div>
+      <div>
+        <label class="field-label">Status</label>
+        <select class="fi" id="sp-available">
+          <option value="true">Available</option>
+          <option value="false">Hidden</option>
+        </select>
+      </div>
+    </div>
+    <button class="save-btn" onclick="saveSpecial()">Save Plat du Jour</button>
+    <div id="special-preview" style="margin-top:16px;padding:12px;background:#1A1A1A;border-radius:8px;font-size:12px;color:#888;display:none"></div>
+  </div>
+</div>
+</div>
+
+<!-- ITEM MODAL -->
+<div class="modal-overlay" id="item-modal" onclick="handleModalClick(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title">Add <em>Item</em></div>
+    <div class="fi-row">
+      <div>
+        <label class="field-label">Emoji</label>
+        <input class="fi" id="f-emoji" placeholder="🍕" maxlength="4" />
+      </div>
+      <div>
+        <label class="field-label">Category</label>
+        <select class="fi" id="f-cat"></select>
+      </div>
+    </div>
+    <label class="field-label">Item Name</label>
+    <input class="fi" id="f-name" placeholder="e.g. Cappuccino" style="margin-bottom:10px" />
+    <label class="field-label">Description</label>
+    <input class="fi" id="f-desc" placeholder="Short description" style="margin-bottom:10px" />
+    <label class="field-label">Price (LL)</label>
+    <input class="fi" id="f-price" type="number" placeholder="150000" style="margin-bottom:14px" />
+    <input type="hidden" id="f-id" />
+    <div class="modal-actions">
+      <button class="modal-save" onclick="saveItem()">Save Item</button>
+      <button class="modal-cancel-btn" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey:     "AIzaSyANahV1JOHQqEweg6e8i_LvltXNCTW-kIw",
+  authDomain: "cafe-moliere.firebaseapp.com",
+  projectId:  "cafe-moliere",
+};
+firebase.initializeApp(firebaseConfig);
+const db   = firebase.firestore();
+const auth = firebase.auth();
+
+let menuItems  = {};
+let catOrder   = ['hot','cold','snacks','mains','desserts'];
+let catNames   = { hot:'Boissons Chaudes', cold:'Boissons Froides', snacks:'Snacks & Viennoiseries', mains:'Plats Principaux', desserts:'Desserts' };
+let catEmojis  = { hot:'☕', cold:'🧊', snacks:'🥐', mains:'🍽️', desserts:'🍰' };
+
+// ── TABS ──
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  ['menu','categories','special'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t === name ? 'block' : 'none';
+  });
+}
+
+// ── TOAST ──
+function toast(msg) {
+  document.querySelector('.toast')?.remove();
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2500);
+}
+
+// ── CATEGORIES ──
+async function loadCategories() {
+  const doc = await db.collection('settings').doc('categories').get();
+  if (doc.exists) {
+    const d = doc.data();
+    if (d.order)  catOrder  = d.order;
+    if (d.names)  catNames  = d.names;
+    if (d.emojis) catEmojis = d.emojis;
+  }
+  renderCategoryList();
+  populateCatSelect();
+}
+
+function renderCategoryList() {
+  const list = document.getElementById('cat-list');
+  list.innerHTML = catOrder.map(key => `
+    <div class="cat-row" id="catrow-${key}" draggable="true" ondragstart="dragStart(event,'${key}')" ondragover="dragOver(event,'${key}')" ondragleave="dragLeave(event)" ondrop="dragDrop(event,'${key}')">
+      <span class="cat-drag-handle" title="Drag to reorder">⠿</span>
+      <input class="cat-emoji-input" id="ce-${key}" value="${catEmojis[key]||''}" placeholder="☕" maxlength="4" />
+      <input class="cat-name-input"  id="cn-${key}" value="${catNames[key]||key}" placeholder="Category name" />
+      <button class="cat-del" onclick="deleteCategory('${key}')" title="Delete">🗑</button>
+    </div>`).join('');
+}
+
+// ── DRAG & DROP ──
+let dragKey = null;
+
+function dragStart(e, key) {
+  dragKey = key;
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function dragOver(e, key) {
+  e.preventDefault();
+  if (key !== dragKey) {
+    document.getElementById('catrow-'+key)?.classList.add('drag-over');
+  }
+}
+
+function dragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function dragDrop(e, targetKey) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!dragKey || dragKey === targetKey) return;
+  const fromIdx = catOrder.indexOf(dragKey);
+  const toIdx   = catOrder.indexOf(targetKey);
+  catOrder.splice(fromIdx, 1);
+  catOrder.splice(toIdx, 0, dragKey);
+  dragKey = null;
+  renderCategoryList();
+  toast('Order changed — click Save to apply');
+}
+
+function addCategory() {
+  const key = 'cat_' + Date.now();
+  catOrder.push(key);
+  catNames[key]  = 'New Category';
+  catEmojis[key] = '📋';
+  renderCategoryList();
+  document.getElementById('cn-'+key).focus();
+  document.getElementById('cn-'+key).select();
+}
+
+async function deleteCategory(key) {
+  const itemsInCat = Object.values(menuItems).filter(i => i.category === key);
+  if (itemsInCat.length > 0) {
+    if (!confirm(`This category has ${itemsInCat.length} item(s). Delete anyway? Items will still exist in the database but won't show on the menu.`)) return;
+  } else {
+    if (!confirm('Delete this category?')) return;
+  }
+  catOrder = catOrder.filter(k => k !== key);
+  delete catNames[key];
+  delete catEmojis[key];
+  renderCategoryList();
+  toast('Category removed — click Save to apply');
+}
+
+async function saveCategories() {
+  // Read current values from inputs
+  catOrder.forEach(key => {
+    const nameEl  = document.getElementById('cn-'+key);
+    const emojiEl = document.getElementById('ce-'+key);
+    if (nameEl)  catNames[key]  = nameEl.value.trim()  || key;
+    if (emojiEl) catEmojis[key] = emojiEl.value.trim() || '';
+  });
+  await db.collection('settings').doc('categories').set({ order: catOrder, names: catNames, emojis: catEmojis });
+  populateCatSelect();
+  renderMenu();
+  toast('Categories saved!');
+}
+
+function populateCatSelect() {
+  const sel = document.getElementById('f-cat');
+  sel.innerHTML = catOrder.map(k => `<option value="${k}">${catNames[k]||k}</option>`).join('');
+}
+
+// ── MENU ──
+function renderMenu() {
+  const container = document.getElementById('menu-sections');
+  container.innerHTML = '';
+  catOrder.forEach(catKey => {
+    const name  = catNames[catKey]  || catKey;
+    const emoji = catEmojis[catKey] || '';
+    const items = Object.entries(menuItems)
+      .filter(([,v]) => v.category === catKey)
+      .sort((a,b) => (a[1].order||0) - (b[1].order||0));
+
+    const sec = document.createElement('div');
+    sec.dataset.cat = catKey;
+
+    const itemsHtml = items.length
+      ? items.map(([id,item]) => renderItemRow(id,item)).join('')
+      : '';
+
+    sec.innerHTML = `
+      <div class="section-hdr">
+        <div class="section-name">${emoji} <em>${name}</em></div>
+        <button class="add-btn" onclick="openModal(null,'${catKey}')">+ Add</button>
+      </div>
+      <div class="item-list" id="list-${catKey}"
+        ondragover="itemDragOver(event,'${catKey}')"
+        ondragleave="itemDragLeaveList(event)"
+        ondrop="itemDrop(event,'${catKey}')">
+        ${itemsHtml}
+        <div class="cat-drop-zone" id="dz-${catKey}">Drop item here to move to <b>${name}</b></div>
+      </div>`;
+    container.appendChild(sec);
+  });
+}
+
+function renderItemRow(id, item) {
+  const avail = item.available !== false;
+  return `
+    <div class="item-row ${avail?'':'unavailable'}" id="irow-${id}" draggable="true"
+      ondragstart="itemDragStart(event,'${id}')"
+      ondragover="itemDragOverRow(event,'${id}')"
+      ondragleave="itemDragLeaveRow(event)"
+      ondrop="itemDropOnRow(event,'${id}','${item.category}')">
+      <span class="item-drag-handle" title="Drag to reorder or move category">⠿</span>
+      <div class="item-emoji-disp">${item.emoji||'🍽️'}</div>
+      <div class="item-details">
+        <div class="item-row-name">${item.name}</div>
+        <div class="item-row-desc">${item.desc||''}</div>
+      </div>
+      <div class="item-row-price">LL ${Number(item.price).toLocaleString()}</div>
+      <div class="item-actions">
+        <button class="ia ia-toggle ${avail?'on':''}" onclick="toggleAvail('${id}',${avail})">${avail?'✓':'✗'}</button>
+        <button class="ia ia-edit" onclick="openModal('${id}','${item.category}')">Edit</button>
+        <button class="ia ia-del"  onclick="deleteItem('${id}')">Del</button>
+      </div>
+    </div>`;
+}
+
+// ── ITEM DRAG & DROP ──
+let dragItemId = null;
+
+function itemDragStart(e, id) {
+  dragItemId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => document.getElementById('irow-'+id)?.classList.add('dragging'), 0);
+}
+
+function itemDragOverRow(e, id) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (id !== dragItemId) {
+    document.getElementById('irow-'+id)?.classList.add('drag-item-over');
+  }
+}
+
+function itemDragLeaveRow(e) {
+  e.currentTarget.classList.remove('drag-item-over');
+}
+
+function itemDragOver(e, catKey) {
+  e.preventDefault();
+  document.getElementById('dz-'+catKey)?.classList.add('drag-item-over');
+}
+
+function itemDragLeaveList(e) {
+  // Only fire if leaving the list entirely
+  if (!e.currentTarget.contains(e.relatedTarget)) {
+    e.currentTarget.querySelectorAll('.cat-drop-zone').forEach(dz => dz.classList.remove('drag-item-over'));
+  }
+}
+
+async function itemDropOnRow(e, targetId, targetCat) {
+  e.preventDefault();
+  e.stopPropagation();
+  document.getElementById('irow-'+targetId)?.classList.remove('drag-item-over');
+  document.getElementById('irow-'+dragItemId)?.classList.remove('dragging');
+  if (!dragItemId || dragItemId === targetId) { dragItemId = null; return; }
+
+  const dragItem   = menuItems[dragItemId];
+  const targetItem = menuItems[targetId];
+  if (!dragItem || !targetItem) { dragItemId = null; return; }
+
+  // Get ordered items for the target category
+  const catItems = Object.entries(menuItems)
+    .filter(([,v]) => v.category === targetCat)
+    .sort((a,b) => (a[1].order||0) - (b[1].order||0));
+
+  const targetIdx = catItems.findIndex(([id]) => id === targetId);
+
+  // Reassign order values: insert dragItem before targetItem
+  const batch = db.batch();
+
+  // Remove drag item from its position, insert at target
+  const filtered = catItems.filter(([id]) => id !== dragItemId);
+  filtered.splice(targetIdx, 0, [dragItemId, dragItem]);
+
+  filtered.forEach(([id], idx) => {
+    batch.update(db.collection('menu').doc(id), {
+      order: idx * 10,
+      category: targetCat
+    });
+  });
+
+  await batch.commit();
+  dragItemId = null;
+  toast('Item moved!');
+}
+
+async function itemDrop(e, catKey) {
+  e.preventDefault();
+  document.getElementById('dz-'+catKey)?.classList.remove('drag-item-over');
+  document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+  if (!dragItemId) return;
+
+  const dragItem = menuItems[dragItemId];
+  if (!dragItem) { dragItemId = null; return; }
+
+  if (dragItem.category === catKey) { dragItemId = null; return; }
+
+  // Move to end of target category
+  const catItems = Object.entries(menuItems)
+    .filter(([,v]) => v.category === catKey)
+    .sort((a,b) => (a[1].order||0) - (b[1].order||0));
+
+  const newOrder = catItems.length > 0
+    ? (catItems[catItems.length-1][1].order||0) + 10
+    : 0;
+
+  await db.collection('menu').doc(dragItemId).update({
+    category: catKey,
+    order: newOrder
+  });
+
+  dragItemId = null;
+  toast(`Moved to ${catNames[catKey]||catKey}!`);
+}
+
+// ── MODAL ──
+function openModal(id, catKey) {
+  document.getElementById('f-id').value = id || '';
+  document.getElementById('f-cat').value = catKey || catOrder[0];
+  if (id && menuItems[id]) {
+    const item = menuItems[id];
+    document.getElementById('modal-title').innerHTML = 'Edit <em>Item</em>';
+    document.getElementById('f-emoji').value = item.emoji||'';
+    document.getElementById('f-name').value  = item.name||'';
+    document.getElementById('f-desc').value  = item.desc||'';
+    document.getElementById('f-price').value = item.price||'';
+  } else {
+    document.getElementById('modal-title').innerHTML = 'Add <em>Item</em>';
+    ['f-emoji','f-name','f-desc','f-price'].forEach(fid => document.getElementById(fid).value = '');
+  }
+  document.getElementById('item-modal').classList.add('visible');
+  setTimeout(() => document.getElementById('f-name').focus(), 350);
+}
+
+function closeModal() { document.getElementById('item-modal').classList.remove('visible'); }
+function handleModalClick(e) { if (e.target === document.getElementById('item-modal')) closeModal(); }
+
+async function saveItem() {
+  const id    = document.getElementById('f-id').value;
+  const name  = document.getElementById('f-name').value.trim();
+  const price = parseInt(document.getElementById('f-price').value);
+  const emoji = document.getElementById('f-emoji').value.trim()||'🍽️';
+  const desc  = document.getElementById('f-desc').value.trim();
+  const cat   = document.getElementById('f-cat').value;
+  if (!name)  { alert('Please enter item name.');  return; }
+  if (!price) { alert('Please enter a valid price.'); return; }
+  const data = { name, price, emoji, desc, category: cat, available: true };
+  if (id) { await db.collection('menu').doc(id).update(data); toast('Item updated!'); }
+  else    { await db.collection('menu').add({ ...data, order: Date.now() }); toast('Item added!'); }
+  closeModal();
+}
+
+async function toggleAvail(id, current) {
+  await db.collection('menu').doc(id).update({ available: !current });
+  toast(current ? 'Marked unavailable' : 'Marked available');
+}
+
+async function deleteItem(id) {
+  if (!confirm('Delete this item permanently?')) return;
+  await db.collection('menu').doc(id).delete();
+  toast('Deleted');
+}
+
+// ── SPECIAL ──
+async function loadSpecial() {
+  const doc = await db.collection('settings').doc('special').get();
+  if (doc.exists) {
+    const s = doc.data();
+    document.getElementById('sp-name').value      = s.name||'';
+    document.getElementById('sp-price').value     = s.price||'';
+    document.getElementById('sp-desc').value      = s.desc||'';
+    document.getElementById('sp-emoji').value     = s.emoji||'⭐';
+    document.getElementById('sp-available').value = s.available === false ? 'false' : 'true';
+    const prev = document.getElementById('special-preview');
+    prev.style.display = 'block';
+    prev.innerHTML = `<b style="color:#FF5E00">Current:</b> ${s.emoji||'⭐'} ${s.name} — LL ${Number(s.price).toLocaleString()}<br><span style="color:#555">${s.desc||''}</span>`;
+  }
+}
+
+async function saveSpecial() {
+  const name  = document.getElementById('sp-name').value.trim();
+  const price = parseInt(document.getElementById('sp-price').value);
+  const desc  = document.getElementById('sp-desc').value.trim();
+  const emoji = document.getElementById('sp-emoji').value.trim()||'⭐';
+  const avail = document.getElementById('sp-available').value === 'true';
+  if (!name||!price) { alert('Please fill name and price.'); return; }
+  await db.collection('settings').doc('special').set({ name, price, desc, emoji, available: avail, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+  toast('Plat du Jour saved!');
+  loadSpecial();
+}
+
+// ── REAL-TIME ──
+function startListening() {
+  loadCategories();
+  loadSpecial();
+  db.collection('menu').onSnapshot(snapshot => {
+    snapshot.docChanges().forEach(change => {
+      if (change.type==='removed') delete menuItems[change.doc.id];
+      else menuItems[change.doc.id] = { ...change.doc.data(), id: change.doc.id };
+    });
+    renderMenu();
+  });
+}
+
+// ── AUTH ──
+function doLogin() {
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-error');
+  err.style.display = 'none';
+  btn.textContent = 'Connecting...';
+  btn.disabled = true;
+  const provider = new firebase.auth.OAuthProvider('microsoft.com');
+  provider.setCustomParameters({ tenant: 'cafemoliere.com' });
+  auth.signInWithPopup(provider).catch(e => {
+    err.textContent = e.code==='auth/popup-closed-by-user' ? 'Window closed. Try again.' : 'Sign-in failed. Use @cafemoliere.com account.';
+    err.style.display = 'block';
+    btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg> Sign in with Microsoft`;
+    btn.disabled = false;
+  });
+}
+
+function doLogout() { auth.signOut(); }
+
+// Handle redirect result (fallback from popup-blocked)
+auth.getRedirectResult().then(result => {
+  if (result && result.user) console.log('Redirect login success');
+}).catch(e => { console.error('Redirect error:', e); });
+
+auth.onAuthStateChanged(user => {
+  if (user) {
+    if (!user.email?.endsWith('@cafemoliere.com')) { auth.signOut(); return; }
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('admin-content').style.display = 'block';
+    document.getElementById('user-email').textContent = user.email;
+    startListening();
+  } else {
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('admin-content').style.display = 'none';
+  }
+});
+</script>
+</body>
+</html>

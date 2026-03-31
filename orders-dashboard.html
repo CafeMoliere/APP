@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Café Molière — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1A1A1A;color:#fff;font-family:'DM Sans',sans-serif;min-height:100vh}
+
+/* HEADER */
+.dash-header{background:#FF5E00;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200}
+.dash-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:#fff;font-weight:400}
+.dash-title em{font-style:italic}
+.header-right{display:flex;align-items:center;gap:8px}
+.live-dot{width:8px;height:8px;background:#FCECBB;border-radius:50%;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.conn-badge{font-size:10px;padding:3px 10px;border-radius:20px;font-weight:600}
+.conn-badge.on{background:rgba(76,175,80,0.25);color:#4CAF50}
+.conn-badge.off{background:rgba(255,255,255,0.15);color:#FCECBB}
+
+/* STATS */
+.stats-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#111}
+.stat{background:#1E1E1E;padding:12px;text-align:center}
+.stat-num{font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:700;color:#FF5E00;line-height:1}
+.stat-label{font-size:9px;color:#555;letter-spacing:0.12em;text-transform:uppercase;margin-top:3px}
+
+/* TABS */
+.tabs-bar{display:flex;background:#222;border-bottom:1px solid #333}
+.tab-btn{flex:1;padding:12px;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#666;background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s}
+.tab-btn.active{color:#FF5E00;border-bottom-color:#FF5E00}
+.tab-count{display:inline-block;background:#FF5E00;color:#fff;border-radius:10px;padding:1px 6px;font-size:9px;margin-left:4px;vertical-align:middle}
+.tab-btn.active .tab-count{background:#fff;color:#FF5E00}
+
+/* COLUMNS */
+.tab-panel{display:none;padding:12px;gap:12px}
+.tab-panel.active{display:grid;grid-template-columns:repeat(3,1fr)}
+@media(max-width:700px){.tab-panel.active{grid-template-columns:1fr}}
+.col-label{font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.col-label.new{color:#FF5E00}.col-label.prep{color:#F5A623}.col-label.ready{color:#4CAF50}
+.col-badge{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700}
+.col-label.new .col-badge{background:#FF5E00;color:#fff}
+.col-label.prep .col-badge{background:#F5A623;color:#fff}
+.col-label.ready .col-badge{background:#4CAF50;color:#fff}
+
+/* ORDER CARD */
+.order-card{background:#2A2A2A;border-radius:10px;margin-bottom:8px;border:1px solid #333;overflow:hidden;animation:slideIn 0.3s ease}
+@keyframes slideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.card-header{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;cursor:pointer;user-select:none;transition:background 0.15s}
+.card-header:hover{background:#333}
+.card-name{font-weight:600;font-size:0.88rem;color:#FCECBB}
+.card-meta{font-size:10px;color:#888;margin-top:1px}
+.card-right{display:flex;align-items:center;gap:8px}
+.card-total-badge{font-size:10px;font-weight:600;color:#FF5E00;background:rgba(255,94,0,0.1);padding:2px 7px;border-radius:10px}
+.card-chevron{color:#555;font-size:12px;transition:transform 0.2s}
+.card-chevron.open{transform:rotate(180deg)}
+.card-body{display:none;padding:0 14px 12px;border-top:1px solid #333}
+.card-body.open{display:block}
+.card-items{padding-top:10px;margin-bottom:8px}
+.card-item{display:flex;justify-content:space-between;font-size:11px;color:#bbb;padding:3px 0}
+.card-item span:last-child{color:#777}
+.card-total-row{display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:#FCECBB;border-top:1px solid #333;padding-top:6px;margin-bottom:8px}
+.card-address{font-size:11px;color:#888;margin-bottom:10px}
+.card-actions{display:flex;gap:6px}
+.btn{padding:8px 10px;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:opacity 0.15s,transform 0.15s;flex:1}
+.btn:hover{opacity:0.85;transform:translateY(-1px)}
+.btn-prep{background:#F5A623;color:#fff}
+.btn-ready{background:#4CAF50;color:#fff}
+.btn-wa{background:#25D366;color:#fff}
+.btn-clear{background:#444;color:#aaa}
+.btn-del{background:#2A2A2A;border:1px solid #444;color:#666;flex:0 0 34px}
+.empty{text-align:center;padding:30px 16px;color:#444;font-size:12px}
+.empty div{font-size:1.8rem;margin-bottom:6px}
+
+/* HISTORY TAB */
+.history-panel{display:none;padding:12px}
+.history-panel.active{display:block}
+
+/* History toolbar */
+.history-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;padding:10px 14px;background:#222;border-radius:10px}
+.history-toolbar-left{display:flex;align-items:center;gap:8px}
+.history-toolbar-right{display:flex;align-items:center;gap:8px}
+.sel-count{font-size:11px;color:#888}
+.sel-count span{color:#FF5E00;font-weight:600}
+.htbtn{padding:7px 12px;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:opacity 0.15s}
+.htbtn:hover{opacity:0.8}
+.htbtn-sel{background:#333;color:#aaa}
+.htbtn-del{background:#c0392b;color:#fff}
+.htbtn-pdf{background:#FF5E00;color:#fff}
+.htbtn-xls{background:#1D6F42;color:#fff}
+
+/* History day */
+.history-day{margin-bottom:10px;border-radius:10px;overflow:hidden;border:1px solid #2E2E2E}
+.history-day-header{background:#222;padding:11px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none}
+.history-day-header:hover{background:#2A2A2A}
+.history-day-title{font-size:12px;font-weight:600;color:#FCECBB}
+.history-day-meta{display:flex;align-items:center;gap:8px}
+.history-day-count{font-size:10px;color:#888}
+.history-day-chevron{color:#555;font-size:12px;transition:transform 0.2s}
+.history-day-chevron.open{transform:rotate(180deg)}
+.history-day-body{display:none}
+.history-day-body.open{display:block}
+
+/* History item */
+.history-item{padding:10px 14px;border-top:1px solid #1E1E1E;display:flex;align-items:flex-start;gap:10px}
+.history-item-check{width:16px;height:16px;border-radius:4px;border:1.5px solid #444;background:#1A1A1A;cursor:pointer;flex-shrink:0;margin-top:2px;accent-color:#FF5E00}
+.history-item-content{flex:1;cursor:pointer}
+.history-item-content:hover .history-item-name{color:#FCECBB}
+.history-item-header{display:flex;justify-content:space-between;align-items:center}
+.history-item-name{font-size:12px;font-weight:600;color:#aaa;transition:color 0.15s}
+.history-item-time{font-size:10px;color:#555}
+.history-item-body{display:none;margin-top:8px}
+.history-item-body.open{display:block}
+.history-item-row{display:flex;justify-content:space-between;font-size:11px;color:#777;padding:2px 0}
+.history-item-total{display:flex;justify-content:space-between;font-size:11px;font-weight:600;color:#888;border-top:1px solid #2A2A2A;padding-top:5px;margin-top:5px}
+.history-empty{text-align:center;padding:40px;color:#444;font-size:12px}
+
+/* NOTIFICATION */
+.notif{position:fixed;top:65px;right:16px;background:#FF5E00;color:#fff;padding:11px 16px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 4px 20px rgba(255,94,0,0.4);z-index:999;animation:notifIn 0.3s ease;max-width:240px}
+@keyframes notifIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}}
+
+/* CONFIRM DIALOG */
+.confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:500;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s}
+.confirm-overlay.visible{opacity:1;pointer-events:auto}
+.confirm-box{background:#2A2A2A;border-radius:14px;padding:24px;width:90%;max-width:340px;border:1px solid #444}
+.confirm-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:#FCECBB;margin-bottom:8px}
+.confirm-msg{font-size:13px;color:#888;margin-bottom:20px;line-height:1.5}
+.confirm-actions{display:flex;gap:8px}
+.confirm-yes{flex:1;padding:10px;background:#c0392b;color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;font-size:13px}
+.confirm-no{flex:1;padding:10px;background:#333;color:#aaa;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;font-size:13px}
+
+/* LOGIN */
+.login-screen{position:fixed;inset:0;background:#1A1A1A;display:flex;align-items:center;justify-content:center;z-index:9999;padding:24px}
+.login-screen.hidden{display:none}
+.login-box{background:#2A2A2A;border-radius:20px;padding:40px 32px;width:100%;max-width:380px;border:1px solid #333;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+.login-logo{text-align:center;margin-bottom:28px}
+.login-title{font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:400;color:#FCECBB}
+.login-title em{font-style:italic;color:#FF5E00}
+.login-sub{font-size:11px;color:#555;letter-spacing:0.12em;text-transform:uppercase;margin-top:4px}
+.login-bar{width:40px;height:2px;background:#FF5E00;margin:12px auto;border-radius:2px}
+.login-label{font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#666;margin-bottom:6px;display:block}
+.login-input{width:100%;padding:13px 16px;background:#1A1A1A;border:1.5px solid #333;border-radius:10px;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s;margin-bottom:16px}
+.login-input:focus{border-color:#FF5E00}
+.login-input::placeholder{color:#444}
+.login-btn{width:100%;padding:14px;background:#FF5E00;color:#fff;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;letter-spacing:0.05em;transition:opacity 0.2s,transform 0.2s;margin-top:4px}
+.login-btn:hover{opacity:0.9;transform:translateY(-1px)}
+.login-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+.microsoft-btn{background:#fff;color:#333;display:flex;align-items:center;justify-content:center;font-weight:600;border:1.5px solid #ddd}
+.microsoft-btn:hover{background:#f5f5f5;opacity:1}
+.login-error{background:rgba(255,94,0,0.1);border:1px solid rgba(255,94,0,0.3);color:#FF5E00;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:16px;display:none}
+.logout-btn{background:none;border:1px solid #444;color:#666;padding:5px 12px;border-radius:20px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s}
+.logout-btn:hover{border-color:#FF5E00;color:#FF5E00}
+.dash-content{display:none}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-title">Café <em>Molière</em></div>
+      <div class="login-sub">Dashboard Access</div>
+      <div class="login-bar"></div>
+    </div>
+    <div class="login-error" id="login-error"></div>
+    <button class="login-btn microsoft-btn" id="login-btn" onclick="doLogin()">
+      <svg width="20" height="20" viewBox="0 0 21 21" style="margin-right:10px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+        <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+        <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+        <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+      </svg>
+      Sign in with Microsoft
+    </button>
+    <p style="text-align:center;font-size:11px;color:#555;margin-top:14px;letter-spacing:0.03em;">Only @cafemoliere.com accounts are allowed</p>
+  </div>
+</div>
+
+<!-- DASHBOARD (hidden until logged in) -->
+<div class="dash-content" id="dash-content">
+
+<div class="dash-header">
+  <div class="dash-title">Café <em>Molière</em> — Dashboard</div>
+  <div class="header-right">
+    <span class="conn-badge off" id="conn-badge">● Connecting</span>
+    <div class="live-dot"></div>
+    <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+  </div>
+</div>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-num" id="sn">0</div><div class="stat-label">New</div></div>
+  <div class="stat"><div class="stat-num" id="sp">0</div><div class="stat-label">Preparing</div></div>
+  <div class="stat"><div class="stat-num" id="sr">0</div><div class="stat-label">Ready</div></div>
+</div>
+
+<div class="tabs-bar">
+  <button class="tab-btn active" onclick="switchTab('orders',this)">🗂 Orders <span class="tab-count" id="tc-orders">0</span></button>
+  <button class="tab-btn" onclick="switchTab('history',this)">📋 History <span class="tab-count" id="tc-history">0</span></button>
+</div>
+
+<!-- ORDERS TAB -->
+<div class="tab-panel active" id="tab-orders">
+  <div>
+    <div class="col-label new">🆕 New <div class="col-badge" id="bn">0</div></div>
+    <div id="col-new"></div>
+  </div>
+  <div>
+    <div class="col-label prep">🍳 Preparing <div class="col-badge" id="bp">0</div></div>
+    <div id="col-prep"></div>
+  </div>
+  <div>
+    <div class="col-label ready">✅ Ready <div class="col-badge" id="br">0</div></div>
+    <div id="col-ready"></div>
+  </div>
+</div>
+
+<!-- HISTORY TAB -->
+<div class="history-panel" id="tab-history">
+  <div class="history-toolbar">
+    <div class="history-toolbar-left">
+      <span class="sel-count">Selected: <span id="sel-count">0</span></span>
+      <button class="htbtn htbtn-sel" onclick="toggleSelectAll()">Select All</button>
+      <button class="htbtn htbtn-del" onclick="deleteSelected()">Delete Selected</button>
+      <button class="htbtn htbtn-del" onclick="confirmClearAll()">Clear All</button>
+    </div>
+    <div class="history-toolbar-right">
+      <button class="htbtn htbtn-xls" onclick="exportExcel(true)">⬇ Export Selected</button>
+      <button class="htbtn htbtn-xls" onclick="exportExcel(false)">⬇ Export All</button>
+      <button class="htbtn htbtn-pdf" onclick="exportPDF()">⬇ PDF</button>
+    </div>
+  </div>
+  <div id="history-content"></div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-box">
+    <div class="confirm-title" id="confirm-title">Are you sure?</div>
+    <div class="confirm-msg" id="confirm-msg">This action cannot be undone.</div>
+    <div class="confirm-actions">
+      <button class="confirm-yes" id="confirm-yes">Yes, delete</button>
+      <button class="confirm-no" onclick="closeConfirm()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── FIREBASE CONFIG ──
+const firebaseConfig = {
+  apiKey:     "AIzaSyANahV1JOHQqEweg6e8i_LvltXNCTW-kIw",
+  authDomain: "cafe-moliere.firebaseapp.com",
+  projectId:  "cafe-moliere",
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ── STATE ──
+let orders = {}, historyOrders = {};
+let firstLoad = true;
+let openCards = new Set(), openDays = new Set(), openHistoryItems = new Set();
+let selectedItems = new Set();
+
+function formatLL(n){ return 'LL ' + Number(n).toLocaleString(); }
+
+// ── TABS ──
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel,.history-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ── CONFIRM DIALOG ──
+let confirmCallback = null;
+function showConfirm(title, msg, cb) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent = msg;
+  confirmCallback = cb;
+  document.getElementById('confirm-overlay').classList.add('visible');
+  document.getElementById('confirm-yes').onclick = () => { closeConfirm(); cb(); };
+}
+function closeConfirm() {
+  document.getElementById('confirm-overlay').classList.remove('visible');
+}
+
+// ── TOGGLES ──
+function toggleCard(id) {
+  if (openCards.has(id)) openCards.delete(id); else openCards.add(id);
+  render();
+}
+function toggleDay(date) {
+  if (openDays.has(date)) openDays.delete(date); else openDays.add(date);
+  renderHistory();
+}
+function toggleHistoryItem(id) {
+  if (openHistoryItems.has(id)) openHistoryItems.delete(id); else openHistoryItems.add(id);
+  renderHistory();
+}
+function toggleSelect(id) {
+  if (selectedItems.has(id)) selectedItems.delete(id); else selectedItems.add(id);
+  document.getElementById('sel-count').textContent = selectedItems.size;
+  renderHistory();
+}
+function toggleSelectAll() {
+  const allIds = Object.keys(historyOrders);
+  if (selectedItems.size === allIds.length) {
+    selectedItems.clear();
+  } else {
+    allIds.forEach(id => selectedItems.add(id));
+  }
+  document.getElementById('sel-count').textContent = selectedItems.size;
+  renderHistory();
+}
+
+// ── ACTIONS ──
+async function moveOrder(id, status) {
+  await db.collection('orders').doc(id).update({ status });
+}
+async function clearToHistory(id) {
+  await db.collection('orders').doc(id).update({ status: 'history' });
+}
+async function deleteOrder(id) {
+  await db.collection('orders').doc(id).delete();
+}
+function deleteSelected() {
+  if (!selectedItems.size) return;
+  showConfirm('Delete selected?', `Delete ${selectedItems.size} order(s) from history permanently?`, async () => {
+    const batch = db.batch();
+    selectedItems.forEach(id => batch.delete(db.collection('orders').doc(id)));
+    await batch.commit();
+    selectedItems.clear();
+    document.getElementById('sel-count').textContent = 0;
+  });
+}
+function confirmClearAll() {
+  if (!Object.keys(historyOrders).length) return;
+  showConfirm('Clear all history?', 'This will permanently delete all history orders.', async () => {
+    const batch = db.batch();
+    Object.keys(historyOrders).forEach(id => batch.delete(db.collection('orders').doc(id)));
+    await batch.commit();
+    selectedItems.clear();
+    document.getElementById('sel-count').textContent = 0;
+  });
+}
+
+function sendWhatsApp(phone, name) {
+  const msg = `Hello ${name}! Your order at Café Molière is ready for delivery. Thank you!`;
+  let clean = (phone || '').replace(/\D/g, '');
+  if (!clean.startsWith('961')) clean = '961' + clean;
+  window.open(`https://wa.me/${clean}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+// ── EXPORT PDF ──
+function exportPDF() {
+  window.print();
+}
+
+// ── EXPORT EXCEL ──
+function exportExcel(selectedOnly) {
+  let toExport = Object.entries(historyOrders);
+  if (selectedOnly) {
+    toExport = toExport.filter(([id]) => selectedItems.has(id));
+    if (!toExport.length) { alert('No items selected. Please select orders to export.'); return; }
+  }
+  const rows = [['Date','Time','Name','Phone','Address','Items','Total (LL)']];
+  toExport.forEach(([,o]) => {
+    const itemStr = (o.items||[]).map(i => `${i.name} x${i.qty}`).join(', ');
+    rows.push([o.date||'', o.time||'', o.name||'', o.phone||'', o.address||'', itemStr, o.total||0]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:12},{wch:8},{wch:20},{wch:14},{wch:25},{wch:40},{wch:14}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'History');
+  const suffix = selectedOnly ? '-selected' : '-all';
+  XLSX.writeFile(wb, `cafe-moliere-history${suffix}-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ── SELECT DAY ──
+function selectDay(date, checked) {
+  const entries = Object.entries(historyOrders).filter(([,o]) => (o.date||'Unknown date') === date);
+  entries.forEach(([id]) => {
+    if (checked) selectedItems.add(id);
+    else selectedItems.delete(id);
+  });
+  document.getElementById('sel-count').textContent = selectedItems.size;
+  renderHistory();
+}
+
+// ── RENDER CARD ──
+function renderCard(id, o) {
+  const isOpen = openCards.has(id);
+  const isNew  = o.status === 'new';
+  const isPrep = o.status === 'preparing';
+
+  const actions = isNew ? `
+    <button class="btn btn-prep" onclick="event.stopPropagation();moveOrder('${id}','preparing')">→ Preparing</button>
+    <button class="btn btn-del" onclick="event.stopPropagation();deleteOrder('${id}')">🗑</button>
+  ` : isPrep ? `
+    <button class="btn btn-ready" onclick="event.stopPropagation();moveOrder('${id}','ready')">→ Ready</button>
+    <button class="btn btn-del" onclick="event.stopPropagation();deleteOrder('${id}')">🗑</button>
+  ` : `
+    <button class="btn btn-wa" data-phone="${o.phone||''}" data-name="${o.name}" onclick="event.stopPropagation();sendWhatsApp(this.dataset.phone,this.dataset.name)">WhatsApp Client</button>
+    <button class="btn btn-clear" onclick="event.stopPropagation();clearToHistory('${id}')">Clear ✓</button>
+  `;
+
+  return `
+    <div class="order-card">
+      <div class="card-header" onclick="toggleCard('${id}')">
+        <div>
+          <div class="card-name">${o.name}</div>
+          <div class="card-meta">${o.time} · ${o.address}</div>
+        </div>
+        <div class="card-right">
+          <span class="card-total-badge">${formatLL(o.total)}</span>
+          <span class="card-chevron ${isOpen?'open':''}">▼</span>
+        </div>
+      </div>
+      <div class="card-body ${isOpen?'open':''}">
+        <div class="card-items">
+          ${(o.items||[]).map(i=>`<div class="card-item"><span>${i.name} x${i.qty}</span><span>${formatLL(i.price)}</span></div>`).join('')}
+        </div>
+        <div class="card-total-row"><span>Total</span><span>${formatLL(o.total)}</span></div>
+        <div class="card-address">📍 ${o.address}${o.phone?' · 📞 '+o.phone:''}</div>
+        <div class="card-actions">${actions}</div>
+      </div>
+    </div>`;
+}
+
+// ── RENDER ORDERS ──
+function render() {
+  const byStatus = {new:[],preparing:[],ready:[]};
+  Object.entries(orders).forEach(([id,o]) => { if(byStatus[o.status]) byStatus[o.status].push([id,o]); });
+  const slots = [
+    {status:'new',col:'col-new',bn:'bn',sn:'sn',empty:'No new orders'},
+    {status:'preparing',col:'col-prep',bn:'bp',sn:'sp',empty:'Nothing cooking'},
+    {status:'ready',col:'col-ready',bn:'br',sn:'sr',empty:'Nothing ready'},
+  ];
+  let total=0;
+  slots.forEach(({status,col,bn,sn,empty}) => {
+    const entries=byStatus[status];
+    document.getElementById(bn).textContent=entries.length;
+    document.getElementById(sn).textContent=entries.length;
+    total+=entries.length;
+    document.getElementById(col).innerHTML=entries.length
+      ? entries.map(([id,o])=>renderCard(id,o)).join('')
+      : `<div class="empty"><div>—</div>${empty}</div>`;
+  });
+  document.getElementById('tc-orders').textContent=total;
+}
+
+// ── RENDER HISTORY ──
+function renderHistory() {
+  const byDate = {};
+  Object.entries(historyOrders).forEach(([id,o]) => {
+    const date = o.date || 'Unknown date';
+    if (!byDate[date]) byDate[date] = [];
+    byDate[date].push([id,o]);
+  });
+
+  const hCount = Object.keys(historyOrders).length;
+  document.getElementById('tc-history').textContent = hCount;
+
+  const container = document.getElementById('history-content');
+  if (!hCount) { container.innerHTML = '<div class="history-empty">No history yet</div>'; return; }
+
+  container.innerHTML = Object.entries(byDate).sort((a,b) => b[0].localeCompare(a[0])).map(([date, entries]) => {
+    const isOpen   = openDays.has(date);
+    const dayTotal = entries.reduce((s,[,o]) => s + (o.total||0), 0);
+    const allDaySelected = entries.every(([id]) => selectedItems.has(id));
+
+    const items = entries.map(([id,o]) => {
+      const iOpen      = openHistoryItems.has(id);
+      const isSelected = selectedItems.has(id);
+      return `
+        <div class="history-item">
+          <input type="checkbox" class="history-item-check" ${isSelected?'checked':''} onchange="toggleSelect('${id}')">
+          <div class="history-item-content" onclick="toggleHistoryItem('${id}')">
+            <div class="history-item-header">
+              <span class="history-item-name">${o.name} — ${formatLL(o.total)}</span>
+              <span class="history-item-time">${o.time} ▼</span>
+            </div>
+            <div class="history-item-body ${iOpen?'open':''}">
+              ${(o.items||[]).map(i=>`<div class="history-item-row"><span>${i.name} x${i.qty}</span><span>${formatLL(i.price)}</span></div>`).join('')}
+              <div class="history-item-total"><span>Total</span><span>${formatLL(o.total)}</span></div>
+              ${o.address?`<div style="font-size:10px;color:#555;margin-top:4px">📍 ${o.address}${o.phone?' · 📞 '+o.phone:''}</div>`:''}
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="history-day">
+        <div class="history-day-header">
+          <div style="display:flex;align-items:center;gap:10px;flex:1" onclick="toggleDay('${date}')">
+            <input type="checkbox" style="width:15px;height:15px;accent-color:#FF5E00;flex-shrink:0;cursor:pointer"
+              ${allDaySelected?'checked':''} onclick="event.stopPropagation();selectDay('${date}',this.checked)">
+            <span class="history-day-title">📅 ${date}</span>
+          </div>
+          <div class="history-day-meta" onclick="toggleDay('${date}')">
+            <span class="history-day-count">${entries.length} order${entries.length>1?'s':''}</span>
+            <span style="color:#FF5E00;font-weight:700;font-size:12px;margin-left:6px">${formatLL(dayTotal)}</span>
+            <span class="history-day-chevron ${isOpen?'open':''}">▼</span>
+          </div>
+        </div>
+        <div class="history-day-body ${isOpen?'open':''}">${items}</div>
+      </div>`;
+  }).join('');
+}
+
+// ── NOTIFICATION ──
+function showNotif(name) {
+  const el = document.createElement('div');
+  el.className='notif'; el.textContent=`New order from ${name}!`;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),3500);
+}
+
+// ── REAL-TIME LISTENER ──
+let unsubscribe = null;
+
+function startListening() {
+  if (unsubscribe) unsubscribe();
+  unsubscribe = db.collection('orders').orderBy('createdAt','desc').onSnapshot(snapshot => {
+    document.getElementById('conn-badge').textContent='● Live';
+    document.getElementById('conn-badge').className='conn-badge on';
+    snapshot.docChanges().forEach(change => {
+      const id=change.doc.id, data=change.doc.data();
+      if (change.type==='removed') { delete orders[id]; delete historyOrders[id]; }
+      else if (data.status==='history') { delete orders[id]; historyOrders[id]=data; }
+      else { delete historyOrders[id]; if(change.type==='added'&&!firstLoad) showNotif(data.name); orders[id]=data; }
+    });
+    firstLoad=false;
+    render();
+    renderHistory();
+  }, () => {
+    document.getElementById('conn-badge').textContent='● Offline';
+    document.getElementById('conn-badge').className='conn-badge off';
+  });
+}
+
+// ── AUTH ──
+const auth = firebase.auth();
+
+function doLogin() {
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-error');
+  err.style.display = 'none';
+  btn.innerHTML = 'Connecting...';
+  btn.disabled = true;
+
+  const provider = new firebase.auth.OAuthProvider('microsoft.com');
+  provider.setCustomParameters({ tenant: 'cafemoliere.com' });
+
+  auth.signInWithPopup(provider)
+    .catch(e => {
+      err.textContent = e.code === 'auth/popup-closed-by-user'
+        ? 'Sign-in window was closed. Please try again.'
+        : 'Sign-in failed. Make sure you use your @cafemoliere.com account.';
+      err.style.display = 'block';
+      btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 21 21" style="margin-right:10px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>Sign in with Microsoft`;
+      btn.disabled = false;
+    });
+}
+
+function doLogout() {
+  auth.signOut();
+}
+
+// Handle redirect result (fallback from popup-blocked)
+auth.getRedirectResult().then(result => {
+  if (result && result.user) console.log('Redirect login success');
+}).catch(e => { console.error('Redirect error:', e); });
+
+auth.onAuthStateChanged(user => {
+  if (user) {
+    // Verify it's a cafemoliere.com email
+    if (!user.email || !user.email.endsWith('@cafemoliere.com')) {
+      auth.signOut();
+      const err = document.getElementById('login-error');
+      err.textContent = 'Access restricted to @cafemoliere.com accounts only.';
+      err.style.display = 'block';
+      return;
+    }
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('dash-content').style.display = 'block';
+    startListening();
+  } else {
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('dash-content').style.display = 'none';
+    if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+    orders = {}; historyOrders = {};
+    const btn = document.getElementById('login-btn');
+    btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 21 21" style="margin-right:10px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>Sign in with Microsoft`;
+    btn.disabled = false;
+  }
+});
+</script>
+
+</div><!-- end dash-content -->
+</body>
+</html>
