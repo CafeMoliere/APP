@@ -615,8 +615,6 @@
 
 <script>
 // ── FIREBASE CONFIG ── (must be before menu script)
-import { initializeApp } from "firebase/app";
-import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 
 const firebaseConfig = {
   apiKey:     "AIzaSyANahV1JOHQqEweg6e8i_LvltXNCTW-kIw",
@@ -626,12 +624,6 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-
-// Enable App Check with your site key
-const appCheck = firebase.appCheck().initializeAppCheck(app, {
-    provider: new firebase.appCheck.ReCaptchaV3Provider("6LfyGp8sAAAAACfo0mUErTK6Jm2wdMFWhAXK0utZ"),
-    isTokenAutoRefreshEnabled: true
-  });
 
 </script>
 
