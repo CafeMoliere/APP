@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
 :root {
   --orange: #FF5E00;
@@ -729,6 +730,9 @@ footer {
         <a href="admin.html" class="staff-btn active-staff">
           ⚙️ Administration
         </a>
+        <a href="admin-home.html" class="staff-btn active-staff" id="admin-home-link" style="display:none">
+          🏠 Admin Homepage
+        </a>
         <button class="staff-btn" onclick="doLogout()">
           Déconnexion
         </button>
@@ -752,6 +756,99 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
+const db   = firebase.firestore();
+
+// ── LOAD DYNAMIC HOMEPAGE CONTENT ──
+async function loadHomeContent() {
+  try {
+    // Hero text
+    const hero = await db.collection('homepage').doc('hero').get();
+    if (hero.exists) {
+      const h = hero.data();
+      if (h.tagline)  document.querySelector('.hero-tagline').textContent = h.tagline;
+      if (h.ctaText)  document.querySelector('.hero-cta').textContent = h.ctaText;
+      if (h.ctaLink)  document.querySelector('.hero-cta').href = h.ctaLink;
+    }
+
+    // Hero background image
+    const heroBg = await db.collection('homepage').doc('hero-bg').get();
+    if (heroBg.exists && heroBg.data().url) {
+      document.querySelector('.hero-bg').style.backgroundImage = `url('${heroBg.data().url}')`;
+    }
+
+    // Hero logo
+    const heroLogo = await db.collection('homepage').doc('hero-logo').get();
+    if (heroLogo.exists && heroLogo.data().url) {
+      document.querySelector('.hero-logo').src = heroLogo.data().url;
+    }
+
+    // About
+    const about = await db.collection('homepage').doc('about').get();
+    if (about.exists) {
+      const a = about.data();
+      if (a.badge)  document.querySelector('#about .section-badge').textContent = a.badge;
+      if (a.title1) document.querySelector('#about .about-title').childNodes[0].textContent = a.title1;
+      if (a.title2) document.querySelector('#about .about-title em').textContent = a.title2;
+      if (a.text)   document.querySelector('.about-text').innerHTML = a.text.replace(/\n/g, '<br>');
+    }
+
+    // Gallery
+    const gallery = await db.collection('homepage').doc('gallery').get();
+    if (gallery.exists && gallery.data().items?.length) {
+      const grid = document.querySelector('.gallery-grid');
+      grid.innerHTML = gallery.data().items.map((item, i) => `
+        <div class="gallery-item ${i === 0 ? 'tall' : ''}">
+          <img src="${item.url}" alt="Café Molière" />
+        </div>`).join('');
+    }
+
+    // Menu section
+    const menuSec = await db.collection('homepage').doc('menu-sec').get();
+    if (menuSec.exists) {
+      const m = menuSec.data();
+      if (m.badge)    document.querySelector('#menu .section-badge').textContent = m.badge;
+      if (m.subtitle) document.querySelector('.menu-shortcut-sub').textContent = m.subtitle;
+      if (m.btnText)  document.querySelector('.menu-cta').textContent = m.btnText;
+    }
+
+    // Colors
+    const colors = await db.collection('homepage').doc('colors').get();
+    if (colors.exists) {
+      const c = colors.data();
+      const root = document.documentElement;
+      if (c.orange) root.style.setProperty('--orange', c.orange);
+      if (c.cream)  root.style.setProperty('--cream',  c.cream);
+      if (c.dark)   root.style.setProperty('--dark',   c.dark);
+      if (c.card)   root.style.setProperty('--card',   c.card);
+    }
+
+    // Info cards
+    const info = await db.collection('homepage').doc('info').get();
+    if (info.exists && info.data().cards) {
+      const grid = document.querySelector('.info-inner');
+      grid.innerHTML = info.data().cards.map(card => `
+        <div class="info-card">
+          <div class="info-icon">${card.icon}</div>
+          <div class="info-card-title">${card.title}</div>
+          <div class="info-card-text">${card.text.replace(/\n/g,'<br>')}</div>
+        </div>`).join('');
+    }
+
+    // Staff section
+    const staff = await db.collection('homepage').doc('staff-sec').get();
+    if (staff.exists) {
+      const s = staff.data();
+      if (s.title)     document.querySelector('.staff-title').innerHTML = s.title;
+      if (s.prompt)    document.querySelector('#portal-logged-out p').textContent = s.prompt;
+      if (s.dashText)  document.querySelector('a[href="orders-dashboard.html"]').textContent = s.dashText;
+      if (s.adminText) document.querySelector('a[href="admin.html"]').textContent = s.adminText;
+    }
+  } catch(e) {
+    console.log('Dynamic content load error:', e);
+  }
+}
+
+loadHomeContent();
 
 // ── NAVBAR SCROLL ──
 window.addEventListener('scroll', () => {
@@ -811,6 +908,11 @@ auth.onAuthStateChanged(user => {
   document.getElementById('portal-logged-in').style.display  = isStaff ? 'block' : 'none';
   if (isStaff) {
     document.getElementById('portal-email').textContent = user.email;
+    // Show admin-home only for administrator
+    const adminHomeLink = document.getElementById('admin-home-link');
+    if (adminHomeLink) {
+      adminHomeLink.style.display = user.email === 'administrator@cafemoliere.com' ? 'inline-flex' : 'none';
+    }
   }
 });
 </script>
