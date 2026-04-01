@@ -572,7 +572,7 @@ footer {
   </div>
 </nav>
 
-<!-- HERO -->
+<div id="dynamic-sections"><!-- HERO -->
 <section class="hero">
   <div class="hero-bg"></div>
   <div class="hero-overlay"></div>
@@ -741,6 +741,8 @@ footer {
   </div>
 </section>
 
+</div><!-- end dynamic-sections -->
+
 <!-- FOOTER -->
 <footer>
   <div class="footer-logo">Le Café <em>Molière</em></div>
@@ -869,6 +871,178 @@ if ('IntersectionObserver' in window) {
   // No IntersectionObserver support - reveal all immediately
   revealAll();
 }
+
+
+// ── RENDER SECTIONS FROM FIRESTORE ──
+async function renderDynamicSections() {
+  try {
+    const secDoc = await db.collection('homepage').doc('sections').get();
+    if (!secDoc.exists || !secDoc.data().items) { loadHomeContent(); return; }
+
+    const sections = secDoc.data().items.filter(s => s.visible !== false);
+    const globalColors = (await db.collection('homepage').doc('global-colors').get()).data() || {};
+    const globalFonts  = (await db.collection('homepage').doc('global-fonts').get()).data() || {};
+    const globalNav    = (await db.collection('homepage').doc('global-nav').get()).data() || {};
+    const globalFooter = (await db.collection('homepage').doc('global-footer').get()).data() || {};
+
+    // Apply global colors
+    const root = document.documentElement;
+    if (globalColors.orange) root.style.setProperty('--orange', globalColors.orange);
+    if (globalColors.cream)  root.style.setProperty('--cream',  globalColors.cream);
+    if (globalColors.dark)   root.style.setProperty('--dark',   globalColors.dark);
+
+    // Apply global fonts
+    if (globalFonts.display || globalFonts.body) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      const families = [globalFonts.display, globalFonts.body].filter(Boolean).map(f=>f.replace(/ /g,'+')).join('&family=');
+      link.href = `https://fonts.googleapis.com/css2?family=${families}&display=swap`;
+      document.head.appendChild(link);
+    }
+
+    // Apply navbar
+    if (globalNav.logoText) document.querySelector('.nav-logo').innerHTML = globalNav.logoText.replace('Molière','<em>Molière</em>');
+    if (globalNav.bgColor) document.querySelector('nav').style.setProperty('--nav-bg', globalNav.bgColor);
+
+    // Apply footer
+    if (globalFooter.logoText) document.querySelector('.footer-logo').innerHTML = globalFooter.logoText.replace('Molière','<em>Molière</em>');
+    if (globalFooter.copy) document.querySelector('.footer-text').textContent = globalFooter.copy;
+
+    // Render sections
+    const main = document.getElementById('dynamic-sections');
+    if (!main) return;
+    main.innerHTML = sections.map(sec => renderSection(sec)).join('');
+
+    // Re-observe for animations
+    document.querySelectorAll('.reveal').forEach(el => {
+      el.classList.remove('visible');
+      if ('IntersectionObserver' in window) observer.observe(el);
+    });
+    setTimeout(() => document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible')), 3000);
+
+  } catch(e) {
+    console.log('Dynamic render error:', e);
+    loadHomeContent();
+  }
+}
+
+function renderSection(sec) {
+  const d = sec.data || {};
+  switch(sec.type) {
+    case 'hero': return `
+      <div class="hero">
+        <div class="hero-bg" style="background-image:url('${d.bg||'cafe-wall.jpg'}');background-position:${d.bgPosition||'center 20%'};filter:brightness(${d.bgOverlay||0.35})"></div>
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+          <img class="hero-logo" src="${d.logo||'logo-orange.png'}" alt="Logo"/>
+          <p class="hero-tagline">${d.tagline||''}</p>
+          <a href="${d.ctaLink||'menu.html'}" class="hero-cta">${d.ctaText||'Voir le Menu'}</a>
+        </div>
+        <div class="hero-scroll"><span>Découvrir</span><span style="font-size:16px">↓</span></div>
+      </div>`;
+
+    case 'about': return `
+      <section class="about reveal" style="background:${d.bgColor||'#1A1A1A'};color:${d.textColor||'#fff'}">
+        <div class="section-badge">${d.badge||''}</div>
+        <h2 class="about-title">${d.title1||''}<br><em>${d.title2||''}</em></h2>
+        <div class="about-deco"><div class="about-deco-line"></div><div class="about-deco-icon">${d.decoIcon||'🎭'}</div><div class="about-deco-line"></div></div>
+        <p class="about-text">${(d.text||'').replace(/
+/g,'<br>')}</p>
+      </section>`;
+
+    case 'cta': return `
+      <div class="menu-shortcut reveal" style="background:${d.bgColor||'#FF5E00'}">
+        <div class="section-badge" style="border-color:rgba(255,255,255,0.3);color:#fff">${d.badge||''}</div>
+        <h2 class="menu-shortcut-title">${d.title1||''} <em>${d.title2||''}</em></h2>
+        <p class="menu-shortcut-sub">${d.subtitle||''}</p>
+        <div style="display:flex;align-items:center;justify-content:center;gap:40px;flex-wrap:wrap;margin-top:8px">
+          <a href="${d.btnLink||'menu.html'}" class="menu-cta">${d.btnText||''}</a>
+          <div style="text-align:center">
+            <img src="qr-code.png" style="width:160px;height:160px;object-fit:contain;border-radius:16px;display:block;margin:0 auto 8px"/>
+            <p style="font-size:11px;color:rgba(255,255,255,0.7);letter-spacing:0.1em;text-transform:uppercase">Scanner pour commander</p>
+          </div>
+        </div>
+      </div>`;
+
+    case 'gallery': return `
+      <section class="gallery reveal" style="background:${d.bgColor||'#111'}">
+        <div class="gallery-header">
+          <div class="section-badge">${d.badge||''}</div>
+          <h2 class="gallery-title">Notre <em>Espace</em></h2>
+        </div>
+        <div class="gallery-grid">
+          ${(d.images&&d.images.length ? d.images : [{url:'cafe-wall.jpg'},{url:'cafe-wall.jpg'},{url:'cafe-wall.jpg'}]).map((img,i)=>`
+            <div class="gallery-item ${i===0?'tall':''}"><img src="${img.url}" alt="Café Molière"/></div>`).join('')}
+        </div>
+        <p style="text-align:center;font-size:11px;color:#444;margin-top:20px;letter-spacing:0.1em">${d.caption||''}</p>
+      </section>`;
+
+    case 'cards': return `
+      <section class="info-section reveal" style="background:${d.bgColor||'#1A1A1A'}">
+        <div style="text-align:center;margin-bottom:40px">
+          <div class="section-badge">${d.badge||''}</div>
+          <h2 style="font-family:'Playfair Display',serif;font-size:clamp(1.6rem,4vw,2.2rem);color:#FCECBB;font-weight:400">${d.title||''}</h2>
+        </div>
+        <div class="info-inner">
+          ${(d.cards||[]).map(card=>`
+            <div class="info-card">
+              <div class="info-icon">${card.icon||''}</div>
+              <div class="info-card-title">${card.title||''}</div>
+              <div class="info-card-text">${(card.text||'').replace(/
+/g,'<br>')}</div>
+            </div>`).join('')}
+        </div>
+      </section>`;
+
+    case 'text': return `
+      <section class="reveal" style="background:${d.bgColor||'#1A1A1A'};padding:${d.padding||60}px 24px;text-align:${d.align||'center'}">
+        <div style="max-width:700px;margin:0 auto;color:${d.textColor||'#fff'};font-family:'Cormorant Garamond',serif;font-size:1.1rem;line-height:1.9">${(d.text||'').replace(/
+/g,'<br>')}</div>
+      </section>`;
+
+    case 'staff': return `
+      <section class="staff-portal reveal" style="background:${d.bgColor||'#111'}">
+        <div class="staff-portal-inner">
+          <h3 class="staff-title">${(d.title||'Espace Staff').replace('Staff','<em>Staff</em>')}</h3>
+          <div id="portal-logged-out">
+            <p style="font-size:12px;color:#444;margin-bottom:16px">${d.prompt||''}</p>
+            <div class="staff-btns"><button class="staff-btn" onclick="doLogin()">
+              <svg width="16" height="16" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
+              Se connecter avec Microsoft</button></div>
+          </div>
+          <div id="portal-logged-in" style="display:none">
+            <p style="font-size:12px;color:#555;margin-bottom:20px">Connecté: <span id="portal-email" style="color:#FF5E00"></span></p>
+            <div class="staff-btns">
+              <a href="orders-dashboard.html" class="staff-btn active-staff">${d.dashText||'🗂️ Tableau de bord'}</a>
+              <a href="admin.html" class="staff-btn active-staff">${d.adminText||'⚙️ Administration'}</a>
+              <a href="admin-home.html" class="staff-btn active-staff" id="admin-home-link" style="display:none">🏠 Admin Homepage</a>
+              <button class="staff-btn" onclick="doLogout()">Déconnexion</button>
+            </div>
+          </div>
+        </div>
+      </section>`;
+
+    case 'divider': return `
+      <div style="background:${d.bgColor||'#1A1A1A'};padding:20px 0">
+        ${d.style==='line' ? `<div style="height:1px;background:${d.color||'#333'};max-width:600px;margin:0 auto"></div>` : ''}
+        ${d.style==='deco' ? `<div style="text-align:center;color:${d.color||'#333'};font-size:1.5rem;letter-spacing:1rem">🎭 ✦ 🎭</div>` : ''}
+        ${d.style==='space' ? `<div style="height:40px"></div>` : ''}
+      </div>`;
+
+    case 'image': return `
+      <div class="reveal" style="overflow:hidden">
+        ${d.url ? `<img src="${d.url}" alt="${d.alt||''}" style="width:100%;height:${d.height||400}px;object-fit:cover;object-position:${d.objectPosition||'center'}">` : '<div style="height:200px;background:#222;display:flex;align-items:center;justify-content:center;color:#444">Upload an image</div>'}
+      </div>`;
+
+    default: return '';
+  }
+}
+
+// Try dynamic render, fall back to static
+db.collection('homepage').doc('sections').get().then(doc => {
+  if (doc.exists && doc.data().items) renderDynamicSections();
+  else loadHomeContent();
+}).catch(() => loadHomeContent());
 
 // ── AUTH ──
 function doLogin() {

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Café Molière — Admin Homepage</title>
+<title>Café Molière — Homepage Builder</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -11,126 +11,159 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#111;color:#fff;font-family:'DM Sans',sans-serif;min-height:100vh}
+body{background:#0F0F0F;color:#fff;font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden}
 
-/* LOGIN */
-.login-screen{position:fixed;inset:0;background:#111;display:flex;align-items:center;justify-content:center;z-index:9999;padding:24px}
+/* ── LOGIN ── */
+.login-screen{position:fixed;inset:0;background:#0F0F0F;display:flex;align-items:center;justify-content:center;z-index:9999;padding:24px}
 .login-screen.hidden{display:none}
-.login-box{background:#1E1E1E;border-radius:20px;padding:40px 32px;width:100%;max-width:380px;border:1px solid #2A2A2A}
+.login-box{background:#1A1A1A;border-radius:20px;padding:40px 32px;width:100%;max-width:380px;border:1px solid #2A2A2A}
 .login-title{font-family:'Playfair Display',serif;font-size:1.8rem;color:#FCECBB;text-align:center}
 .login-title em{font-style:italic;color:#FF5E00}
-.login-sub{font-size:11px;color:#555;letter-spacing:0.12em;text-transform:uppercase;margin:4px 0 4px;text-align:center}
 .login-bar{width:40px;height:2px;background:#FF5E00;margin:12px auto 24px;border-radius:2px}
 .login-error{background:rgba(255,94,0,0.1);border:1px solid rgba(255,94,0,0.3);color:#FF5E00;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:16px;display:none}
-.ms-btn{width:100%;padding:14px;background:#fff;color:#333;border:1.5px solid #ddd;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px}
+.ms-btn{width:100%;padding:14px;background:#fff;color:#333;border:1.5px solid #ddd;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background 0.2s}
 .ms-btn:hover{background:#f5f5f5}
+.ms-btn:disabled{opacity:0.5;cursor:not-allowed}
 .login-note{text-align:center;font-size:11px;color:#444;margin-top:12px}
 .login-note strong{color:#FF5E00}
 
-/* HEADER */
-.header{background:#FF5E00;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
-.header-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:#fff}
-.header-title em{font-style:italic}
-.header-right{display:flex;align-items:center;gap:8px}
-.hbtn{padding:7px 14px;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;letter-spacing:0.06em;border:none;transition:all 0.2s}
-.hbtn-preview{background:#fff;color:#FF5E00}
-.hbtn-publish{background:#2A2A2A;color:#FCECBB}
-.hbtn-publish.ready{background:#FCECBB;color:#FF5E00;animation:pulse-btn 1.5s infinite}
-@keyframes pulse-btn{0%,100%{box-shadow:0 0 0 0 rgba(252,236,187,0.4)}50%{box-shadow:0 0 0 6px rgba(252,236,187,0)}}
-.hbtn-logout{background:rgba(255,255,255,0.15);color:#fff}
+/* ── LAYOUT ── */
+.app{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:300px;background:#1A1A1A;border-right:1px solid #2A2A2A;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.main-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
 
-/* TABS */
-.tabs{display:flex;background:#1A1A1A;border-bottom:1px solid #2A2A2A;overflow-x:auto;scrollbar-width:none}
-.tabs::-webkit-scrollbar{display:none}
-.tab{flex-shrink:0;padding:12px 18px;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#555;background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;white-space:nowrap}
-.tab.active{color:#FF5E00;border-bottom-color:#FF5E00}
+/* ── TOP BAR ── */
+.topbar{background:#FF5E00;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topbar-title{font-family:'Playfair Display',serif;font-size:1rem;color:#fff}
+.topbar-title em{font-style:italic}
+.topbar-btns{display:flex;gap:6px;align-items:center}
+.tbtn{padding:7px 14px;border:none;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:0.05em}
+.tbtn-preview{background:#fff;color:#FF5E00}
+.tbtn-publish{background:#FCECBB;color:#FF5E00}
+.tbtn-publish.pulse{animation:pulse-glow 1.5s infinite}
+@keyframes pulse-glow{0%,100%{box-shadow:0 0 0 0 rgba(252,236,187,0.5)}50%{box-shadow:0 0 0 8px rgba(252,236,187,0)}}
+.tbtn-logout{background:rgba(255,255,255,0.2);color:#fff}
+.unsaved-badge{background:rgba(0,0,0,0.2);color:#fff;font-size:10px;padding:3px 8px;border-radius:10px;display:none}
+.unsaved-badge.show{display:inline-block}
 
-/* CONTENT */
-.content{max-width:860px;margin:0 auto;padding:24px 16px 80px}
+/* ── SIDEBAR HEADER ── */
+.sidebar-header{padding:14px 16px;border-bottom:1px solid #2A2A2A;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#555;display:flex;align-items:center;justify-content:space-between}
+.sidebar-add-btn{padding:5px 10px;background:#FF5E00;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer}
 
-/* CARDS */
-.card{background:#1E1E1E;border-radius:14px;padding:22px;border:1px solid #2A2A2A;margin-bottom:16px}
-.card-title{font-family:'Playfair Display',serif;font-size:1.05rem;color:#FCECBB;margin-bottom:4px}
-.card-title em{font-style:italic;color:#FF5E00}
-.card-sub{font-size:11px;color:#555;margin-bottom:16px}
+/* ── SECTION LIST ── */
+.section-list{flex:1;overflow-y:auto;padding:8px}
+.section-list::-webkit-scrollbar{width:4px}
+.section-list::-webkit-scrollbar-track{background:transparent}
+.section-list::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
+
+.sec-item{background:#222;border-radius:10px;margin-bottom:6px;border:1px solid #2A2A2A;cursor:pointer;transition:all 0.2s;overflow:hidden}
+.sec-item:hover{border-color:#444}
+.sec-item.active{border-color:#FF5E00;background:#1E1E1E}
+.sec-item.dragging{opacity:0.4;transform:scale(0.97)}
+.sec-item.drag-over{border-color:#FF5E00;border-style:dashed}
+
+.sec-item-header{display:flex;align-items:center;gap:8px;padding:10px 12px}
+.sec-drag-handle{color:#333;cursor:grab;font-size:14px;flex-shrink:0;user-select:none}
+.sec-drag-handle:hover{color:#666}
+.sec-icon{font-size:1.1rem;flex-shrink:0}
+.sec-info{flex:1;min-width:0}
+.sec-name{font-size:12px;font-weight:600;color:#FCECBB;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sec-type{font-size:10px;color:#555;margin-top:1px}
+.sec-actions{display:flex;gap:4px;flex-shrink:0}
+.sec-btn{width:24px;height:24px;border:none;border-radius:5px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;transition:all 0.15s}
+.sec-btn-vis{background:#222;color:#666}
+.sec-btn-vis.hidden-sec{background:#333;color:#FF5E00}
+.sec-btn-del{background:#2A2A2A;color:#e74c3c}
+.sec-btn-del:hover{background:rgba(231,76,60,0.2)}
+.sec-btn-dup{background:#2A2A2A;color:#888}
+.sec-btn-dup:hover{background:#333;color:#fff}
+
+/* ── SIDEBAR BOTTOM (GLOBAL SETTINGS) ── */
+.sidebar-bottom{border-top:1px solid #2A2A2A;padding:12px}
+.global-tabs{display:flex;gap:4px;margin-bottom:10px}
+.gtab{flex:1;padding:6px;background:#222;border:none;border-radius:6px;font-size:10px;font-weight:600;color:#555;cursor:pointer;letter-spacing:0.05em;text-transform:uppercase;transition:all 0.2s}
+.gtab.active{background:#FF5E00;color:#fff}
+.global-panel{display:none}
+.global-panel.active{display:block}
+
+/* ── EDIT PANEL (right sidebar) ── */
+.edit-panel{width:280px;background:#1A1A1A;border-left:1px solid #2A2A2A;overflow-y:auto;flex-shrink:0}
+.edit-panel::-webkit-scrollbar{width:4px}
+.edit-panel::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
+.ep-header{padding:14px 16px;border-bottom:1px solid #2A2A2A;font-size:12px;font-weight:600;color:#FCECBB}
+.ep-section{padding:14px 16px;border-bottom:1px solid #1E1E1E}
+.ep-section-title{font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#555;margin-bottom:10px}
+.ep-empty{padding:40px 20px;text-align:center;color:#444;font-size:12px}
 
 /* FIELDS */
-.fl{font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#555;margin-bottom:5px;display:block;margin-top:14px}
-.fl:first-of-type{margin-top:0}
-.fi{width:100%;padding:11px 13px;background:#111;border:1.5px solid #2A2A2A;border-radius:9px;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color 0.2s}
+.fl{font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#555;margin-bottom:4px;display:block;margin-top:10px}
+.fl:first-child{margin-top:0}
+.fi{width:100%;padding:9px 11px;background:#111;border:1.5px solid #2A2A2A;border-radius:8px;color:#fff;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;transition:border-color 0.2s}
 .fi:focus{border-color:#FF5E00}
 .fi::placeholder{color:#444}
-textarea.fi{resize:vertical;min-height:100px;line-height:1.6}
-.fi-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media(max-width:500px){.fi-row{grid-template-columns:1fr}}
+textarea.fi{resize:vertical;min-height:80px;line-height:1.5}
+select.fi{cursor:pointer}
+.fi-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 
-/* COLOR PICKER */
-.color-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
-.color-label{font-size:12px;color:#888;flex:1}
-.color-input{width:44px;height:36px;border:none;border-radius:8px;cursor:pointer;background:none;padding:2px}
-.color-hex{width:90px;padding:8px 10px;background:#111;border:1.5px solid #2A2A2A;border-radius:8px;color:#fff;font-family:'DM Sans',sans-serif;font-size:12px;outline:none}
-.color-hex:focus{border-color:#FF5E00}
+/* COLOR */
+.color-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.color-swatch{width:32px;height:28px;border:none;border-radius:6px;cursor:pointer;padding:2px;background:none}
+.color-hex-fi{flex:1;padding:7px 9px;background:#111;border:1.5px solid #2A2A2A;border-radius:7px;color:#fff;font-family:'DM Sans',sans-serif;font-size:11px;outline:none}
+.color-hex-fi:focus{border-color:#FF5E00}
+.color-label-sm{font-size:10px;color:#666;width:80px;flex-shrink:0}
 
-/* IMAGE UPLOAD */
-.img-upload-zone{border:2px dashed #2A2A2A;border-radius:12px;padding:24px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden}
-.img-upload-zone:hover{border-color:#FF5E00;background:rgba(255,94,0,0.04)}
-.img-upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
-.img-upload-icon{font-size:2rem;margin-bottom:8px}
-.img-upload-text{font-size:12px;color:#555}
-.img-upload-text strong{color:#FF5E00}
-.img-preview{width:100%;max-height:200px;object-fit:cover;border-radius:10px;margin-top:12px;display:none}
-.img-progress{height:3px;background:#2A2A2A;border-radius:2px;margin-top:10px;overflow:hidden;display:none}
-.img-progress-bar{height:100%;background:#FF5E00;width:0%;transition:width 0.3s;border-radius:2px}
-.current-img{width:100%;max-height:160px;object-fit:cover;border-radius:10px;margin-bottom:10px;border:1px solid #2A2A2A}
+/* FONT PICKER */
+.font-preview{padding:10px;background:#111;border-radius:8px;margin-top:6px;text-align:center;font-size:1.1rem;color:#FCECBB;border:1px solid #2A2A2A}
 
-/* GALLERY ADMIN */
-.gallery-admin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
-@media(max-width:500px){.gallery-admin-grid{grid-template-columns:1fr 1fr}}
-.gallery-admin-item{position:relative;border-radius:10px;overflow:hidden;aspect-ratio:1;border:1px solid #2A2A2A}
-.gallery-admin-item img{width:100%;height:100%;object-fit:cover}
-.gallery-item-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;gap:8px;opacity:0;transition:opacity 0.2s}
-.gallery-admin-item:hover .gallery-item-overlay{opacity:1}
-.gib{padding:6px 10px;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
-.gib-del{background:#e74c3c;color:#fff}
-.gib-move{background:#333;color:#fff}
-.gallery-add-btn{border:2px dashed #2A2A2A;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.8rem;color:#333;cursor:pointer;aspect-ratio:1;transition:all 0.2s;position:relative;overflow:hidden}
-.gallery-add-btn:hover{border-color:#FF5E00;color:#FF5E00}
-.gallery-add-btn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+/* IMG UPLOAD */
+.img-up{border:2px dashed #2A2A2A;border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;margin-top:8px}
+.img-up:hover{border-color:#FF5E00}
+.img-up input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.img-up-text{font-size:11px;color:#555}
+.img-up-text strong{color:#FF5E00}
+.img-cur{width:100%;max-height:100px;object-fit:cover;border-radius:7px;margin-bottom:8px;border:1px solid #2A2A2A;display:none}
+.img-prog{height:2px;background:#2A2A2A;border-radius:1px;margin-top:8px;overflow:hidden;display:none}
+.img-prog-bar{height:100%;background:#FF5E00;width:0%;transition:width 0.3s}
 
-/* INFO CARDS ADMIN */
-.info-card-admin{background:#111;border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid #2A2A2A}
-.info-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.info-card-label{font-size:12px;font-weight:600;color:#FCECBB}
-.info-del-btn{padding:4px 10px;background:rgba(192,57,43,0.15);color:#e74c3c;border:none;border-radius:6px;font-size:11px;cursor:pointer}
+/* SLIDER */
+.slider-row{display:flex;align-items:center;gap:8px;margin-top:6px}
+input[type=range]{flex:1;accent-color:#FF5E00}
+.slider-val{font-size:11px;color:#888;width:30px;text-align:right}
 
-/* SAVE BTN */
-.save-btn{padding:10px 22px;background:#FF5E00;color:#fff;border:none;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;margin-top:14px;transition:opacity 0.2s}
-.save-btn:hover{opacity:0.85}
-.add-btn{padding:8px 16px;background:#2A2A2A;color:#FCECBB;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;margin-top:10px;transition:background 0.2s}
-.add-btn:hover{background:#333}
+/* BUTTONS */
+.ep-btn{width:100%;padding:9px;background:#FF5E00;color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;margin-top:10px;transition:opacity 0.2s}
+.ep-btn:hover{opacity:0.85}
+.ep-btn-sec{background:#2A2A2A;color:#FCECBB}
+
+/* ── CANVAS ── */
+.canvas-wrap{flex:1;overflow:auto;background:#333;position:relative}
+.canvas-wrap::-webkit-scrollbar{width:6px;height:6px}
+.canvas-wrap::-webkit-scrollbar-thumb{background:#444;border-radius:3px}
+.canvas-device{background:#fff;margin:20px auto;border-radius:4px;box-shadow:0 8px 40px rgba(0,0,0,0.5);overflow:hidden;transition:width 0.3s}
+
+/* DEVICE BAR */
+.device-bar{background:#1A1A1A;border-bottom:1px solid #2A2A2A;padding:8px 16px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.dev-btn{padding:5px 12px;border:1px solid #2A2A2A;border-radius:50px;font-size:10px;font-weight:600;color:#555;background:none;cursor:pointer;letter-spacing:0.08em;transition:all 0.2s}
+.dev-btn.active{border-color:#FF5E00;color:#FF5E00;background:rgba(255,94,0,0.08)}
+.device-label{font-size:10px;color:#444;margin-left:auto}
+
+/* ── ADD SECTION MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:600;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s}
+.modal-overlay.visible{opacity:1;pointer-events:auto}
+.modal{background:#1A1A1A;border-radius:16px;padding:24px;width:90%;max-width:520px;border:1px solid #2A2A2A;max-height:80vh;overflow-y:auto}
+.modal-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:#FCECBB;margin-bottom:16px}
+.modal-title em{font-style:italic;color:#FF5E00}
+.section-types-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.sec-type-btn{padding:14px 10px;background:#222;border:1.5px solid #2A2A2A;border-radius:10px;cursor:pointer;text-align:center;transition:all 0.2s}
+.sec-type-btn:hover{border-color:#FF5E00;background:#1E1E1E}
+.sec-type-icon{font-size:1.6rem;margin-bottom:6px}
+.sec-type-name{font-size:11px;font-weight:600;color:#FCECBB}
+.sec-type-desc{font-size:10px;color:#555;margin-top:2px}
+.modal-close{width:100%;padding:10px;background:#2A2A2A;color:#888;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;margin-top:14px}
 
 /* TOAST */
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#FF5E00;color:#fff;padding:11px 22px;border-radius:10px;font-size:13px;font-weight:500;z-index:999;animation:toastIn 0.3s ease;white-space:nowrap;pointer-events:none}
-@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-
-/* PREVIEW MODAL */
-.preview-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:800;display:none;flex-direction:column}
-.preview-overlay.visible{display:flex}
-.preview-bar{background:#FF5E00;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.preview-bar-title{font-size:13px;font-weight:600;color:#fff;letter-spacing:0.05em}
-.preview-btns{display:flex;gap:8px}
-.preview-close{padding:7px 16px;background:rgba(255,255,255,0.2);color:#fff;border:none;border-radius:50px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif}
-.preview-publish{padding:7px 16px;background:#fff;color:#FF5E00;border:none;border-radius:50px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
-.preview-frame-wrap{flex:1;overflow:hidden;position:relative}
-.preview-frame{width:100%;height:100%;border:none}
-.preview-device-btns{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:8px;background:rgba(0,0,0,0.7);padding:8px 14px;border-radius:50px}
-.pdb{padding:6px 14px;border:none;border-radius:50px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:#333;color:#888;transition:all 0.2s}
-.pdb.active{background:#FF5E00;color:#fff}
-
-/* UNSAVED INDICATOR */
-.unsaved-dot{width:8px;height:8px;background:#FCECBB;border-radius:50%;display:none;margin-left:6px}
-.unsaved-dot.visible{display:inline-block;animation:pulse-dot 1.5s infinite}
-@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.3}}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#FF5E00;color:#fff;padding:10px 20px;border-radius:10px;font-size:12px;font-weight:500;z-index:999;animation:toastIn 0.3s ease;white-space:nowrap;pointer-events:none}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 </style>
 </head>
 <body>
@@ -139,7 +172,7 @@ textarea.fi{resize:vertical;min-height:100px;line-height:1.6}
 <div class="login-screen" id="login-screen">
   <div class="login-box">
     <div class="login-title">Café <em>Molière</em></div>
-    <div class="login-sub">Homepage Admin</div>
+    <div style="font-size:11px;color:#555;letter-spacing:0.12em;text-transform:uppercase;text-align:center;margin-top:4px">Homepage Builder</div>
     <div class="login-bar"></div>
     <div class="login-error" id="login-error"></div>
     <button class="ms-btn" id="login-btn" onclick="doLogin()">
@@ -151,200 +184,137 @@ textarea.fi{resize:vertical;min-height:100px;line-height:1.6}
       </svg>
       Sign in with Microsoft
     </button>
-    <p class="login-note">Access restricted to <strong>administrator@cafemoliere.com</strong> only</p>
+    <p class="login-note">Access restricted to <strong>administrator@cafemoliere.com</strong></p>
   </div>
 </div>
 
-<!-- ADMIN PANEL -->
-<div id="admin-panel" style="display:none">
+<!-- APP -->
+<div class="app" id="app" style="display:none">
 
-<div class="header">
-  <div class="header-title">Café <em>Molière</em> — Homepage Admin</div>
-  <div class="header-right">
-    <span class="unsaved-dot" id="unsaved-dot"></span>
-    <button class="hbtn hbtn-preview" onclick="openPreview()">👁 Preview</button>
-    <button class="hbtn hbtn-publish" id="publish-btn" onclick="publishChanges()">🚀 Publish</button>
-    <button class="hbtn hbtn-logout" onclick="doLogout()">Sign Out</button>
+  <!-- LEFT SIDEBAR: Section List -->
+  <div class="sidebar">
+    <div class="topbar" style="border-right:none">
+      <div class="topbar-title">Café <em>Molière</em></div>
+    </div>
+    <div class="sidebar-header">
+      <span>Sections</span>
+      <button class="sidebar-add-btn" onclick="openAddModal()">+ Add</button>
+    </div>
+    <div class="section-list" id="section-list"></div>
+    <div class="sidebar-bottom">
+      <div class="global-tabs">
+        <button class="gtab active" onclick="switchGlobal('colors',this)">🎨 Colors</button>
+        <button class="gtab" onclick="switchGlobal('fonts',this)">🔤 Fonts</button>
+        <button class="gtab" onclick="switchGlobal('nav',this)">🧭 Nav</button>
+        <button class="gtab" onclick="switchGlobal('footer',this)">🦶 Footer</button>
+      </div>
+      <!-- COLORS PANEL -->
+      <div class="global-panel active" id="gp-colors">
+        <div class="color-row"><span class="color-label-sm">🟠 Orange</span><input type="color" class="color-swatch" id="gc-orange" value="#FF5E00" oninput="syncGColor('orange')"><input class="color-hex-fi" id="gh-orange" value="#FF5E00" oninput="syncGPicker('orange')" maxlength="7"></div>
+        <div class="color-row"><span class="color-label-sm">🟡 Cream</span><input type="color" class="color-swatch" id="gc-cream" value="#FCECBB" oninput="syncGColor('cream')"><input class="color-hex-fi" id="gh-cream" value="#FCECBB" oninput="syncGPicker('cream')" maxlength="7"></div>
+        <div class="color-row"><span class="color-label-sm">⚫ Background</span><input type="color" class="color-swatch" id="gc-dark" value="#1A1A1A" oninput="syncGColor('dark')"><input class="color-hex-fi" id="gh-dark" value="#1A1A1A" oninput="syncGPicker('dark')" maxlength="7"></div>
+        <button class="ep-btn" style="margin-top:8px" onclick="saveGlobal('colors')">Save Colors</button>
+      </div>
+      <!-- FONTS PANEL -->
+      <div class="global-panel" id="gp-fonts">
+        <label class="fl">Display Font</label>
+        <select class="fi" id="gf-display" onchange="previewFont()">
+          <option value="Playfair Display">Playfair Display</option>
+          <option value="Cormorant Garamond">Cormorant Garamond</option>
+          <option value="Libre Baskerville">Libre Baskerville</option>
+          <option value="Lora">Lora</option>
+          <option value="Merriweather">Merriweather</option>
+        </select>
+        <label class="fl">Body Font</label>
+        <select class="fi" id="gf-body" onchange="previewFont()">
+          <option value="DM Sans">DM Sans</option>
+          <option value="Nunito">Nunito</option>
+          <option value="Poppins">Poppins</option>
+          <option value="Raleway">Raleway</option>
+          <option value="Work Sans">Work Sans</option>
+        </select>
+        <div class="font-preview" id="font-preview">Café Molière — Goûter la culture</div>
+        <button class="ep-btn" style="margin-top:8px" onclick="saveGlobal('fonts')">Save Fonts</button>
+      </div>
+      <!-- NAV PANEL -->
+      <div class="global-panel" id="gp-nav">
+        <label class="fl">Logo Text</label>
+        <input class="fi" id="nav-logo" placeholder="Café Molière" oninput="markUnsaved()">
+        <label class="fl">Menu Button Text</label>
+        <input class="fi" id="nav-menu-text" placeholder="🍽️ Notre Menu" oninput="markUnsaved()">
+        <label class="fl">Login Button Text</label>
+        <input class="fi" id="nav-login-text" placeholder="Connexion Staff" oninput="markUnsaved()">
+        <label class="fl">Navbar Background</label>
+        <div class="color-row" style="margin-bottom:0">
+          <input type="color" class="color-swatch" id="nav-bg-color" value="#FF5E00" oninput="markUnsaved()">
+          <input class="color-hex-fi" id="nav-bg-hex" value="#FF5E00" maxlength="7" oninput="markUnsaved()">
+        </div>
+        <button class="ep-btn" style="margin-top:10px" onclick="saveGlobal('nav')">Save Navbar</button>
+      </div>
+      <!-- FOOTER PANEL -->
+      <div class="global-panel" id="gp-footer">
+        <label class="fl">Footer Logo Text</label>
+        <input class="fi" id="footer-logo" placeholder="Le Café Molière" oninput="markUnsaved()">
+        <label class="fl">Footer Tagline</label>
+        <input class="fi" id="footer-tagline" placeholder="Goûter la culture..." oninput="markUnsaved()">
+        <label class="fl">Copyright Text</label>
+        <input class="fi" id="footer-copy" placeholder="© 2024 · Beit Chabab..." oninput="markUnsaved()">
+        <button class="ep-btn" style="margin-top:10px" onclick="saveGlobal('footer')">Save Footer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER: Canvas -->
+  <div class="main-area">
+    <div class="topbar">
+      <div class="topbar-title">Homepage <em>Builder</em></div>
+      <div class="topbar-btns">
+        <span class="unsaved-badge" id="unsaved-badge">● Unsaved</span>
+        <button class="tbtn tbtn-preview" onclick="openPreview()">👁 Preview</button>
+        <button class="tbtn tbtn-publish" id="publish-btn" onclick="publishAll()">🚀 Publish</button>
+        <button class="tbtn tbtn-logout" onclick="doLogout()">Exit</button>
+      </div>
+    </div>
+    <div class="device-bar">
+      <button class="dev-btn active" onclick="setDevice('100%',this)">🖥 Desktop</button>
+      <button class="dev-btn" onclick="setDevice('768px',this)">📱 Tablet</button>
+      <button class="dev-btn" onclick="setDevice('390px',this)">📲 Mobile</button>
+      <span class="device-label" id="device-label">Desktop — full width</span>
+    </div>
+    <div class="canvas-wrap">
+      <div class="canvas-device" id="canvas-device" style="width:100%">
+        <iframe id="canvas-frame" style="width:100%;height:100vh;border:none;display:block" src="index.html"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDEBAR: Edit Panel -->
+  <div class="edit-panel" id="edit-panel">
+    <div class="ep-header">✏️ Edit Section</div>
+    <div class="ep-empty" id="ep-empty">
+      <div style="font-size:2rem;margin-bottom:8px">👈</div>
+      Select a section from the left panel to edit it
+    </div>
+    <div id="ep-content" style="display:none"></div>
   </div>
 </div>
 
-<div class="tabs">
-  <button class="tab active" onclick="switchTab('hero',this)">🎬 Hero</button>
-  <button class="tab" onclick="switchTab('about',this)">📖 About</button>
-  <button class="tab" onclick="switchTab('gallery',this)">📸 Gallery</button>
-  <button class="tab" onclick="switchTab('menu-sec',this)">🍽️ Menu Section</button>
-  <button class="tab" onclick="switchTab('info',this)">📍 Info Cards</button>
-  <button class="tab" onclick="switchTab('colors',this)">🎨 Colors</button>
-  <button class="tab" onclick="switchTab('staff-sec',this)">👤 Staff Section</button>
-</div>
-
-<!-- HERO TAB -->
-<div id="tab-hero" class="content">
-  <div class="card">
-    <div class="card-title">🎬 Hero <em>Background</em></div>
-    <div class="card-sub">The full-screen image shown behind the logo</div>
-    <div id="hero-current-wrap" style="display:none">
-      <img id="hero-current-img" class="current-img" src="" alt="Current hero" />
+<!-- ADD SECTION MODAL -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <div class="modal-title">Add New <em>Section</em></div>
+    <div class="section-types-grid">
+      <div class="sec-type-btn" onclick="addSection('hero')"><div class="sec-type-icon">🎬</div><div class="sec-type-name">Hero</div><div class="sec-type-desc">Full-screen banner</div></div>
+      <div class="sec-type-btn" onclick="addSection('about')"><div class="sec-type-icon">📖</div><div class="sec-type-name">About</div><div class="sec-type-desc">Text & title</div></div>
+      <div class="sec-type-btn" onclick="addSection('gallery')"><div class="sec-type-icon">📸</div><div class="sec-type-name">Gallery</div><div class="sec-type-desc">Photo grid</div></div>
+      <div class="sec-type-btn" onclick="addSection('cta')"><div class="sec-type-icon">🍽️</div><div class="sec-type-name">CTA Banner</div><div class="sec-type-desc">Button + text</div></div>
+      <div class="sec-type-btn" onclick="addSection('cards')"><div class="sec-type-icon">📋</div><div class="sec-type-name">Cards</div><div class="sec-type-desc">Info cards grid</div></div>
+      <div class="sec-type-btn" onclick="addSection('text')"><div class="sec-type-icon">📝</div><div class="sec-type-name">Text Block</div><div class="sec-type-desc">Rich text</div></div>
+      <div class="sec-type-btn" onclick="addSection('staff')"><div class="sec-type-icon">👤</div><div class="sec-type-name">Staff Portal</div><div class="sec-type-desc">Login section</div></div>
+      <div class="sec-type-btn" onclick="addSection('divider')"><div class="sec-type-icon">➖</div><div class="sec-type-name">Divider</div><div class="sec-type-desc">Separator</div></div>
+      <div class="sec-type-btn" onclick="addSection('image')"><div class="sec-type-icon">🖼️</div><div class="sec-type-name">Full Image</div><div class="sec-type-desc">Full-width photo</div></div>
     </div>
-    <div class="img-upload-zone" id="hero-drop-zone">
-      <input type="file" accept="image/*" onchange="uploadImage('hero','hero-bg',this)">
-      <div class="img-upload-icon">🖼️</div>
-      <div class="img-upload-text">Drop image or <strong>click to upload</strong><br>Recommended: 1920×1080px</div>
-      <div class="img-progress" id="prog-hero"><div class="img-progress-bar" id="bar-hero"></div></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">🏷️ Hero <em>Logo</em></div>
-    <div class="card-sub">The logo displayed on the hero section</div>
-    <div id="logo-current-wrap" style="display:none">
-      <img id="logo-current-img" class="current-img" style="max-height:100px;object-fit:contain;background:#FF5E00;padding:12px;border-radius:10px" src="" alt="Current logo" />
-    </div>
-    <div class="img-upload-zone">
-      <input type="file" accept="image/*" onchange="uploadImage('logo','hero-logo',this)">
-      <div class="img-upload-icon">🎭</div>
-      <div class="img-upload-text">Drop logo or <strong>click to upload</strong><br>PNG with transparency recommended</div>
-      <div class="img-progress" id="prog-logo"><div class="img-progress-bar" id="bar-logo"></div></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">✍️ Hero <em>Text</em></div>
-    <label class="fl">Tagline</label>
-    <input class="fi" id="hero-tagline" placeholder="Goûter la culture, savourer l'instant" oninput="markUnsaved()">
-    <label class="fl">CTA Button Text</label>
-    <input class="fi" id="hero-cta-text" placeholder="🍽️ Voir le Menu & Commander" oninput="markUnsaved()">
-    <label class="fl">CTA Button Link</label>
-    <input class="fi" id="hero-cta-link" placeholder="menu.html" oninput="markUnsaved()">
-    <button class="save-btn" onclick="saveSection('hero')">Save Hero Text</button>
-  </div>
-</div>
-
-<!-- ABOUT TAB -->
-<div id="tab-about" class="content" style="display:none">
-  <div class="card">
-    <div class="card-title">📖 About <em>Section</em></div>
-    <label class="fl">Badge Text</label>
-    <input class="fi" id="about-badge" placeholder="Notre Histoire" oninput="markUnsaved()">
-    <label class="fl">Title (first part)</label>
-    <input class="fi" id="about-title1" placeholder="Le Café Molière" oninput="markUnsaved()">
-    <label class="fl">Title (italic part)</label>
-    <input class="fi" id="about-title2" placeholder="entre en scène" oninput="markUnsaved()">
-    <label class="fl">Body Text</label>
-    <textarea class="fi" id="about-text" placeholder="Your about text here..." oninput="markUnsaved()"></textarea>
-    <button class="save-btn" onclick="saveSection('about')">Save About Section</button>
-  </div>
-</div>
-
-<!-- GALLERY TAB -->
-<div id="tab-gallery" class="content" style="display:none">
-  <div class="card">
-    <div class="card-title">📸 Photo <em>Gallery</em></div>
-    <div class="card-sub">Drag to reorder · Click × to delete · Max 9 photos recommended</div>
-    <div class="gallery-admin-grid" id="gallery-admin-grid"></div>
-    <div class="gallery-add-btn" id="gallery-add-btn">
-      <input type="file" accept="image/*" multiple onchange="uploadGalleryImages(this)">
-      <span>+</span>
-    </div>
-    <div class="img-progress" id="prog-gallery" style="margin-top:12px"><div class="img-progress-bar" id="bar-gallery"></div></div>
-    <p style="font-size:11px;color:#555;margin-top:10px">Changes saved automatically when uploaded</p>
-  </div>
-</div>
-
-<!-- MENU SECTION TAB -->
-<div id="tab-menu-sec" class="content" style="display:none">
-  <div class="card">
-    <div class="card-title">🍽️ Menu <em>Shortcut Section</em></div>
-    <label class="fl">Badge Text</label>
-    <input class="fi" id="menu-badge" placeholder="Notre Carte" oninput="markUnsaved()">
-    <label class="fl">Title (first part)</label>
-    <input class="fi" id="menu-title1" placeholder="Découvrez notre" oninput="markUnsaved()">
-    <label class="fl">Title (italic part)</label>
-    <input class="fi" id="menu-title2" placeholder="Menu" oninput="markUnsaved()">
-    <label class="fl">Subtitle</label>
-    <input class="fi" id="menu-subtitle" placeholder="Des plats aux noms de Molière..." oninput="markUnsaved()">
-    <label class="fl">Button Text</label>
-    <input class="fi" id="menu-btn-text" placeholder="🍽️ Ouvrir le Menu & Commander" oninput="markUnsaved()">
-    <button class="save-btn" onclick="saveSection('menu-sec')">Save Menu Section</button>
-  </div>
-</div>
-
-<!-- INFO CARDS TAB -->
-<div id="tab-info" class="content" style="display:none">
-  <div class="card">
-    <div class="card-title">📍 Info <em>Cards</em></div>
-    <div class="card-sub">Edit the 4 info cards shown at the bottom of the homepage</div>
-    <div id="info-cards-list"></div>
-    <button class="add-btn" onclick="addInfoCard()">+ Add Info Card</button>
-    <button class="save-btn" onclick="saveSection('info')">Save Info Cards</button>
-  </div>
-</div>
-
-<!-- COLORS TAB -->
-<div id="tab-colors" class="content" style="display:none">
-  <div class="card">
-    <div class="card-title">🎨 Brand <em>Colors</em></div>
-    <div class="card-sub">Changes apply across the entire homepage instantly on publish</div>
-
-    <div class="color-row">
-      <span class="color-label">🟠 Primary Orange</span>
-      <input type="color" class="color-input" id="color-orange" value="#FF5E00" oninput="syncColorHex('orange')">
-      <input type="text" class="color-hex" id="hex-orange" value="#FF5E00" oninput="syncColorPicker('orange')" maxlength="7">
-    </div>
-    <div class="color-row">
-      <span class="color-label">🟡 Cream / Accent</span>
-      <input type="color" class="color-input" id="color-cream" value="#FCECBB" oninput="syncColorHex('cream')">
-      <input type="text" class="color-hex" id="hex-cream" value="#FCECBB" oninput="syncColorPicker('cream')" maxlength="7">
-    </div>
-    <div class="color-row">
-      <span class="color-label">⚫ Dark Background</span>
-      <input type="color" class="color-input" id="color-dark" value="#1A1A1A" oninput="syncColorHex('dark')">
-      <input type="text" class="color-hex" id="hex-dark" value="#1A1A1A" oninput="syncColorPicker('dark')" maxlength="7">
-    </div>
-    <div class="color-row">
-      <span class="color-label">🔲 Card Background</span>
-      <input type="color" class="color-input" id="color-card" value="#222222" oninput="syncColorHex('card')">
-      <input type="text" class="color-hex" id="hex-card" value="#222222" oninput="syncColorPicker('card')" maxlength="7">
-    </div>
-
-    <button class="save-btn" onclick="saveSection('colors')">Save Colors</button>
-    <button class="save-btn" style="background:#333;margin-left:8px" onclick="resetColors()">Reset to Default</button>
-  </div>
-</div>
-
-<!-- STAFF SECTION TAB -->
-<div id="tab-staff-sec" class="content" style="display:none">
-  <div class="card">
-    <div class="card-title">👤 Staff <em>Portal Section</em></div>
-    <label class="fl">Section Title</label>
-    <input class="fi" id="staff-title" placeholder="Espace Staff" oninput="markUnsaved()">
-    <label class="fl">Login Prompt Text</label>
-    <input class="fi" id="staff-prompt" placeholder="Connectez-vous avec votre compte @cafemoliere.com" oninput="markUnsaved()">
-    <label class="fl">Dashboard Button Text</label>
-    <input class="fi" id="staff-dash-text" placeholder="🗂️ Tableau de bord" oninput="markUnsaved()">
-    <label class="fl">Admin Button Text</label>
-    <input class="fi" id="staff-admin-text" placeholder="⚙️ Administration" oninput="markUnsaved()">
-    <button class="save-btn" onclick="saveSection('staff-sec')">Save Staff Section</button>
-  </div>
-</div>
-
-</div><!-- end admin-panel -->
-
-<!-- PREVIEW MODAL -->
-<div class="preview-overlay" id="preview-overlay">
-  <div class="preview-bar">
-    <span class="preview-bar-title">👁 Live Preview — Changes not yet published</span>
-    <div class="preview-btns">
-      <button class="preview-close" onclick="closePreview()">✕ Close</button>
-      <button class="preview-publish" onclick="publishChanges()">🚀 Publish Now</button>
-    </div>
-  </div>
-  <div class="preview-frame-wrap">
-    <iframe class="preview-frame" id="preview-frame" src=""></iframe>
-    <div class="preview-device-btns">
-      <button class="pdb active" onclick="setDevice('100%',this)">🖥 Desktop</button>
-      <button class="pdb" onclick="setDevice('390px',this)">📱 Mobile</button>
-    </div>
+    <button class="modal-close" onclick="closeAddModal()">Cancel</button>
   </div>
 </div>
 
@@ -360,419 +330,533 @@ firebase.initializeApp(firebaseConfig);
 const db      = firebase.firestore();
 const auth    = firebase.auth();
 const storage = firebase.storage();
-
-const ADMIN_EMAIL = 'administrator@cafemoliere.com';
+const ADMIN   = 'administrator@cafemoliere.com';
 
 // ── STATE ──
-let homeData = {};
-let unsaved = false;
+let sections   = [];   // [{id, type, name, visible, data:{...}}]
+let globalData = {};
+let activeSecId = null;
+let dragSecId   = null;
+let unsaved     = false;
 
-// ── TABS ──
-function switchTab(name, btn) {
-  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  document.querySelectorAll('[id^="tab-"]').forEach(t => t.style.display = 'none');
-  document.getElementById('tab-' + name).style.display = 'block';
-}
+// ── DEFAULT SECTION DATA ──
+const DEFAULTS = {
+  hero:    { name:'Hero', icon:'🎬', data:{ bg:'cafe-wall.jpg', logo:'logo-orange.png', tagline:"Goûter la culture, savourer l'instant", ctaText:'🍽️ Voir le Menu & Commander', ctaLink:'menu.html', bgOverlay:'0.35', bgPosition:'center 20%' }},
+  about:   { name:'About', icon:'📖', data:{ badge:'Notre Histoire', title1:'Le Café Molière', title2:'entre en scène', decoIcon:'🎭', text:"Le Café Molière ouvre officiellement ses portes ! Un espace pensé pour se retrouver, partager et profiter de moments simples et joyeux, entre deux cours ou à la récré !", bgColor:'#1A1A1A', textColor:'#ffffff' }},
+  gallery: { name:'Gallery', icon:'📸', data:{ badge:'Galerie', title:'Notre Espace', images:[], caption:'BEIT CHABAB · LYCÉE MONTAIGNE ÉCOLE', bgColor:'#111111' }},
+  cta:     { name:'CTA Banner', icon:'🍽️', data:{ badge:'Notre Carte', title1:'Découvrez notre', title2:'Menu', subtitle:'Des plats aux noms de Molière, une cuisine avec caractère', btnText:'🍽️ Ouvrir le Menu & Commander', btnLink:'menu.html', bgColor:'#FF5E00' }},
+  cards:   { name:'Info Cards', icon:'📋', data:{ badge:'Informations', title:'Nous trouver', titleItalic:'trouver', bgColor:'#1A1A1A', cards:[{icon:'📍',title:'Adresse',text:'Lycée Montaigne\nBeit Chabab'},{icon:'🕐',title:'Horaires',text:'Lundi – Vendredi\nHeures scolaires'},{icon:'📱',title:'Commander',text:'Via notre menu en ligne'},{icon:'📞',title:'Contact',text:'+961 71 503 555'}] }},
+  text:    { name:'Text Block', icon:'📝', data:{ text:'Your text here...', align:'center', bgColor:'#1A1A1A', textColor:'#ffffff', padding:'60' }},
+  staff:   { name:'Staff Portal', icon:'👤', data:{ title:'Espace Staff', prompt:'Connectez-vous avec votre compte @cafemoliere.com', dashText:'🗂️ Tableau de bord', adminText:'⚙️ Administration', bgColor:'#111111' }},
+  divider: { name:'Divider', icon:'➖', data:{ style:'line', color:'#333333', bgColor:'#1A1A1A' }},
+  image:   { name:'Full Image', icon:'🖼️', data:{ url:'', alt:'', height:'400', objectPosition:'center center' }},
+};
 
-// ── TOAST ──
-function toast(msg, duration=2500) {
+// ── UTILS ──
+function uid() { return 'sec_' + Date.now() + '_' + Math.random().toString(36).substr(2,5); }
+function toast(msg, d=2500) {
   document.querySelector('.toast')?.remove();
-  const el = document.createElement('div');
-  el.className = 'toast';
-  el.textContent = msg;
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), duration);
+  const el = document.createElement('div'); el.className='toast'; el.textContent=msg;
+  document.body.appendChild(el); setTimeout(()=>el.remove(),d);
 }
-
-// ── UNSAVED ──
 function markUnsaved() {
-  unsaved = true;
-  document.getElementById('unsaved-dot').classList.add('visible');
-  document.getElementById('publish-btn').classList.add('ready');
+  unsaved=true;
+  document.getElementById('unsaved-badge').classList.add('show');
+  document.getElementById('publish-btn').classList.add('pulse');
 }
-
 function markSaved() {
-  unsaved = false;
-  document.getElementById('unsaved-dot').classList.remove('visible');
-  document.getElementById('publish-btn').classList.remove('ready');
+  unsaved=false;
+  document.getElementById('unsaved-badge').classList.remove('show');
+  document.getElementById('publish-btn').classList.remove('pulse');
 }
 
-// ── COLOR SYNC ──
-function syncColorHex(key) {
-  document.getElementById('hex-'+key).value = document.getElementById('color-'+key).value;
+// ── DEVICE ──
+function setDevice(w, btn) {
+  const frame = document.getElementById('canvas-device');
+  const labels = {'100%':'Desktop — full width','768px':'Tablet — 768px','390px':'Mobile — 390px'};
+  frame.style.width = w;
+  document.querySelectorAll('.dev-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('device-label').textContent = labels[w]||w;
+}
+
+// ── GLOBAL TABS ──
+function switchGlobal(name, btn) {
+  document.querySelectorAll('.gtab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.global-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('gp-'+name).classList.add('active');
+}
+function syncGColor(k) { document.getElementById('gh-'+k).value = document.getElementById('gc-'+k).value; markUnsaved(); }
+function syncGPicker(k) { const v=document.getElementById('gh-'+k).value; if(/^#[0-9A-Fa-f]{6}$/.test(v)) { document.getElementById('gc-'+k).value=v; markUnsaved(); } }
+function previewFont() {
+  const d=document.getElementById('gf-display').value;
+  const b=document.getElementById('gf-body').value;
+  const prev=document.getElementById('font-preview');
+  prev.style.fontFamily=d;
+  const link=document.createElement('link');
+  link.rel='stylesheet';
+  link.href=`https://fonts.googleapis.com/css2?family=${d.replace(/ /g,'+')}&family=${b.replace(/ /g,'+')}`;
+  document.head.appendChild(link);
   markUnsaved();
 }
-function syncColorPicker(key) {
-  const val = document.getElementById('hex-'+key).value;
-  if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
-    document.getElementById('color-'+key).value = val;
-    markUnsaved();
+
+// ── ADD SECTION MODAL ── 
+function openAddModal() { document.getElementById('add-modal').classList.add('visible'); }
+function closeAddModal() { document.getElementById('add-modal').classList.remove('visible'); }
+
+function addSection(type) {
+  const def = DEFAULTS[type];
+  if (!def) return;
+  const sec = { id:uid(), type, name:def.name, icon:def.icon, visible:true, data:JSON.parse(JSON.stringify(def.data)) };
+  sections.push(sec);
+  closeAddModal();
+  renderSectionList();
+  selectSection(sec.id);
+  markUnsaved();
+  toast(def.name + ' section added!');
+}
+
+// ── SECTION LIST ──
+function renderSectionList() {
+  const list = document.getElementById('section-list');
+  if (!sections.length) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:#444;font-size:12px">No sections yet<br>Click + Add to start</div>';
+    return;
+  }
+  list.innerHTML = sections.map(sec => `
+    <div class="sec-item ${sec.id===activeSecId?'active':''}" id="si-${sec.id}"
+      draggable="true"
+      ondragstart="secDragStart(event,'${sec.id}')"
+      ondragover="secDragOver(event,'${sec.id}')"
+      ondragleave="secDragLeave(event)"
+      ondrop="secDrop(event,'${sec.id}')">
+      <div class="sec-item-header" onclick="selectSection('${sec.id}')">
+        <span class="sec-drag-handle">⠿</span>
+        <span class="sec-icon">${sec.icon||'📦'}</span>
+        <div class="sec-info">
+          <div class="sec-name">${sec.name}</div>
+          <div class="sec-type">${sec.type}</div>
+        </div>
+        <div class="sec-actions" onclick="event.stopPropagation()">
+          <button class="sec-btn sec-btn-vis ${sec.visible?'':'hidden-sec'}" onclick="toggleSecVisible('${sec.id}')" title="${sec.visible?'Hide':'Show'}">
+            ${sec.visible?'👁':'🚫'}
+          </button>
+          <button class="sec-btn sec-btn-dup" onclick="duplicateSec('${sec.id}')" title="Duplicate">⧉</button>
+          <button class="sec-btn sec-btn-del" onclick="deleteSec('${sec.id}')" title="Delete">🗑</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ── DRAG SECTIONS ──
+function secDragStart(e,id){dragSecId=id;setTimeout(()=>document.getElementById('si-'+id)?.classList.add('dragging'),0);}
+function secDragOver(e,id){e.preventDefault();if(id!==dragSecId)document.getElementById('si-'+id)?.classList.add('drag-over');}
+function secDragLeave(e){e.currentTarget.classList.remove('drag-over');}
+function secDrop(e,toId){
+  e.preventDefault();
+  document.querySelectorAll('.sec-item').forEach(el=>{el.classList.remove('drag-over','dragging');});
+  if(!dragSecId||dragSecId===toId)return;
+  const fi=sections.findIndex(s=>s.id===dragSecId);
+  const ti=sections.findIndex(s=>s.id===toId);
+  const [sec]=sections.splice(fi,1);
+  sections.splice(ti,0,sec);
+  dragSecId=null;
+  renderSectionList();
+  refreshCanvas();
+  markUnsaved();
+  toast('Section reordered');
+}
+
+// ── SECTION ACTIONS ──
+function toggleSecVisible(id){const s=sections.find(s=>s.id===id);if(s){s.visible=!s.visible;renderSectionList();refreshCanvas();markUnsaved();}}
+function duplicateSec(id){const s=sections.find(s=>s.id===id);if(s){const n={...JSON.parse(JSON.stringify(s)),id:uid(),name:s.name+' (copy)'};sections.splice(sections.indexOf(s)+1,0,n);renderSectionList();markUnsaved();toast('Section duplicated');}}
+function deleteSec(id){if(!confirm('Delete this section?'))return;sections=sections.filter(s=>s.id!==id);if(activeSecId===id){activeSecId=null;showEditEmpty();}renderSectionList();refreshCanvas();markUnsaved();}
+
+// ── SELECT SECTION ── 
+function selectSection(id) {
+  activeSecId = id;
+  renderSectionList();
+  const sec = sections.find(s=>s.id===id);
+  if (!sec) return;
+  document.getElementById('ep-empty').style.display = 'none';
+  document.getElementById('ep-content').style.display = 'block';
+  document.querySelector('.ep-header').textContent = sec.icon+' Edit: '+sec.name;
+  renderEditPanel(sec);
+}
+
+function showEditEmpty(){document.getElementById('ep-empty').style.display='block';document.getElementById('ep-content').style.display='none';document.querySelector('.ep-header').textContent='✏️ Edit Section';}
+
+// ── EDIT PANEL RENDERER ──
+function renderEditPanel(sec) {
+  const c = document.getElementById('ep-content');
+  c.innerHTML = '';
+  const d = sec.data;
+
+  // NAME
+  c.innerHTML += `<div class="ep-section"><div class="ep-section-title">Section Settings</div>
+    <label class="fl">Section Name</label>
+    <input class="fi" value="${sec.name}" onchange="sec_updateName('${sec.id}',this.value)">
+  </div>`;
+
+  if (sec.type === 'hero') {
+    c.innerHTML += `<div class="ep-section"><div class="ep-section-title">Background Image</div>
+      ${d.bg ? `<img class="img-cur" src="${d.bg}" style="display:block">` : ''}
+      <div class="img-up"><input type="file" accept="image/*" onchange="uploadSecImage('${sec.id}','bg',this)">
+        <div class="img-up-text">📁 Upload background<br><strong>Click to browse</strong></div>
+        <div class="img-prog" id="prog-${sec.id}-bg"><div class="img-prog-bar"></div></div>
+      </div>
+      <label class="fl">Background Position</label>
+      <input class="fi" value="${d.bgPosition||'center center'}" onchange="sec_update('${sec.id}','bgPosition',this.value)">
+      <label class="fl">Overlay Darkness (0-1)</label>
+      <div class="slider-row"><input type="range" min="0" max="1" step="0.05" value="${d.bgOverlay||0.35}" oninput="sec_update('${sec.id}','bgOverlay',this.value);this.nextElementSibling.textContent=this.value"><span class="slider-val">${d.bgOverlay||0.35}</span></div>
+    </div>
+    <div class="ep-section"><div class="ep-section-title">Logo</div>
+      ${d.logo ? `<img class="img-cur" src="${d.logo}" style="display:block;max-height:60px;object-fit:contain;background:#FF5E00;padding:8px">` : ''}
+      <div class="img-up"><input type="file" accept="image/*" onchange="uploadSecImage('${sec.id}','logo',this)">
+        <div class="img-up-text">📁 Upload logo<br><strong>Click to browse</strong></div>
+      </div>
+    </div>
+    <div class="ep-section"><div class="ep-section-title">Text & Button</div>
+      <label class="fl">Tagline</label>
+      <input class="fi" value="${d.tagline||''}" onchange="sec_update('${sec.id}','tagline',this.value)">
+      <label class="fl">Button Text</label>
+      <input class="fi" value="${d.ctaText||''}" onchange="sec_update('${sec.id}','ctaText',this.value)">
+      <label class="fl">Button Link</label>
+      <input class="fi" value="${d.ctaLink||''}" onchange="sec_update('${sec.id}','ctaLink',this.value)">
+    </div>`;
+  }
+
+  else if (sec.type === 'about') {
+    c.innerHTML += `<div class="ep-section"><div class="ep-section-title">Content</div>
+      <label class="fl">Badge Text</label>
+      <input class="fi" value="${d.badge||''}" onchange="sec_update('${sec.id}','badge',this.value)">
+      <label class="fl">Title Part 1</label>
+      <input class="fi" value="${d.title1||''}" onchange="sec_update('${sec.id}','title1',this.value)">
+      <label class="fl">Title Part 2 (italic)</label>
+      <input class="fi" value="${d.title2||''}" onchange="sec_update('${sec.id}','title2',this.value)">
+      <label class="fl">Deco Icon</label>
+      <input class="fi" value="${d.decoIcon||'🎭'}" maxlength="4" onchange="sec_update('${sec.id}','decoIcon',this.value)">
+      <label class="fl">Body Text</label>
+      <textarea class="fi" onchange="sec_update('${sec.id}','text',this.value)">${d.text||''}</textarea>
+    </div>
+    <div class="ep-section"><div class="ep-section-title">Colors</div>
+      <div class="color-row"><span class="color-label-sm">Background</span><input type="color" class="color-swatch" value="${d.bgColor||'#1A1A1A'}" oninput="sec_update('${sec.id}','bgColor',this.value)"><input class="color-hex-fi" value="${d.bgColor||'#1A1A1A'}" maxlength="7" oninput="sec_update('${sec.id}','bgColor',this.value)"></div>
+      <div class="color-row"><span class="color-label-sm">Text Color</span><input type="color" class="color-swatch" value="${d.textColor||'#ffffff'}" oninput="sec_update('${sec.id}','textColor',this.value)"><input class="color-hex-fi" value="${d.textColor||'#ffffff'}" maxlength="7" oninput="sec_update('${sec.id}','textColor',this.value)"></div>
+    </div>`;
+  }
+
+  else if (sec.type === 'gallery') {
+    const imgs = d.images||[];
+    c.innerHTML += `<div class="ep-section"><div class="ep-section-title">Content</div>
+      <label class="fl">Badge</label><input class="fi" value="${d.badge||''}" onchange="sec_update('${sec.id}','badge',this.value)">
+      <label class="fl">Title</label><input class="fi" value="${d.title||''}" onchange="sec_update('${sec.id}','title',this.value)">
+      <label class="fl">Caption</label><input class="fi" value="${d.caption||''}" onchange="sec_update('${sec.id}','caption',this.value)">
+    </div>
+    <div class="ep-section"><div class="ep-section-title">Photos (${imgs.length})</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+        ${imgs.map((img,i)=>`<div style="position:relative;border-radius:6px;overflow:hidden;aspect-ratio:1">
+          <img src="${img.url}" style="width:100%;height:100%;object-fit:cover">
+          <button onclick="removeGalleryImg('${sec.id}',${i})" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.7);color:#fff;border:none;border-radius:4px;padding:2px 5px;font-size:10px;cursor:pointer">✕</button>
+        </div>`).join('')}
+      </div>
+      <div class="img-up"><input type="file" accept="image/*" multiple onchange="uploadGalleryImg('${sec.id}',this)">
+        <div class="img-up-text">📁 Add photos<br><strong>Click to browse</strong></div>
+        <div class="img-prog" id="prog-${sec.id}-gal"><div class="img-prog-bar"></div></div>
+      </div>
+    </div>
+    <div class="ep-section"><div class="ep-section-title">Colors</div>
+      <div class="color-row"><span class="color-label-sm">Background</span><input type="color" class="color-swatch" value="${d.bgColor||'#111111'}" oninput="sec_update('${sec.id}','bgColor',this.value)"></div>
+    </div>`;
+  }
+
+  else if (sec.type === 'cta') {
+    c.innerHTML += `<div class="ep-section"><div class="ep-section-title">Content</div>
+      <label class="fl">Badge</label><input class="fi" value="${d.badge||''}" onchange="sec_update('${sec.id}','badge',this.value)">
+      <label class="fl">Title Part 1</label><input class="fi" value="${d.title1||''}" onchange="sec_update('${sec.id}','title1',this.value)">
+      <label class="fl">Title Part 2 (italic)</label><input class="fi" value="${d.title2||''}" onchange="sec_update('${sec.id}','title2',this.value)">
+      <label class="fl">Subtitle</label><input class="fi" value="${d.subtitle||''}" onchange="sec_update('${sec.id}','subtitle',this.value)">
+      <label class="fl">Button Text</label><input class="fi" value="${d.btnText||''}" onchange="sec_update('${sec.id}','btnText',this.value)">
+      <label class="fl">Button Link</label><input class="fi" value="${d.btnLink||''}" onchange="sec_update('${sec.id}','btnLink',this.value)">
+    </div>
+    <div class="ep-section"><div class="ep-section-title">Colors</div>
+      <div class="color-row"><span class="color-label-sm">Background</span><input type="color" class="color-swatch" value="${d.bgColor||'#FF5E00'}" oninput="sec_update('${sec.id}','bgColor',this.value)"><input class="color-hex-fi" value="${d.bgColor||'#FF5E00'}" maxlength="7" oninput="sec_update('${sec.id}','bgColor',this.value)"></div>
+    </div>`;
+  }
+
+  else if (sec.type === 'cards') {
+    c.innerHTML += `<div class="ep-section"><div class="ep-section-title">Section Header</div>
+      <label class="fl">Badge</label><input class="fi" value="${d.badge||''}" onchange="sec_update('${sec.id}','badge',this.value)">
+      <label class="fl">Title</label><input class="fi" value="${d.title||''}" onchange="sec_update('${sec.id}','title',this.value)">
+    </div>
+    <div class="ep-section"><div class="ep-section-title">Cards (${(d.cards||[]).length})</div>
+      ${(d.cards||[]).map((card,i)=>`
+        <div style="background:#111;border-radius:8px;padding:10px;margin-bottom:8px;border:1px solid #2A2A2A">
+          <div class="fi-row">
+            <div><label class="fl">Icon</label><input class="fi" value="${card.icon||''}" maxlength="4" onchange="updateCard('${sec.id}',${i},'icon',this.value)"></div>
+            <div><label class="fl">Title</label><input class="fi" value="${card.title||''}" onchange="updateCard('${sec.id}',${i},'title',this.value)"></div>
+          </div>
+          <label class="fl">Text</label>
+          <textarea class="fi" style="min-height:50px" onchange="updateCard('${sec.id}',${i},'text',this.value)">${card.text||''}</textarea>
+          <button onclick="removeCard('${sec.id}',${i})" style="width:100%;padding:5px;background:rgba(231,76,60,0.15);color:#e74c3c;border:none;border-radius:5px;font-size:10px;cursor:pointer;margin-top:4px">Remove Card</button>
+        </div>`).join('')}
+      <button class="ep-btn ep-btn-sec" onclick="addCard('${sec.id}')">+ Add Card</button>
+    </div>`;
+  }
+
+  else if (sec.type === 'text') {
+    c.innerHTML += `<div class="ep-section"><div class="ep-section-title">Content</div>
+      <label class="fl">Text</label><textarea class="fi" onchange="sec_update('${sec.id}','text',this.value)">${d.text||''}</textarea>
+      <label class="fl">Alignment</label>
+      <select class="fi" onchange="sec_update('${sec.id}','align',this.value)">
+        <option value="left" ${d.align==='left'?'selected':''}>Left</option>
+        <option value="center" ${d.align==='center'?'selected':''}>Center</option>
+        <option value="right" ${d.align==='right'?'selected':''}>Right</option>
+      </select>
+      <label class="fl">Padding (px)</label>
+      <div class="slider-row"><input type="range" min="20" max="120" value="${d.padding||60}" oninput="sec_update('${sec.id}','padding',this.value);this.nextElementSibling.textContent=this.value+'px'"><span class="slider-val">${d.padding||60}px</span></div>
+    </div>
+    <div class="ep-section"><div class="ep-section-title">Colors</div>
+      <div class="color-row"><span class="color-label-sm">Background</span><input type="color" class="color-swatch" value="${d.bgColor||'#1A1A1A'}" oninput="sec_update('${sec.id}','bgColor',this.value)"></div>
+      <div class="color-row"><span class="color-label-sm">Text</span><input type="color" class="color-swatch" value="${d.textColor||'#ffffff'}" oninput="sec_update('${sec.id}','textColor',this.value)"></div>
+    </div>`;
+  }
+
+  else if (sec.type === 'staff') {
+    c.innerHTML += `<div class="ep-section"><div class="ep-section-title">Content</div>
+      <label class="fl">Title</label><input class="fi" value="${d.title||''}" onchange="sec_update('${sec.id}','title',this.value)">
+      <label class="fl">Login Prompt</label><input class="fi" value="${d.prompt||''}" onchange="sec_update('${sec.id}','prompt',this.value)">
+      <label class="fl">Dashboard Button</label><input class="fi" value="${d.dashText||''}" onchange="sec_update('${sec.id}','dashText',this.value)">
+      <label class="fl">Admin Button</label><input class="fi" value="${d.adminText||''}" onchange="sec_update('${sec.id}','adminText',this.value)">
+    </div>
+    <div class="ep-section"><div class="ep-section-title">Colors</div>
+      <div class="color-row"><span class="color-label-sm">Background</span><input type="color" class="color-swatch" value="${d.bgColor||'#111111'}" oninput="sec_update('${sec.id}','bgColor',this.value)"></div>
+    </div>`;
+  }
+
+  else if (sec.type === 'divider') {
+    c.innerHTML += `<div class="ep-section"><div class="ep-section-title">Divider Style</div>
+      <label class="fl">Style</label>
+      <select class="fi" onchange="sec_update('${sec.id}','style',this.value)">
+        <option value="line" ${d.style==='line'?'selected':''}>Simple Line</option>
+        <option value="deco" ${d.style==='deco'?'selected':''}>Decorative (🎭)</option>
+        <option value="space" ${d.style==='space'?'selected':''}>Spacer</option>
+      </select>
+      <div class="color-row" style="margin-top:10px"><span class="color-label-sm">Line Color</span><input type="color" class="color-swatch" value="${d.color||'#333333'}" oninput="sec_update('${sec.id}','color',this.value)"></div>
+      <div class="color-row"><span class="color-label-sm">Background</span><input type="color" class="color-swatch" value="${d.bgColor||'#1A1A1A'}" oninput="sec_update('${sec.id}','bgColor',this.value)"></div>
+    </div>`;
+  }
+
+  else if (sec.type === 'image') {
+    c.innerHTML += `<div class="ep-section"><div class="ep-section-title">Image</div>
+      ${d.url ? `<img class="img-cur" src="${d.url}" style="display:block;max-height:120px;object-fit:cover">` : ''}
+      <div class="img-up"><input type="file" accept="image/*" onchange="uploadSecImage('${sec.id}','url',this)">
+        <div class="img-up-text">📁 Upload image<br><strong>Click to browse</strong></div>
+        <div class="img-prog" id="prog-${sec.id}-url"><div class="img-prog-bar"></div></div>
+      </div>
+      <label class="fl">Alt Text</label><input class="fi" value="${d.alt||''}" onchange="sec_update('${sec.id}','alt',this.value)">
+      <label class="fl">Height (px)</label>
+      <div class="slider-row"><input type="range" min="100" max="800" value="${d.height||400}" oninput="sec_update('${sec.id}','height',this.value);this.nextElementSibling.textContent=this.value+'px'"><span class="slider-val">${d.height||400}px</span></div>
+      <label class="fl">Object Position</label><input class="fi" value="${d.objectPosition||'center center'}" onchange="sec_update('${sec.id}','objectPosition',this.value)">
+    </div>`;
   }
 }
-function resetColors() {
-  const defaults = { orange:'#FF5E00', cream:'#FCECBB', dark:'#1A1A1A', card:'#222222' };
-  Object.entries(defaults).forEach(([k,v]) => {
-    document.getElementById('color-'+k).value = v;
-    document.getElementById('hex-'+k).value = v;
-  });
-  markUnsaved();
-  toast('Colors reset to default');
+
+// ── UPDATE HELPERS ──
+function sec_update(id, field, value) {
+  const s = sections.find(s=>s.id===id);
+  if (s) { s.data[field]=value; markUnsaved(); refreshCanvas(); }
 }
+function sec_updateName(id, value) {
+  const s = sections.find(s=>s.id===id);
+  if (s) { s.name=value; renderSectionList(); markUnsaved(); }
+}
+function updateCard(secId,idx,field,value){const s=sections.find(s=>s.id===secId);if(s&&s.data.cards){s.data.cards[idx][field]=value;markUnsaved();refreshCanvas();}}
+function addCard(secId){const s=sections.find(s=>s.id===secId);if(s){if(!s.data.cards)s.data.cards=[];s.data.cards.push({icon:'ℹ️',title:'New Card',text:'Content here'});markUnsaved();refreshCanvas();selectSection(secId);}}
+function removeCard(secId,idx){const s=sections.find(s=>s.id===secId);if(s){s.data.cards.splice(idx,1);markUnsaved();refreshCanvas();selectSection(secId);}}
+function removeGalleryImg(secId,idx){const s=sections.find(s=>s.id===secId);if(s){s.data.images.splice(idx,1);markUnsaved();refreshCanvas();selectSection(secId);}}
 
 // ── IMAGE UPLOAD ──
-async function uploadImage(key, field, input) {
-  const file = input.files[0];
-  if (!file) return;
-
-  const prog = document.getElementById('prog-'+key);
-  const bar  = document.getElementById('bar-'+key);
-  prog.style.display = 'block';
-
-  const ref = storage.ref('homepage/' + key + '_' + Date.now() + '_' + file.name);
+async function uploadSecImage(secId, field, input) {
+  const file = input.files[0]; if(!file) return;
+  const progWrap = document.getElementById(`prog-${secId}-${field}`);
+  if (progWrap) progWrap.style.display='block';
+  const ref = storage.ref(`homepage/${secId}_${field}_${Date.now()}_${file.name}`);
   const task = ref.put(file);
-
   task.on('state_changed',
-    snap => { bar.style.width = (snap.bytesTransferred / snap.totalBytes * 100) + '%'; },
-    err  => { toast('Upload failed: ' + err.message); prog.style.display = 'none'; },
+    snap => { const bar=progWrap?.querySelector('.img-prog-bar'); if(bar) bar.style.width=(snap.bytesTransferred/snap.totalBytes*100)+'%'; },
+    err  => { toast('Upload failed: '+err.message); if(progWrap) progWrap.style.display='none'; },
     async () => {
       const url = await task.snapshot.ref.getDownloadURL();
-      // Save to Firestore
-      if (!homeData[field]) homeData[field] = {};
-      homeData[field] = url;
-      await db.collection('homepage').doc(field).set({ url, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-
-      // Show preview
-      const wrap = document.getElementById(key + '-current-wrap');
-      const img  = document.getElementById(key + '-current-img');
-      if (wrap && img) { img.src = url; wrap.style.display = 'block'; }
-
-      prog.style.display = 'none';
-      bar.style.width = '0%';
-      toast('Image uploaded & saved!');
-      markUnsaved();
+      sec_update(secId, field, url);
+      if(progWrap){progWrap.style.display='none';progWrap.querySelector('.img-prog-bar').style.width='0%';}
+      selectSection(secId);
+      toast('Image uploaded!');
     }
   );
 }
 
-// ── GALLERY UPLOAD ──
-async function uploadGalleryImages(input) {
-  const files = Array.from(input.files);
-  if (!files.length) return;
-
-  const prog = document.getElementById('prog-gallery');
-  const bar  = document.getElementById('bar-gallery');
-  prog.style.display = 'block';
-
-  let uploaded = 0;
-  const gallery = homeData['gallery'] || [];
-
-  for (const file of files) {
-    const ref  = storage.ref('homepage/gallery/' + Date.now() + '_' + file.name);
-    const task = ref.put(file);
-    await new Promise((res, rej) => {
-      task.on('state_changed',
-        snap => { bar.style.width = ((uploaded + snap.bytesTransferred/snap.totalBytes) / files.length * 100) + '%'; },
-        rej,
-        async () => {
-          const url = await task.snapshot.ref.getDownloadURL();
-          gallery.push({ url, id: Date.now() + '_' + Math.random() });
-          uploaded++;
-          res();
-        }
-      );
+async function uploadGalleryImg(secId, input) {
+  const files = Array.from(input.files); if(!files.length) return;
+  const s = sections.find(s=>s.id===secId); if(!s) return;
+  if(!s.data.images) s.data.images=[];
+  const progWrap = document.getElementById(`prog-${secId}-gal`);
+  if(progWrap) progWrap.style.display='block';
+  for(const file of files){
+    const ref=storage.ref(`homepage/gallery/${secId}_${Date.now()}_${file.name}`);
+    await new Promise((res,rej)=>{
+      const task=ref.put(file);
+      task.on('state_changed',null,rej,async()=>{
+        const url=await task.snapshot.ref.getDownloadURL();
+        s.data.images.push({url,id:Date.now()});
+        res();
+      });
     });
   }
-
-  homeData['gallery'] = gallery;
-  await db.collection('homepage').doc('gallery').set({ items: gallery, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-  prog.style.display = 'none';
-  renderGalleryAdmin();
-  toast(files.length + ' photo(s) uploaded!');
-  markUnsaved();
+  if(progWrap) progWrap.style.display='none';
+  markUnsaved(); refreshCanvas(); selectSection(secId);
+  toast(files.length+' photo(s) added!');
 }
 
-// ── GALLERY RENDER ──
-function renderGalleryAdmin() {
-  const grid = document.getElementById('gallery-admin-grid');
-  const gallery = homeData['gallery'] || [];
-  grid.innerHTML = gallery.map((item, idx) => `
-    <div class="gallery-admin-item" draggable="true"
-      ondragstart="galleryDragStart(event,${idx})"
-      ondragover="event.preventDefault()"
-      ondrop="galleryDrop(event,${idx})">
-      <img src="${item.url}" alt="Gallery ${idx+1}" />
-      <div class="gallery-item-overlay">
-        <button class="gib gib-del" onclick="deleteGalleryItem(${idx})">✕ Delete</button>
-      </div>
-    </div>`).join('');
-}
-
-let dragGalleryIdx = null;
-function galleryDragStart(e, idx) { dragGalleryIdx = idx; }
-async function galleryDrop(e, toIdx) {
-  e.preventDefault();
-  if (dragGalleryIdx === null || dragGalleryIdx === toIdx) return;
-  const gallery = homeData['gallery'] || [];
-  const item = gallery.splice(dragGalleryIdx, 1)[0];
-  gallery.splice(toIdx, 0, item);
-  homeData['gallery'] = gallery;
-  await db.collection('homepage').doc('gallery').set({ items: gallery, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-  dragGalleryIdx = null;
-  renderGalleryAdmin();
-  toast('Order updated!');
-}
-
-async function deleteGalleryItem(idx) {
-  if (!confirm('Delete this photo?')) return;
-  const gallery = homeData['gallery'] || [];
-  gallery.splice(idx, 1);
-  homeData['gallery'] = gallery;
-  await db.collection('homepage').doc('gallery').set({ items: gallery, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-  renderGalleryAdmin();
-  toast('Photo deleted');
-  markUnsaved();
-}
-
-// ── INFO CARDS ──
-function renderInfoCards() {
-  const list = document.getElementById('info-cards-list');
-  const cards = homeData['info-cards'] || [
-    { icon:'📍', title:'Adresse', text:'Lycée Montaigne École\nBeit Chabab, Liban' },
-    { icon:'🕐', title:'Horaires', text:'Lundi – Vendredi\nPendant les heures scolaires' },
-    { icon:'📱', title:'Commander', text:'Via notre menu en ligne\nLivraison sur place' },
-    { icon:'📞', title:'Contact', text:'+961 71 503 555\nWhatsApp disponible' },
-  ];
-  list.innerHTML = cards.map((c, i) => `
-    <div class="info-card-admin">
-      <div class="info-card-header">
-        <span class="info-card-label">${c.icon} ${c.title}</span>
-        <button class="info-del-btn" onclick="deleteInfoCard(${i})">✕ Delete</button>
-      </div>
-      <div class="fi-row">
-        <div>
-          <label class="fl" style="margin-top:0">Icon (emoji)</label>
-          <input class="fi" value="${c.icon}" onchange="updateInfoCard(${i},'icon',this.value)" maxlength="4">
-        </div>
-        <div>
-          <label class="fl" style="margin-top:0">Title</label>
-          <input class="fi" value="${c.title}" onchange="updateInfoCard(${i},'title',this.value)">
-        </div>
-      </div>
-      <label class="fl">Content</label>
-      <textarea class="fi" style="min-height:60px" onchange="updateInfoCard(${i},'text',this.value)">${c.text}</textarea>
-    </div>`).join('');
-}
-
-function updateInfoCard(idx, field, value) {
-  if (!homeData['info-cards']) homeData['info-cards'] = getDefaultInfoCards();
-  homeData['info-cards'][idx][field] = value;
-  markUnsaved();
-}
-
-function addInfoCard() {
-  if (!homeData['info-cards']) homeData['info-cards'] = getDefaultInfoCards();
-  homeData['info-cards'].push({ icon:'ℹ️', title:'New Card', text:'Content here' });
-  renderInfoCards();
-  markUnsaved();
-}
-
-function deleteInfoCard(idx) {
-  if (!homeData['info-cards']) homeData['info-cards'] = getDefaultInfoCards();
-  homeData['info-cards'].splice(idx, 1);
-  renderInfoCards();
-  markUnsaved();
-}
-
-function getDefaultInfoCards() {
-  return [
-    { icon:'📍', title:'Adresse', text:'Lycée Montaigne École\nBeit Chabab, Liban' },
-    { icon:'🕐', title:'Horaires', text:'Lundi – Vendredi\nPendant les heures scolaires' },
-    { icon:'📱', title:'Commander', text:'Via notre menu en ligne\nLivraison sur place' },
-    { icon:'📞', title:'Contact', text:'+961 71 503 555\nWhatsApp disponible' },
-  ];
-}
-
-// ── SAVE SECTION ──
-async function saveSection(section) {
-  const data = {};
-
-  if (section === 'hero') {
-    data.tagline   = document.getElementById('hero-tagline').value;
-    data.ctaText   = document.getElementById('hero-cta-text').value;
-    data.ctaLink   = document.getElementById('hero-cta-link').value;
-  } else if (section === 'about') {
-    data.badge  = document.getElementById('about-badge').value;
-    data.title1 = document.getElementById('about-title1').value;
-    data.title2 = document.getElementById('about-title2').value;
-    data.text   = document.getElementById('about-text').value;
-  } else if (section === 'menu-sec') {
-    data.badge    = document.getElementById('menu-badge').value;
-    data.title1   = document.getElementById('menu-title1').value;
-    data.title2   = document.getElementById('menu-title2').value;
-    data.subtitle = document.getElementById('menu-subtitle').value;
-    data.btnText  = document.getElementById('menu-btn-text').value;
-  } else if (section === 'colors') {
-    data.orange = document.getElementById('hex-orange').value;
-    data.cream  = document.getElementById('hex-cream').value;
-    data.dark   = document.getElementById('hex-dark').value;
-    data.card   = document.getElementById('hex-card').value;
-  } else if (section === 'info') {
-    data.cards = homeData['info-cards'] || getDefaultInfoCards();
-    // Read current input values
-    const cards = document.querySelectorAll('#info-cards-list .info-card-admin');
-    data.cards = Array.from(cards).map((card, i) => ({
-      icon:  card.querySelectorAll('.fi')[0].value,
-      title: card.querySelectorAll('.fi')[1].value,
-      text:  card.querySelectorAll('textarea')[0].value,
-    }));
-    homeData['info-cards'] = data.cards;
-  } else if (section === 'staff-sec') {
-    data.title      = document.getElementById('staff-title').value;
-    data.prompt     = document.getElementById('staff-prompt').value;
-    data.dashText   = document.getElementById('staff-dash-text').value;
-    data.adminText  = document.getElementById('staff-admin-text').value;
-  }
-
-  data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
-  homeData[section] = data;
-  await db.collection('homepage').doc(section).set(data);
-  markUnsaved();
-  toast('Section saved! Click Publish to go live.');
-}
-
-// ── PUBLISH ──
-async function publishChanges() {
-  // Save all current section data and mark as published
-  await db.collection('homepage').doc('_published').set({
-    publishedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    publishedBy: auth.currentUser?.email || 'admin'
-  });
-  markSaved();
-  closePreview();
-  toast('Published! Homepage updated live.', 3000);
+// ── CANVAS REFRESH ──
+function refreshCanvas() {
+  const frame = document.getElementById('canvas-frame');
+  // Post message to iframe to update content
+  try {
+    frame.contentWindow.postMessage({ type:'UPDATE_SECTIONS', sections, globalData }, '*');
+  } catch(e) {}
 }
 
 // ── PREVIEW ──
 function openPreview() {
-  document.getElementById('preview-frame').src = 'index.html?preview=1&t=' + Date.now();
-  document.getElementById('preview-overlay').classList.add('visible');
+  window.open('index.html?preview=1', '_blank');
 }
 
-function closePreview() {
-  document.getElementById('preview-overlay').classList.remove('visible');
-  document.getElementById('preview-frame').src = '';
+// ── SAVE GLOBAL ──
+async function saveGlobal(type) {
+  let data = {};
+  if (type === 'colors') {
+    data = { orange:document.getElementById('gh-orange').value, cream:document.getElementById('gh-cream').value, dark:document.getElementById('gh-dark').value };
+  } else if (type === 'fonts') {
+    data = { display:document.getElementById('gf-display').value, body:document.getElementById('gf-body').value };
+  } else if (type === 'nav') {
+    data = { logoText:document.getElementById('nav-logo').value, menuText:document.getElementById('nav-menu-text').value, loginText:document.getElementById('nav-login-text').value, bgColor:document.getElementById('nav-bg-hex').value };
+  } else if (type === 'footer') {
+    data = { logoText:document.getElementById('footer-logo').value, tagline:document.getElementById('footer-tagline').value, copy:document.getElementById('footer-copy').value };
+  }
+  globalData[type] = data;
+  await db.collection('homepage').doc('global-'+type).set({ ...data, updatedAt:firebase.firestore.FieldValue.serverTimestamp() });
+  markUnsaved();
+  toast(type.charAt(0).toUpperCase()+type.slice(1)+' settings saved!');
 }
 
-function setDevice(width, btn) {
-  document.getElementById('preview-frame').style.width = width;
-  document.getElementById('preview-frame').style.margin = width === '100%' ? '0' : '0 auto';
-  document.querySelectorAll('.pdb').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+// ── PUBLISH ──
+async function publishAll() {
+  try {
+    // Save all sections
+    await db.collection('homepage').doc('sections').set({
+      items: sections,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    // Save publish record
+    await db.collection('homepage').doc('_published').set({
+      publishedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      publishedBy: auth.currentUser?.email,
+      sectionCount: sections.length
+    });
+    markSaved();
+    toast('🚀 Published! Homepage is now live.', 3500);
+  } catch(e) {
+    toast('Publish failed: '+e.message);
+    console.error(e);
+  }
 }
 
 // ── LOAD DATA ──
-async function loadAllData() {
-  const sections = ['hero','hero-bg','hero-logo','about','gallery','menu-sec','info','colors','staff-sec'];
-  for (const sec of sections) {
-    const doc = await db.collection('homepage').doc(sec).get();
-    if (doc.exists) homeData[sec] = doc.data();
+async function loadData() {
+  // Load sections
+  const secDoc = await db.collection('homepage').doc('sections').get();
+  if (secDoc.exists && secDoc.data().items) {
+    sections = secDoc.data().items;
+  } else {
+    // Load defaults from current homepage structure
+    sections = [
+      { id:uid(), type:'hero', name:'Hero', icon:'🎬', visible:true, data:JSON.parse(JSON.stringify(DEFAULTS.hero.data)) },
+      { id:uid(), type:'about', name:'About', icon:'📖', visible:true, data:JSON.parse(JSON.stringify(DEFAULTS.about.data)) },
+      { id:uid(), type:'cta', name:'Menu Shortcut', icon:'🍽️', visible:true, data:JSON.parse(JSON.stringify(DEFAULTS.cta.data)) },
+      { id:uid(), type:'gallery', name:'Gallery', icon:'📸', visible:true, data:JSON.parse(JSON.stringify(DEFAULTS.gallery.data)) },
+      { id:uid(), type:'cards', name:'Info Cards', icon:'📋', visible:true, data:JSON.parse(JSON.stringify(DEFAULTS.cards.data)) },
+      { id:uid(), type:'staff', name:'Staff Portal', icon:'👤', visible:true, data:JSON.parse(JSON.stringify(DEFAULTS.staff.data)) },
+    ];
   }
 
-  // Populate fields
-  const h = homeData['hero'] || {};
-  document.getElementById('hero-tagline').value   = h.tagline  || 'Goûter la culture, savourer l\'instant';
-  document.getElementById('hero-cta-text').value  = h.ctaText  || '🍽️ Voir le Menu & Commander';
-  document.getElementById('hero-cta-link').value  = h.ctaLink  || 'menu.html';
-
-  const a = homeData['about'] || {};
-  document.getElementById('about-badge').value  = a.badge  || 'Notre Histoire';
-  document.getElementById('about-title1').value = a.title1 || 'Le Café Molière';
-  document.getElementById('about-title2').value = a.title2 || 'entre en scène';
-  document.getElementById('about-text').value   = a.text   || '';
-
-  const m = homeData['menu-sec'] || {};
-  document.getElementById('menu-badge').value    = m.badge    || 'Notre Carte';
-  document.getElementById('menu-title1').value   = m.title1   || 'Découvrez notre';
-  document.getElementById('menu-title2').value   = m.title2   || 'Menu';
-  document.getElementById('menu-subtitle').value = m.subtitle || 'Des plats aux noms de Molière, une cuisine avec caractère';
-  document.getElementById('menu-btn-text').value = m.btnText  || '🍽️ Ouvrir le Menu & Commander';
-
-  const c = homeData['colors'] || {};
-  if (c.orange) { document.getElementById('color-orange').value = c.orange; document.getElementById('hex-orange').value = c.orange; }
-  if (c.cream)  { document.getElementById('color-cream').value  = c.cream;  document.getElementById('hex-cream').value  = c.cream; }
-  if (c.dark)   { document.getElementById('color-dark').value   = c.dark;   document.getElementById('hex-dark').value   = c.dark; }
-  if (c.card)   { document.getElementById('color-card').value   = c.card;   document.getElementById('hex-card').value   = c.card; }
-
-  const s = homeData['staff-sec'] || {};
-  document.getElementById('staff-title').value      = s.title     || 'Espace Staff';
-  document.getElementById('staff-prompt').value     = s.prompt    || 'Connectez-vous avec votre compte @cafemoliere.com';
-  document.getElementById('staff-dash-text').value  = s.dashText  || '🗂️ Tableau de bord';
-  document.getElementById('staff-admin-text').value = s.adminText || '⚙️ Administration';
-
-  // Info cards
-  if (homeData['info']?.cards) homeData['info-cards'] = homeData['info'].cards;
-  renderInfoCards();
-
-  // Gallery
-  if (homeData['gallery']?.items) homeData['gallery'] = homeData['gallery'].items;
-  renderGalleryAdmin();
-
-  // Hero/Logo current images
-  if (homeData['hero-bg']?.url) {
-    document.getElementById('hero-current-img').src = homeData['hero-bg'].url;
-    document.getElementById('hero-current-wrap').style.display = 'block';
+  // Load global settings
+  const types = ['colors','fonts','nav','footer'];
+  for(const t of types){
+    const doc=await db.collection('homepage').doc('global-'+t).get();
+    if(doc.exists) globalData[t]=doc.data();
   }
-  if (homeData['hero-logo']?.url) {
-    document.getElementById('logo-current-img').src = homeData['hero-logo'].url;
-    document.getElementById('logo-current-wrap').style.display = 'block';
+
+  // Populate global panels
+  if(globalData.colors){
+    ['orange','cream','dark'].forEach(k=>{
+      if(globalData.colors[k]){document.getElementById('gc-'+k).value=globalData.colors[k];document.getElementById('gh-'+k).value=globalData.colors[k];}
+    });
   }
+  if(globalData.fonts){
+    if(globalData.fonts.display) document.getElementById('gf-display').value=globalData.fonts.display;
+    if(globalData.fonts.body) document.getElementById('gf-body').value=globalData.fonts.body;
+  }
+  if(globalData.nav){
+    if(globalData.nav.logoText) document.getElementById('nav-logo').value=globalData.nav.logoText;
+    if(globalData.nav.menuText) document.getElementById('nav-menu-text').value=globalData.nav.menuText;
+    if(globalData.nav.loginText) document.getElementById('nav-login-text').value=globalData.nav.loginText;
+    if(globalData.nav.bgColor){document.getElementById('nav-bg-color').value=globalData.nav.bgColor;document.getElementById('nav-bg-hex').value=globalData.nav.bgColor;}
+  }
+  if(globalData.footer){
+    if(globalData.footer.logoText) document.getElementById('footer-logo').value=globalData.footer.logoText;
+    if(globalData.footer.tagline) document.getElementById('footer-tagline').value=globalData.footer.tagline;
+    if(globalData.footer.copy) document.getElementById('footer-copy').value=globalData.footer.copy;
+  }
+
+  renderSectionList();
+  toast('Content loaded!');
 }
 
 // ── AUTH ──
 function doLogin() {
-  const btn = document.getElementById('login-btn');
-  const err = document.getElementById('login-error');
-  err.style.display = 'none';
-  btn.textContent = 'Connecting...';
-  btn.disabled = true;
-  const provider = new firebase.auth.OAuthProvider('microsoft.com');
-  provider.setCustomParameters({ tenant: 'cafemoliere.com' });
-  auth.signInWithPopup(provider)
-    .catch(e => {
-      if (e.code === 'auth/popup-blocked') {
-        auth.signInWithRedirect(provider);
-      } else {
-        err.textContent = e.code === 'auth/popup-closed-by-user'
-          ? 'Window closed. Try again.'
-          : 'Error: ' + e.message;
-        err.style.display = 'block';
-        btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg> Sign in with Microsoft`;
-        btn.disabled = false;
-      }
-    });
+  const btn=document.getElementById('login-btn');
+  const err=document.getElementById('login-error');
+  err.style.display='none'; btn.textContent='Connecting...'; btn.disabled=true;
+  const provider=new firebase.auth.OAuthProvider('microsoft.com');
+  provider.setCustomParameters({tenant:'cafemoliere.com'});
+  auth.signInWithPopup(provider).catch(e=>{
+    if(e.code==='auth/popup-blocked'){auth.signInWithRedirect(provider);}
+    else{
+      err.textContent=e.code==='auth/popup-closed-by-user'?'Window closed. Try again.':'Error: '+e.message;
+      err.style.display='block';
+      btn.innerHTML=`<svg width="20" height="20" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg> Sign in with Microsoft`;
+      btn.disabled=false;
+    }
+  });
 }
-
-function doLogout() { auth.signOut(); }
-
-auth.getRedirectResult().catch(e => console.error('Redirect:', e));
-
-auth.onAuthStateChanged(user => {
-  if (user && user.email === ADMIN_EMAIL) {
+function doLogout(){auth.signOut();}
+auth.getRedirectResult().catch(e=>console.error('Redirect:',e));
+auth.onAuthStateChanged(user=>{
+  if(user&&user.email===ADMIN){
     document.getElementById('login-screen').classList.add('hidden');
-    document.getElementById('admin-panel').style.display = 'block';
-    loadAllData();
-  } else if (user && user.email !== ADMIN_EMAIL) {
-    // Wrong account
+    document.getElementById('app').style.display='flex';
+    loadData();
+  } else if(user&&user.email!==ADMIN){
     auth.signOut();
-    const err = document.getElementById('login-error');
-    err.textContent = 'Access restricted to administrator@cafemoliere.com only.';
-    err.style.display = 'block';
-    document.getElementById('login-btn').innerHTML = `<svg width="20" height="20" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg> Sign in with Microsoft`;
-    document.getElementById('login-btn').disabled = false;
+    const err=document.getElementById('login-error');
+    err.textContent='Access restricted to administrator@cafemoliere.com only.';
+    err.style.display='block';
+    document.getElementById('login-btn').innerHTML=`<svg width="20" height="20" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg> Sign in with Microsoft`;
+    document.getElementById('login-btn').disabled=false;
   } else {
     document.getElementById('login-screen').classList.remove('hidden');
-    document.getElementById('admin-panel').style.display = 'none';
+    document.getElementById('app').style.display='none';
   }
 });
 </script>
