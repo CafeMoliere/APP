@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Café Molière — Homepage Builder</title>
+<title>Café Molière — Homepage CMS</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -11,159 +11,134 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#0F0F0F;color:#fff;font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+body{background:#111;color:#fff;font-family:'DM Sans',sans-serif;min-height:100vh}
 
-/* ── LOGIN ── */
-.login-screen{position:fixed;inset:0;background:#0F0F0F;display:flex;align-items:center;justify-content:center;z-index:9999;padding:24px}
+/* LOGIN */
+.login-screen{position:fixed;inset:0;background:#111;display:flex;align-items:center;justify-content:center;z-index:9999;padding:24px}
 .login-screen.hidden{display:none}
 .login-box{background:#1A1A1A;border-radius:20px;padding:40px 32px;width:100%;max-width:380px;border:1px solid #2A2A2A}
 .login-title{font-family:'Playfair Display',serif;font-size:1.8rem;color:#FCECBB;text-align:center}
 .login-title em{font-style:italic;color:#FF5E00}
 .login-bar{width:40px;height:2px;background:#FF5E00;margin:12px auto 24px;border-radius:2px}
 .login-error{background:rgba(255,94,0,0.1);border:1px solid rgba(255,94,0,0.3);color:#FF5E00;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:16px;display:none}
-.ms-btn{width:100%;padding:14px;background:#fff;color:#333;border:1.5px solid #ddd;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background 0.2s}
+.ms-btn{width:100%;padding:14px;background:#fff;color:#333;border:1.5px solid #ddd;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px}
 .ms-btn:hover{background:#f5f5f5}
 .ms-btn:disabled{opacity:0.5;cursor:not-allowed}
 .login-note{text-align:center;font-size:11px;color:#444;margin-top:12px}
 .login-note strong{color:#FF5E00}
 
-/* ── LAYOUT ── */
-.app{display:flex;height:100vh;overflow:hidden}
-.sidebar{width:300px;background:#1A1A1A;border-right:1px solid #2A2A2A;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
-.main-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
+/* HEADER */
+.header{background:#FF5E00;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.header-title{font-family:'Playfair Display',serif;font-size:1rem;color:#fff}
+.header-title em{font-style:italic}
+.header-btns{display:flex;gap:6px;align-items:center}
+.hbtn{padding:7px 16px;border:none;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;letter-spacing:0.05em;transition:all 0.2s}
+.hbtn-preview{background:#fff;color:#FF5E00}
+.hbtn-preview:hover{background:#FCECBB}
+.hbtn-logout{background:rgba(255,255,255,0.2);color:#fff}
 
-/* ── TOP BAR ── */
-.topbar{background:#FF5E00;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.topbar-title{font-family:'Playfair Display',serif;font-size:1rem;color:#fff}
-.topbar-title em{font-style:italic}
-.topbar-btns{display:flex;gap:6px;align-items:center}
-.tbtn{padding:7px 14px;border:none;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:0.05em}
-.tbtn-preview{background:#fff;color:#FF5E00}
-.tbtn-publish{background:#FCECBB;color:#FF5E00}
-.tbtn-publish.pulse{animation:pulse-glow 1.5s infinite}
-@keyframes pulse-glow{0%,100%{box-shadow:0 0 0 0 rgba(252,236,187,0.5)}50%{box-shadow:0 0 0 8px rgba(252,236,187,0)}}
-.tbtn-logout{background:rgba(255,255,255,0.2);color:#fff}
-.unsaved-badge{background:rgba(0,0,0,0.2);color:#fff;font-size:10px;padding:3px 8px;border-radius:10px;display:none}
-.unsaved-badge.show{display:inline-block}
+/* TABS */
+.tabs{display:flex;background:#1A1A1A;border-bottom:1px solid #2A2A2A;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:12px 18px;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#555;background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all 0.2s}
+.tab.active{color:#FF5E00;border-bottom-color:#FF5E00}
 
-/* ── SIDEBAR HEADER ── */
-.sidebar-header{padding:14px 16px;border-bottom:1px solid #2A2A2A;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#555;display:flex;align-items:center;justify-content:space-between}
-.sidebar-add-btn{padding:5px 10px;background:#FF5E00;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer}
+/* CONTENT */
+.content{max-width:800px;margin:0 auto;padding:24px 16px 80px}
+.panel{display:none}
+.panel.active{display:block}
 
-/* ── SECTION LIST ── */
-.section-list{flex:1;overflow-y:auto;padding:8px}
-.section-list::-webkit-scrollbar{width:4px}
-.section-list::-webkit-scrollbar-track{background:transparent}
-.section-list::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
-
-.sec-item{background:#222;border-radius:10px;margin-bottom:6px;border:1px solid #2A2A2A;cursor:pointer;transition:all 0.2s;overflow:hidden}
-.sec-item:hover{border-color:#444}
-.sec-item.active{border-color:#FF5E00;background:#1E1E1E}
-.sec-item.dragging{opacity:0.4;transform:scale(0.97)}
-.sec-item.drag-over{border-color:#FF5E00;border-style:dashed}
-
-.sec-item-header{display:flex;align-items:center;gap:8px;padding:10px 12px}
-.sec-drag-handle{color:#333;cursor:grab;font-size:14px;flex-shrink:0;user-select:none}
-.sec-drag-handle:hover{color:#666}
-.sec-icon{font-size:1.1rem;flex-shrink:0}
-.sec-info{flex:1;min-width:0}
-.sec-name{font-size:12px;font-weight:600;color:#FCECBB;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sec-type{font-size:10px;color:#555;margin-top:1px}
-.sec-actions{display:flex;gap:4px;flex-shrink:0}
-.sec-btn{width:24px;height:24px;border:none;border-radius:5px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;transition:all 0.15s}
-.sec-btn-vis{background:#222;color:#666}
-.sec-btn-vis.hidden-sec{background:#333;color:#FF5E00}
-.sec-btn-del{background:#2A2A2A;color:#e74c3c}
-.sec-btn-del:hover{background:rgba(231,76,60,0.2)}
-.sec-btn-dup{background:#2A2A2A;color:#888}
-.sec-btn-dup:hover{background:#333;color:#fff}
-
-/* ── SIDEBAR BOTTOM (GLOBAL SETTINGS) ── */
-.sidebar-bottom{border-top:1px solid #2A2A2A;padding:12px}
-.global-tabs{display:flex;gap:4px;margin-bottom:10px}
-.gtab{flex:1;padding:6px;background:#222;border:none;border-radius:6px;font-size:10px;font-weight:600;color:#555;cursor:pointer;letter-spacing:0.05em;text-transform:uppercase;transition:all 0.2s}
-.gtab.active{background:#FF5E00;color:#fff}
-.global-panel{display:none}
-.global-panel.active{display:block}
-
-/* ── EDIT PANEL (right sidebar) ── */
-.edit-panel{width:280px;background:#1A1A1A;border-left:1px solid #2A2A2A;overflow-y:auto;flex-shrink:0}
-.edit-panel::-webkit-scrollbar{width:4px}
-.edit-panel::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
-.ep-header{padding:14px 16px;border-bottom:1px solid #2A2A2A;font-size:12px;font-weight:600;color:#FCECBB}
-.ep-section{padding:14px 16px;border-bottom:1px solid #1E1E1E}
-.ep-section-title{font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#555;margin-bottom:10px}
-.ep-empty{padding:40px 20px;text-align:center;color:#444;font-size:12px}
+/* CARDS */
+.card{background:#1A1A1A;border-radius:14px;padding:22px;border:1px solid #2A2A2A;margin-bottom:16px}
+.card-title{font-family:'Playfair Display',serif;font-size:1.05rem;color:#FCECBB;margin-bottom:3px}
+.card-title em{font-style:italic;color:#FF5E00}
+.card-sub{font-size:11px;color:#555;margin-bottom:16px}
 
 /* FIELDS */
-.fl{font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#555;margin-bottom:4px;display:block;margin-top:10px}
-.fl:first-child{margin-top:0}
-.fi{width:100%;padding:9px 11px;background:#111;border:1.5px solid #2A2A2A;border-radius:8px;color:#fff;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;transition:border-color 0.2s}
+.fl{font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#555;margin-bottom:5px;margin-top:14px;display:block}
+.fl:first-of-type{margin-top:0}
+.fi{width:100%;padding:11px 13px;background:#111;border:1.5px solid #2A2A2A;border-radius:9px;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color 0.2s}
 .fi:focus{border-color:#FF5E00}
 .fi::placeholder{color:#444}
-textarea.fi{resize:vertical;min-height:80px;line-height:1.5}
+textarea.fi{resize:vertical;min-height:100px;line-height:1.6}
 select.fi{cursor:pointer}
-.fi-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fi-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:500px){.fi-row{grid-template-columns:1fr}}
+
+/* SAVE BTN */
+.save-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:#FF5E00;color:#fff;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-top:16px;transition:opacity 0.2s,transform 0.15s}
+.save-btn:hover{opacity:0.88;transform:translateY(-1px)}
+.save-btn:active{transform:translateY(0)}
+.save-btn.saving{opacity:0.6;cursor:not-allowed}
+.save-btn.saved{background:#27ae60}
+.add-btn{padding:9px 18px;background:#2A2A2A;color:#FCECBB;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;margin-top:10px;display:inline-flex;align-items:center;gap:6px}
+.add-btn:hover{background:#333}
 
 /* COLOR */
-.color-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.color-swatch{width:32px;height:28px;border:none;border-radius:6px;cursor:pointer;padding:2px;background:none}
-.color-hex-fi{flex:1;padding:7px 9px;background:#111;border:1.5px solid #2A2A2A;border-radius:7px;color:#fff;font-family:'DM Sans',sans-serif;font-size:11px;outline:none}
-.color-hex-fi:focus{border-color:#FF5E00}
-.color-label-sm{font-size:10px;color:#666;width:80px;flex-shrink:0}
+.color-row{display:flex;align-items:center;gap:10px;margin-top:12px}
+.color-swatch{width:38px;height:32px;border:none;border-radius:7px;cursor:pointer;padding:2px;background:none;flex-shrink:0}
+.color-hex{flex:1;padding:9px 11px;background:#111;border:1.5px solid #2A2A2A;border-radius:8px;color:#fff;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;transition:border-color 0.2s}
+.color-hex:focus{border-color:#FF5E00}
+.color-lbl{font-size:11px;color:#666;width:100px;flex-shrink:0}
 
-/* FONT PICKER */
-.font-preview{padding:10px;background:#111;border-radius:8px;margin-top:6px;text-align:center;font-size:1.1rem;color:#FCECBB;border:1px solid #2A2A2A}
+/* IMAGE UPLOAD */
+.img-zone{border:2px dashed #2A2A2A;border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;margin-top:8px}
+.img-zone:hover{border-color:#FF5E00;background:rgba(255,94,0,0.04)}
+.img-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.img-zone-icon{font-size:1.8rem;margin-bottom:6px}
+.img-zone-text{font-size:12px;color:#555}
+.img-zone-text strong{color:#FF5E00}
+.img-cur{width:100%;max-height:140px;object-fit:cover;border-radius:9px;margin-bottom:10px;border:1px solid #2A2A2A;display:none}
+.img-prog{height:3px;background:#2A2A2A;border-radius:2px;margin-top:8px;overflow:hidden;display:none}
+.img-prog-bar{height:100%;background:#FF5E00;width:0%;transition:width 0.2s;border-radius:2px}
 
-/* IMG UPLOAD */
-.img-up{border:2px dashed #2A2A2A;border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;margin-top:8px}
-.img-up:hover{border-color:#FF5E00}
-.img-up input{position:absolute;inset:0;opacity:0;cursor:pointer}
-.img-up-text{font-size:11px;color:#555}
-.img-up-text strong{color:#FF5E00}
-.img-cur{width:100%;max-height:100px;object-fit:cover;border-radius:7px;margin-bottom:8px;border:1px solid #2A2A2A;display:none}
-.img-prog{height:2px;background:#2A2A2A;border-radius:1px;margin-top:8px;overflow:hidden;display:none}
-.img-prog-bar{height:100%;background:#FF5E00;width:0%;transition:width 0.3s}
+/* SECTIONS LIST */
+.sec-list{display:flex;flex-direction:column;gap:8px}
+.sec-row{background:#1A1A1A;border:1px solid #2A2A2A;border-radius:10px;overflow:hidden;transition:border-color 0.2s}
+.sec-row.drag-over{border-color:#FF5E00;border-style:dashed}
+.sec-row.dragging{opacity:0.4}
+.sec-row-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer}
+.sec-row-head:hover{background:#222}
+.sec-drag{color:#333;cursor:grab;font-size:15px;flex-shrink:0;user-select:none}
+.sec-row-icon{font-size:1.2rem;flex-shrink:0}
+.sec-row-name{flex:1;font-weight:600;font-size:13px;color:#FCECBB}
+.sec-row-type{font-size:10px;color:#555;margin-left:6px}
+.sec-row-btns{display:flex;gap:5px;flex-shrink:0}
+.srb{width:28px;height:28px;border:none;border-radius:6px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;flex-shrink:0}
+.srb-vis{background:#222;color:#888}
+.srb-vis.hidden-s{color:#FF5E00;background:#2A2A2A}
+.srb-del{background:#2A2A2A;color:#e74c3c}
+.srb-del:hover{background:rgba(231,76,60,0.2)}
+.sec-row-body{display:none;padding:14px;border-top:1px solid #2A2A2A;background:#111}
+.sec-row-body.open{display:block}
 
-/* SLIDER */
-.slider-row{display:flex;align-items:center;gap:8px;margin-top:6px}
-input[type=range]{flex:1;accent-color:#FF5E00}
-.slider-val{font-size:11px;color:#888;width:30px;text-align:right}
+/* ADD SECTION */
+.add-sec-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+@media(max-width:500px){.add-sec-grid{grid-template-columns:1fr 1fr}}
+.add-sec-btn{padding:14px 8px;background:#1A1A1A;border:1.5px solid #2A2A2A;border-radius:10px;cursor:pointer;text-align:center;transition:all 0.2s;width:100%}
+.add-sec-btn:hover{border-color:#FF5E00;background:#1E1E1E}
+.asb-icon{font-size:1.5rem;margin-bottom:5px}
+.asb-name{font-size:11px;font-weight:600;color:#FCECBB}
 
-/* BUTTONS */
-.ep-btn{width:100%;padding:9px;background:#FF5E00;color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;margin-top:10px;transition:opacity 0.2s}
-.ep-btn:hover{opacity:0.85}
-.ep-btn-sec{background:#2A2A2A;color:#FCECBB}
-
-/* ── CANVAS ── */
-.canvas-wrap{flex:1;overflow:auto;background:#333;position:relative}
-.canvas-wrap::-webkit-scrollbar{width:6px;height:6px}
-.canvas-wrap::-webkit-scrollbar-thumb{background:#444;border-radius:3px}
-.canvas-device{background:#fff;margin:20px auto;border-radius:4px;box-shadow:0 8px 40px rgba(0,0,0,0.5);overflow:hidden;transition:width 0.3s}
-
-/* DEVICE BAR */
-.device-bar{background:#1A1A1A;border-bottom:1px solid #2A2A2A;padding:8px 16px;display:flex;align-items:center;gap:8px;flex-shrink:0}
-.dev-btn{padding:5px 12px;border:1px solid #2A2A2A;border-radius:50px;font-size:10px;font-weight:600;color:#555;background:none;cursor:pointer;letter-spacing:0.08em;transition:all 0.2s}
-.dev-btn.active{border-color:#FF5E00;color:#FF5E00;background:rgba(255,94,0,0.08)}
-.device-label{font-size:10px;color:#444;margin-left:auto}
-
-/* ── ADD SECTION MODAL ── */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:600;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s}
-.modal-overlay.visible{opacity:1;pointer-events:auto}
-.modal{background:#1A1A1A;border-radius:16px;padding:24px;width:90%;max-width:520px;border:1px solid #2A2A2A;max-height:80vh;overflow-y:auto}
-.modal-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:#FCECBB;margin-bottom:16px}
-.modal-title em{font-style:italic;color:#FF5E00}
-.section-types-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.sec-type-btn{padding:14px 10px;background:#222;border:1.5px solid #2A2A2A;border-radius:10px;cursor:pointer;text-align:center;transition:all 0.2s}
-.sec-type-btn:hover{border-color:#FF5E00;background:#1E1E1E}
-.sec-type-icon{font-size:1.6rem;margin-bottom:6px}
-.sec-type-name{font-size:11px;font-weight:600;color:#FCECBB}
-.sec-type-desc{font-size:10px;color:#555;margin-top:2px}
-.modal-close{width:100%;padding:10px;background:#2A2A2A;color:#888;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;margin-top:14px}
+/* CARDS IN SECTION */
+.card-item{background:#1A1A1A;border-radius:9px;padding:12px;margin-bottom:8px;border:1px solid #2A2A2A}
+.card-item-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.card-item-label{font-size:12px;font-weight:600;color:#888}
+.card-item-del{padding:3px 9px;background:rgba(231,76,60,0.15);color:#e74c3c;border:none;border-radius:5px;font-size:11px;cursor:pointer}
 
 /* TOAST */
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#FF5E00;color:#fff;padding:10px 20px;border-radius:10px;font-size:12px;font-weight:500;z-index:999;animation:toastIn 0.3s ease;white-space:nowrap;pointer-events:none}
-@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:11px 22px;border-radius:10px;font-size:13px;font-weight:500;z-index:9999;animation:toastIn 0.3s ease;white-space:nowrap;pointer-events:none}
+.toast.success{background:#27ae60;color:#fff}
+.toast.error{background:#e74c3c;color:#fff}
+.toast.info{background:#FF5E00;color:#fff}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* STATUS */
+.status-bar{background:#1A1A1A;border-bottom:1px solid #2A2A2A;padding:8px 20px;font-size:11px;color:#555;display:flex;align-items:center;gap:8px}
+.status-dot{width:7px;height:7px;border-radius:50%;background:#555;flex-shrink:0}
+.status-dot.saved{background:#27ae60}
+.status-dot.unsaved{background:#FF5E00;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
 </style>
 </head>
 <body>
@@ -172,7 +147,7 @@ input[type=range]{flex:1;accent-color:#FF5E00}
 <div class="login-screen" id="login-screen">
   <div class="login-box">
     <div class="login-title">Café <em>Molière</em></div>
-    <div style="font-size:11px;color:#555;letter-spacing:0.12em;text-transform:uppercase;text-align:center;margin-top:4px">Homepage Builder</div>
+    <div style="font-size:11px;color:#555;letter-spacing:0.12em;text-transform:uppercase;text-align:center;margin-top:4px">Homepage CMS</div>
     <div class="login-bar"></div>
     <div class="login-error" id="login-error"></div>
     <button class="ms-btn" id="login-btn" onclick="doLogin()">
@@ -184,147 +159,301 @@ input[type=range]{flex:1;accent-color:#FF5E00}
       </svg>
       Sign in with Microsoft
     </button>
-    <p class="login-note">Access restricted to <strong>administrator@cafemoliere.com</strong></p>
+    <p class="login-note">Only <strong><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="99f8fdf4f0f7f0eaedebf8edf6ebd9faf8fffcf4f6f5f0fcebfcb7faf6f4">[email&#160;protected]</a></strong></p>
   </div>
 </div>
 
-<!-- APP -->
-<div class="app" id="app" style="display:none">
+<!-- MAIN APP -->
+<div id="app" style="display:none">
 
-  <!-- LEFT SIDEBAR: Section List -->
-  <div class="sidebar">
-    <div class="topbar" style="border-right:none">
-      <div class="topbar-title">Café <em>Molière</em></div>
+<div class="header">
+  <div class="header-title">Café <em>Molière</em> — Homepage CMS</div>
+  <div class="header-btns">
+    <span id="user-tag" style="font-size:11px;color:rgba(255,255,255,0.6)"></span>
+    <button class="hbtn hbtn-preview" onclick="window.open('index.html','_blank')">👁 Preview Site</button>
+    <button class="hbtn hbtn-logout" onclick="doLogout()">Sign Out</button>
+  </div>
+</div>
+
+<div class="status-bar">
+  <div class="status-dot" id="status-dot"></div>
+  <span id="status-text">Loading...</span>
+</div>
+
+<div class="tabs" id="tabs">
+  <button class="tab active" onclick="switchTab('hero',this)">🎬 Hero</button>
+  <button class="tab" onclick="switchTab('about',this)">📖 About</button>
+  <button class="tab" onclick="switchTab('gallery',this)">📸 Gallery</button>
+  <button class="tab" onclick="switchTab('menu-cta',this)">🍽️ Menu CTA</button>
+  <button class="tab" onclick="switchTab('info',this)">📍 Info Cards</button>
+  <button class="tab" onclick="switchTab('staff',this)">👤 Staff</button>
+  <button class="tab" onclick="switchTab('sections',this)">📦 Sections</button>
+  <button class="tab" onclick="switchTab('design',this)">🎨 Design</button>
+  <button class="tab" onclick="switchTab('nav-footer',this)">🧭 Nav & Footer</button>
+</div>
+
+<div class="content">
+
+  <!-- ══ HERO ══ -->
+  <div class="panel active" id="panel-hero">
+    <div class="card">
+      <div class="card-title">🎬 Hero <em>Background Image</em></div>
+      <div class="card-sub">Full-screen image shown behind the logo</div>
+      <img id="hero-bg-cur" class="img-cur" alt="Current background">
+      <div class="img-zone">
+        <input type="file" accept="image/*" id="hero-bg-file" onchange="uploadImg('hero','heroBg',this,'hero-bg-cur','hero-bg-prog')">
+        <div class="img-zone-icon">🖼️</div>
+        <div class="img-zone-text">Drop image or <strong>click to upload</strong><br>Best: 1920×1080px JPG</div>
+      </div>
+      <div class="img-prog" id="hero-bg-prog"><div class="img-prog-bar" id="hero-bg-bar"></div></div>
     </div>
-    <div class="sidebar-header">
-      <span>Sections</span>
-      <button class="sidebar-add-btn" onclick="openAddModal()">+ Add</button>
+    <div class="card">
+      <div class="card-title">🎭 Hero <em>Logo</em></div>
+      <div class="card-sub">Logo shown on the hero section</div>
+      <img id="hero-logo-cur" class="img-cur" style="object-fit:contain;background:#FF5E00;padding:10px" alt="Current logo">
+      <div class="img-zone">
+        <input type="file" accept="image/*" id="hero-logo-file" onchange="uploadImg('hero','heroLogo',this,'hero-logo-cur','hero-logo-prog')">
+        <div class="img-zone-icon">🏷️</div>
+        <div class="img-zone-text">Drop logo or <strong>click to upload</strong><br>PNG transparent recommended</div>
+      </div>
+      <div class="img-prog" id="hero-logo-prog"><div class="img-prog-bar" id="hero-logo-bar"></div></div>
     </div>
-    <div class="section-list" id="section-list"></div>
-    <div class="sidebar-bottom">
-      <div class="global-tabs">
-        <button class="gtab active" onclick="switchGlobal('colors',this)">🎨 Colors</button>
-        <button class="gtab" onclick="switchGlobal('fonts',this)">🔤 Fonts</button>
-        <button class="gtab" onclick="switchGlobal('nav',this)">🧭 Nav</button>
-        <button class="gtab" onclick="switchGlobal('footer',this)">🦶 Footer</button>
+    <div class="card">
+      <div class="card-title">✍️ Hero <em>Text</em></div>
+      <label class="fl">Tagline</label>
+      <input class="fi" id="hero-tagline" placeholder="Goûter la culture, savourer l'instant">
+      <label class="fl">CTA Button Text</label>
+      <input class="fi" id="hero-cta-text" placeholder="🍽️ Voir le Menu & Commander">
+      <label class="fl">CTA Button Link</label>
+      <input class="fi" id="hero-cta-link" placeholder="menu.html">
+      <label class="fl">Background Darkness (0 = bright, 1 = very dark)</label>
+      <input class="fi" id="hero-overlay" type="number" min="0" max="1" step="0.05" placeholder="0.35">
+      <button class="save-btn" id="save-hero-text" onclick="saveDoc('hero',{tagline:v('hero-tagline'),ctaText:v('hero-cta-text'),ctaLink:v('hero-cta-link'),overlay:v('hero-overlay')},'save-hero-text')">
+        💾 Save Hero Text
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ ABOUT ══ -->
+  <div class="panel" id="panel-about">
+    <div class="card">
+      <div class="card-title">📖 About <em>Section</em></div>
+      <label class="fl">Badge Text</label>
+      <input class="fi" id="about-badge" placeholder="Notre Histoire">
+      <label class="fl">Title — First Part</label>
+      <input class="fi" id="about-t1" placeholder="Le Café Molière">
+      <label class="fl">Title — Italic Part</label>
+      <input class="fi" id="about-t2" placeholder="entre en scène">
+      <label class="fl">Deco Emoji</label>
+      <input class="fi" id="about-deco" placeholder="🎭" maxlength="4">
+      <label class="fl">Body Text (use new lines freely)</label>
+      <textarea class="fi" id="about-body" placeholder="Your about text here..."></textarea>
+      <div class="color-row">
+        <span class="color-lbl">Background</span>
+        <input type="color" class="color-swatch" id="about-bg-c" value="#1A1A1A" oninput="document.getElementById('about-bg-h').value=this.value">
+        <input class="color-hex" id="about-bg-h" value="#1A1A1A" maxlength="7" oninput="document.getElementById('about-bg-c').value=this.value">
       </div>
-      <!-- COLORS PANEL -->
-      <div class="global-panel active" id="gp-colors">
-        <div class="color-row"><span class="color-label-sm">🟠 Orange</span><input type="color" class="color-swatch" id="gc-orange" value="#FF5E00" oninput="syncGColor('orange')"><input class="color-hex-fi" id="gh-orange" value="#FF5E00" oninput="syncGPicker('orange')" maxlength="7"></div>
-        <div class="color-row"><span class="color-label-sm">🟡 Cream</span><input type="color" class="color-swatch" id="gc-cream" value="#FCECBB" oninput="syncGColor('cream')"><input class="color-hex-fi" id="gh-cream" value="#FCECBB" oninput="syncGPicker('cream')" maxlength="7"></div>
-        <div class="color-row"><span class="color-label-sm">⚫ Background</span><input type="color" class="color-swatch" id="gc-dark" value="#1A1A1A" oninput="syncGColor('dark')"><input class="color-hex-fi" id="gh-dark" value="#1A1A1A" oninput="syncGPicker('dark')" maxlength="7"></div>
-        <button class="ep-btn" style="margin-top:8px" onclick="saveGlobal('colors')">Save Colors</button>
+      <button class="save-btn" id="save-about" onclick="saveDoc('about',{badge:v('about-badge'),title1:v('about-t1'),title2:v('about-t2'),deco:v('about-deco'),body:v('about-body'),bgColor:v('about-bg-h')},'save-about')">
+        💾 Save About Section
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ GALLERY ══ -->
+  <div class="panel" id="panel-gallery">
+    <div class="card">
+      <div class="card-title">📸 Gallery <em>Photos</em></div>
+      <div class="card-sub">Upload photos · Click ✕ to delete · Drag to reorder</div>
+      <label class="fl">Section Badge</label>
+      <input class="fi" id="gal-badge" placeholder="Galerie">
+      <label class="fl">Section Title</label>
+      <input class="fi" id="gal-title" placeholder="Notre Espace">
+      <label class="fl">Caption Below Gallery</label>
+      <input class="fi" id="gal-caption" placeholder="BEIT CHABAB · LYCÉE MONTAIGNE ÉCOLE">
+      <button class="save-btn" id="save-gal-text" onclick="saveDoc('gallery-text',{badge:v('gal-badge'),title:v('gal-title'),caption:v('gal-caption')},'save-gal-text')" style="margin-bottom:16px">
+        💾 Save Gallery Text
+      </button>
+      <div id="gallery-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px"></div>
+      <div class="img-zone">
+        <input type="file" accept="image/*" multiple onchange="uploadGallery(this)">
+        <div class="img-zone-icon">📷</div>
+        <div class="img-zone-text">Add photos — <strong>click to upload</strong><br>You can select multiple at once</div>
       </div>
-      <!-- FONTS PANEL -->
-      <div class="global-panel" id="gp-fonts">
-        <label class="fl">Display Font</label>
-        <select class="fi" id="gf-display" onchange="previewFont()">
-          <option value="Playfair Display">Playfair Display</option>
-          <option value="Cormorant Garamond">Cormorant Garamond</option>
-          <option value="Libre Baskerville">Libre Baskerville</option>
-          <option value="Lora">Lora</option>
-          <option value="Merriweather">Merriweather</option>
-        </select>
-        <label class="fl">Body Font</label>
-        <select class="fi" id="gf-body" onchange="previewFont()">
-          <option value="DM Sans">DM Sans</option>
-          <option value="Nunito">Nunito</option>
-          <option value="Poppins">Poppins</option>
-          <option value="Raleway">Raleway</option>
-          <option value="Work Sans">Work Sans</option>
-        </select>
-        <div class="font-preview" id="font-preview">Café Molière — Goûter la culture</div>
-        <button class="ep-btn" style="margin-top:8px" onclick="saveGlobal('fonts')">Save Fonts</button>
+      <div class="img-prog" id="gal-prog"><div class="img-prog-bar" id="gal-bar"></div></div>
+    </div>
+  </div>
+
+  <!-- ══ MENU CTA ══ -->
+  <div class="panel" id="panel-menu-cta">
+    <div class="card">
+      <div class="card-title">🍽️ Menu <em>Shortcut Section</em></div>
+      <label class="fl">Badge</label>
+      <input class="fi" id="cta-badge" placeholder="Notre Carte">
+      <label class="fl">Title — First Part</label>
+      <input class="fi" id="cta-t1" placeholder="Découvrez notre">
+      <label class="fl">Title — Italic Part</label>
+      <input class="fi" id="cta-t2" placeholder="Menu">
+      <label class="fl">Subtitle</label>
+      <input class="fi" id="cta-sub" placeholder="Des plats aux noms de Molière...">
+      <label class="fl">Button Text</label>
+      <input class="fi" id="cta-btn" placeholder="🍽️ Ouvrir le Menu & Commander">
+      <label class="fl">Button Link</label>
+      <input class="fi" id="cta-link" placeholder="menu.html">
+      <div class="color-row">
+        <span class="color-lbl">Background</span>
+        <input type="color" class="color-swatch" id="cta-bg-c" value="#FF5E00" oninput="document.getElementById('cta-bg-h').value=this.value">
+        <input class="color-hex" id="cta-bg-h" value="#FF5E00" maxlength="7" oninput="document.getElementById('cta-bg-c').value=this.value">
       </div>
-      <!-- NAV PANEL -->
-      <div class="global-panel" id="gp-nav">
-        <label class="fl">Logo Text</label>
-        <input class="fi" id="nav-logo" placeholder="Café Molière" oninput="markUnsaved()">
-        <label class="fl">Menu Button Text</label>
-        <input class="fi" id="nav-menu-text" placeholder="🍽️ Notre Menu" oninput="markUnsaved()">
-        <label class="fl">Login Button Text</label>
-        <input class="fi" id="nav-login-text" placeholder="Connexion Staff" oninput="markUnsaved()">
-        <label class="fl">Navbar Background</label>
-        <div class="color-row" style="margin-bottom:0">
-          <input type="color" class="color-swatch" id="nav-bg-color" value="#FF5E00" oninput="markUnsaved()">
-          <input class="color-hex-fi" id="nav-bg-hex" value="#FF5E00" maxlength="7" oninput="markUnsaved()">
+      <button class="save-btn" id="save-cta" onclick="saveDoc('menu-cta',{badge:v('cta-badge'),title1:v('cta-t1'),title2:v('cta-t2'),subtitle:v('cta-sub'),btnText:v('cta-btn'),btnLink:v('cta-link'),bgColor:v('cta-bg-h')},'save-cta')">
+        💾 Save Menu CTA Section
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ INFO CARDS ══ -->
+  <div class="panel" id="panel-info">
+    <div class="card">
+      <div class="card-title">📍 Info <em>Cards</em></div>
+      <div class="card-sub">Edit, add or delete the info cards shown on the homepage</div>
+      <label class="fl">Section Badge</label>
+      <input class="fi" id="info-badge" placeholder="Informations">
+      <label class="fl">Section Title</label>
+      <input class="fi" id="info-title" placeholder="Nous trouver">
+      <div id="info-cards-list" style="margin-top:14px"></div>
+      <button class="add-btn" onclick="addInfoCard()">+ Add Card</button>
+      <button class="save-btn" id="save-info" onclick="saveInfoCards()">
+        💾 Save All Info Cards
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ STAFF ══ -->
+  <div class="panel" id="panel-staff">
+    <div class="card">
+      <div class="card-title">👤 Staff <em>Portal Section</em></div>
+      <label class="fl">Section Title</label>
+      <input class="fi" id="staff-title" placeholder="Espace Staff">
+      <label class="fl">Login Prompt Text</label>
+      <input class="fi" id="staff-prompt" placeholder="Connectez-vous avec votre compte @cafemoliere.com">
+      <label class="fl">Dashboard Button Label</label>
+      <input class="fi" id="staff-dash" placeholder="🗂️ Tableau de bord">
+      <label class="fl">Admin Button Label</label>
+      <input class="fi" id="staff-admin" placeholder="⚙️ Administration">
+      <div class="color-row">
+        <span class="color-lbl">Background</span>
+        <input type="color" class="color-swatch" id="staff-bg-c" value="#111111" oninput="document.getElementById('staff-bg-h').value=this.value">
+        <input class="color-hex" id="staff-bg-h" value="#111111" maxlength="7" oninput="document.getElementById('staff-bg-c').value=this.value">
+      </div>
+      <button class="save-btn" id="save-staff" onclick="saveDoc('staff',{title:v('staff-title'),prompt:v('staff-prompt'),dashText:v('staff-dash'),adminText:v('staff-admin'),bgColor:v('staff-bg-h')},'save-staff')">
+        💾 Save Staff Section
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ SECTIONS MANAGER ══ -->
+  <div class="panel" id="panel-sections">
+    <div class="card">
+      <div class="card-title">📦 Sections <em>Manager</em></div>
+      <div class="card-sub">Drag ⠿ to reorder · 👁 to show/hide · 🗑 to delete · Click to expand</div>
+      <div class="sec-list" id="sec-list"></div>
+      <div style="margin-top:16px">
+        <p style="font-size:11px;color:#555;margin-bottom:10px;letter-spacing:0.05em">ADD NEW SECTION:</p>
+        <div class="add-sec-grid">
+          <button class="add-sec-btn" onclick="addCustomSection('text')"><div class="asb-icon">📝</div><div class="asb-name">Text Block</div></button>
+          <button class="add-sec-btn" onclick="addCustomSection('image')"><div class="asb-icon">🖼️</div><div class="asb-name">Full Image</div></button>
+          <button class="add-sec-btn" onclick="addCustomSection('divider')"><div class="asb-icon">➖</div><div class="asb-name">Divider</div></button>
+          <button class="add-sec-btn" onclick="addCustomSection('custom-cta')"><div class="asb-icon">🎯</div><div class="asb-name">Custom CTA</div></button>
+          <button class="add-sec-btn" onclick="addCustomSection('two-col')"><div class="asb-icon">⬛⬛</div><div class="asb-name">Two Columns</div></button>
+          <button class="add-sec-btn" onclick="addCustomSection('quote')"><div class="asb-icon">💬</div><div class="asb-name">Quote</div></button>
         </div>
-        <button class="ep-btn" style="margin-top:10px" onclick="saveGlobal('nav')">Save Navbar</button>
       </div>
-      <!-- FOOTER PANEL -->
-      <div class="global-panel" id="gp-footer">
-        <label class="fl">Footer Logo Text</label>
-        <input class="fi" id="footer-logo" placeholder="Le Café Molière" oninput="markUnsaved()">
-        <label class="fl">Footer Tagline</label>
-        <input class="fi" id="footer-tagline" placeholder="Goûter la culture..." oninput="markUnsaved()">
-        <label class="fl">Copyright Text</label>
-        <input class="fi" id="footer-copy" placeholder="© 2024 · Beit Chabab..." oninput="markUnsaved()">
-        <button class="ep-btn" style="margin-top:10px" onclick="saveGlobal('footer')">Save Footer</button>
-      </div>
+      <button class="save-btn" id="save-sections" onclick="saveSections()">
+        💾 Save Section Order & Visibility
+      </button>
     </div>
   </div>
 
-  <!-- CENTER: Canvas -->
-  <div class="main-area">
-    <div class="topbar">
-      <div class="topbar-title">Homepage <em>Builder</em></div>
-      <div class="topbar-btns">
-        <span class="unsaved-badge" id="unsaved-badge">● Unsaved</span>
-        <button class="tbtn tbtn-preview" onclick="openPreview()">👁 Preview</button>
-        <button class="tbtn tbtn-publish" id="publish-btn" onclick="publishAll()">🚀 Publish</button>
-        <button class="tbtn tbtn-logout" onclick="doLogout()">Exit</button>
+  <!-- ══ DESIGN ══ -->
+  <div class="panel" id="panel-design">
+    <div class="card">
+      <div class="card-title">🎨 Brand <em>Colors</em></div>
+      <div class="color-row"><span class="color-lbl">🟠 Primary Orange</span><input type="color" class="color-swatch" id="dc-orange" value="#FF5E00" oninput="document.getElementById('dh-orange').value=this.value"><input class="color-hex" id="dh-orange" value="#FF5E00" maxlength="7" oninput="document.getElementById('dc-orange').value=this.value"></div>
+      <div class="color-row"><span class="color-lbl">🟡 Cream Accent</span><input type="color" class="color-swatch" id="dc-cream" value="#FCECBB" oninput="document.getElementById('dh-cream').value=this.value"><input class="color-hex" id="dh-cream" value="#FCECBB" maxlength="7" oninput="document.getElementById('dc-cream').value=this.value"></div>
+      <div class="color-row"><span class="color-lbl">⚫ Dark BG</span><input type="color" class="color-swatch" id="dc-dark" value="#1A1A1A" oninput="document.getElementById('dh-dark').value=this.value"><input class="color-hex" id="dh-dark" value="#1A1A1A" maxlength="7" oninput="document.getElementById('dc-dark').value=this.value"></div>
+      <button class="save-btn" id="save-colors" onclick="saveDoc('design-colors',{orange:v('dh-orange'),cream:v('dh-cream'),dark:v('dh-dark')},'save-colors')">
+        💾 Save Colors
+      </button>
+    </div>
+    <div class="card">
+      <div class="card-title">🔤 <em>Typography</em></div>
+      <label class="fl">Display / Title Font</label>
+      <select class="fi" id="font-display">
+        <option value="Playfair Display">Playfair Display (current)</option>
+        <option value="Cormorant Garamond">Cormorant Garamond</option>
+        <option value="Lora">Lora</option>
+        <option value="Merriweather">Merriweather</option>
+        <option value="Libre Baskerville">Libre Baskerville</option>
+      </select>
+      <label class="fl">Body / Text Font</label>
+      <select class="fi" id="font-body">
+        <option value="DM Sans">DM Sans (current)</option>
+        <option value="Nunito">Nunito</option>
+        <option value="Poppins">Poppins</option>
+        <option value="Raleway">Raleway</option>
+        <option value="Work Sans">Work Sans</option>
+      </select>
+      <div id="font-preview" style="margin-top:12px;padding:14px;background:#111;border-radius:8px;text-align:center;font-size:1.2rem;color:#FCECBB;border:1px solid #2A2A2A">
+        Café Molière — Goûter la culture
       </div>
+      <button class="save-btn" id="save-fonts" onclick="saveFonts()">
+        💾 Save Typography
+      </button>
     </div>
-    <div class="device-bar">
-      <button class="dev-btn active" onclick="setDevice('100%',this)">🖥 Desktop</button>
-      <button class="dev-btn" onclick="setDevice('768px',this)">📱 Tablet</button>
-      <button class="dev-btn" onclick="setDevice('390px',this)">📲 Mobile</button>
-      <span class="device-label" id="device-label">Desktop — full width</span>
-    </div>
-    <div class="canvas-wrap">
-      <div class="canvas-device" id="canvas-device" style="width:100%">
-        <iframe id="canvas-frame" style="width:100%;height:100vh;border:none;display:block" src="index.html"></iframe>
+  </div>
+
+  <!-- ══ NAV & FOOTER ══ -->
+  <div class="panel" id="panel-nav-footer">
+    <div class="card">
+      <div class="card-title">🧭 <em>Navbar</em></div>
+      <label class="fl">Logo Text</label>
+      <input class="fi" id="nav-logo" placeholder="Café Molière">
+      <label class="fl">Menu Button Text</label>
+      <input class="fi" id="nav-menu" placeholder="🍽️ Notre Menu">
+      <label class="fl">Login Button Text</label>
+      <input class="fi" id="nav-login" placeholder="Connexion Staff">
+      <div class="color-row">
+        <span class="color-lbl">Navbar BG</span>
+        <input type="color" class="color-swatch" id="nav-bg-c" value="#FF5E00" oninput="document.getElementById('nav-bg-h').value=this.value">
+        <input class="color-hex" id="nav-bg-h" value="#FF5E00" maxlength="7" oninput="document.getElementById('nav-bg-c').value=this.value">
       </div>
+      <button class="save-btn" id="save-nav" onclick="saveDoc('navbar',{logoText:v('nav-logo'),menuText:v('nav-menu'),loginText:v('nav-login'),bgColor:v('nav-bg-h')},'save-nav')">
+        💾 Save Navbar
+      </button>
+    </div>
+    <div class="card">
+      <div class="card-title">🦶 <em>Footer</em></div>
+      <label class="fl">Footer Logo Text</label>
+      <input class="fi" id="footer-logo" placeholder="Le Café Molière">
+      <label class="fl">Tagline</label>
+      <input class="fi" id="footer-tag" placeholder="Goûter la culture, savourer l'instant">
+      <label class="fl">Copyright Line</label>
+      <input class="fi" id="footer-copy" placeholder="© 2024 · Beit Chabab · Lycée Montaigne École">
+      <button class="save-btn" id="save-footer" onclick="saveDoc('footer',{logoText:v('footer-logo'),tagline:v('footer-tag'),copyright:v('footer-copy')},'save-footer')">
+        💾 Save Footer
+      </button>
     </div>
   </div>
 
-  <!-- RIGHT SIDEBAR: Edit Panel -->
-  <div class="edit-panel" id="edit-panel">
-    <div class="ep-header">✏️ Edit Section</div>
-    <div class="ep-empty" id="ep-empty">
-      <div style="font-size:2rem;margin-bottom:8px">👈</div>
-      Select a section from the left panel to edit it
-    </div>
-    <div id="ep-content" style="display:none"></div>
-  </div>
-</div>
+</div><!-- end content -->
+</div><!-- end app -->
 
-<!-- ADD SECTION MODAL -->
-<div class="modal-overlay" id="add-modal">
-  <div class="modal">
-    <div class="modal-title">Add New <em>Section</em></div>
-    <div class="section-types-grid">
-      <div class="sec-type-btn" onclick="addSection('hero')"><div class="sec-type-icon">🎬</div><div class="sec-type-name">Hero</div><div class="sec-type-desc">Full-screen banner</div></div>
-      <div class="sec-type-btn" onclick="addSection('about')"><div class="sec-type-icon">📖</div><div class="sec-type-name">About</div><div class="sec-type-desc">Text & title</div></div>
-      <div class="sec-type-btn" onclick="addSection('gallery')"><div class="sec-type-icon">📸</div><div class="sec-type-name">Gallery</div><div class="sec-type-desc">Photo grid</div></div>
-      <div class="sec-type-btn" onclick="addSection('cta')"><div class="sec-type-icon">🍽️</div><div class="sec-type-name">CTA Banner</div><div class="sec-type-desc">Button + text</div></div>
-      <div class="sec-type-btn" onclick="addSection('cards')"><div class="sec-type-icon">📋</div><div class="sec-type-name">Cards</div><div class="sec-type-desc">Info cards grid</div></div>
-      <div class="sec-type-btn" onclick="addSection('text')"><div class="sec-type-icon">📝</div><div class="sec-type-name">Text Block</div><div class="sec-type-desc">Rich text</div></div>
-      <div class="sec-type-btn" onclick="addSection('staff')"><div class="sec-type-icon">👤</div><div class="sec-type-name">Staff Portal</div><div class="sec-type-desc">Login section</div></div>
-      <div class="sec-type-btn" onclick="addSection('divider')"><div class="sec-type-icon">➖</div><div class="sec-type-name">Divider</div><div class="sec-type-desc">Separator</div></div>
-      <div class="sec-type-btn" onclick="addSection('image')"><div class="sec-type-icon">🖼️</div><div class="sec-type-name">Full Image</div><div class="sec-type-desc">Full-width photo</div></div>
-    </div>
-    <button class="modal-close" onclick="closeAddModal()">Cancel</button>
-  </div>
-</div>
-
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ── FIREBASE ──
 const firebaseConfig = {
   apiKey:     "AIzaSyANahV1JOHQqEweg6e8i_LvltXNCTW-kIw",
   authDomain: "cafe-moliere.firebaseapp.com",
   projectId:  "cafe-moliere",
-  storageBucket: "cafe-moliere.firebasestorage.app",
+storageBucket: "cafe-moliere.firebasestorage.app",
 };
 firebase.initializeApp(firebaseConfig);
 const db      = firebase.firestore();
@@ -333,494 +462,528 @@ const storage = firebase.storage();
 const ADMIN   = 'administrator@cafemoliere.com';
 
 // ── STATE ──
-let sections   = [];   // [{id, type, name, visible, data:{...}}]
-let globalData = {};
-let activeSecId = null;
-let dragSecId   = null;
-let unsaved     = false;
+let galleryImages = [];
+let infoCards     = [];
+let pageSections  = [];
+let dragSecIdx    = null;
 
-// ── DEFAULT SECTION DATA ──
-const DEFAULTS = {
-  hero:    { name:'Hero', icon:'🎬', data:{ bg:'cafe-wall.jpg', logo:'logo-orange.png', tagline:"Goûter la culture, savourer l'instant", ctaText:'🍽️ Voir le Menu & Commander', ctaLink:'menu.html', bgOverlay:'0.35', bgPosition:'center 20%' }},
-  about:   { name:'About', icon:'📖', data:{ badge:'Notre Histoire', title1:'Le Café Molière', title2:'entre en scène', decoIcon:'🎭', text:"Le Café Molière ouvre officiellement ses portes ! Un espace pensé pour se retrouver, partager et profiter de moments simples et joyeux, entre deux cours ou à la récré !", bgColor:'#1A1A1A', textColor:'#ffffff' }},
-  gallery: { name:'Gallery', icon:'📸', data:{ badge:'Galerie', title:'Notre Espace', images:[], caption:'BEIT CHABAB · LYCÉE MONTAIGNE ÉCOLE', bgColor:'#111111' }},
-  cta:     { name:'CTA Banner', icon:'🍽️', data:{ badge:'Notre Carte', title1:'Découvrez notre', title2:'Menu', subtitle:'Des plats aux noms de Molière, une cuisine avec caractère', btnText:'🍽️ Ouvrir le Menu & Commander', btnLink:'menu.html', bgColor:'#FF5E00' }},
-  cards:   { name:'Info Cards', icon:'📋', data:{ badge:'Informations', title:'Nous trouver', titleItalic:'trouver', bgColor:'#1A1A1A', cards:[{icon:'📍',title:'Adresse',text:'Lycée Montaigne\nBeit Chabab'},{icon:'🕐',title:'Horaires',text:'Lundi – Vendredi\nHeures scolaires'},{icon:'📱',title:'Commander',text:'Via notre menu en ligne'},{icon:'📞',title:'Contact',text:'+961 71 503 555'}] }},
-  text:    { name:'Text Block', icon:'📝', data:{ text:'Your text here...', align:'center', bgColor:'#1A1A1A', textColor:'#ffffff', padding:'60' }},
-  staff:   { name:'Staff Portal', icon:'👤', data:{ title:'Espace Staff', prompt:'Connectez-vous avec votre compte @cafemoliere.com', dashText:'🗂️ Tableau de bord', adminText:'⚙️ Administration', bgColor:'#111111' }},
-  divider: { name:'Divider', icon:'➖', data:{ style:'line', color:'#333333', bgColor:'#1A1A1A' }},
-  image:   { name:'Full Image', icon:'🖼️', data:{ url:'', alt:'', height:'400', objectPosition:'center center' }},
-};
+// ── HELPERS ──
+function v(id) { return document.getElementById(id)?.value || ''; }
 
-// ── UTILS ──
-function uid() { return 'sec_' + Date.now() + '_' + Math.random().toString(36).substr(2,5); }
-function toast(msg, d=2500) {
+function toast(msg, type='info') {
   document.querySelector('.toast')?.remove();
-  const el = document.createElement('div'); el.className='toast'; el.textContent=msg;
-  document.body.appendChild(el); setTimeout(()=>el.remove(),d);
-}
-function markUnsaved() {
-  unsaved=true;
-  document.getElementById('unsaved-badge').classList.add('show');
-  document.getElementById('publish-btn').classList.add('pulse');
-}
-function markSaved() {
-  unsaved=false;
-  document.getElementById('unsaved-badge').classList.remove('show');
-  document.getElementById('publish-btn').classList.remove('pulse');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
 }
 
-// ── DEVICE ──
-function setDevice(w, btn) {
-  const frame = document.getElementById('canvas-device');
-  const labels = {'100%':'Desktop — full width','768px':'Tablet — 768px','390px':'Mobile — 390px'};
-  frame.style.width = w;
-  document.querySelectorAll('.dev-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('device-label').textContent = labels[w]||w;
+function setStatus(saved) {
+  const dot  = document.getElementById('status-dot');
+  const text = document.getElementById('status-text');
+  dot.className  = 'status-dot ' + (saved ? 'saved' : 'unsaved');
+  text.textContent = saved ? 'All changes saved' : 'Unsaved changes';
 }
 
-// ── GLOBAL TABS ──
-function switchGlobal(name, btn) {
-  document.querySelectorAll('.gtab').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.global-panel').forEach(p=>p.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('gp-'+name).classList.add('active');
-}
-function syncGColor(k) { document.getElementById('gh-'+k).value = document.getElementById('gc-'+k).value; markUnsaved(); }
-function syncGPicker(k) { const v=document.getElementById('gh-'+k).value; if(/^#[0-9A-Fa-f]{6}$/.test(v)) { document.getElementById('gc-'+k).value=v; markUnsaved(); } }
-function previewFont() {
-  const d=document.getElementById('gf-display').value;
-  const b=document.getElementById('gf-body').value;
-  const prev=document.getElementById('font-preview');
-  prev.style.fontFamily=d;
-  const link=document.createElement('link');
-  link.rel='stylesheet';
-  link.href=`https://fonts.googleapis.com/css2?family=${d.replace(/ /g,'+')}&family=${b.replace(/ /g,'+')}`;
-  document.head.appendChild(link);
-  markUnsaved();
-}
-
-// ── ADD SECTION MODAL ── 
-function openAddModal() { document.getElementById('add-modal').classList.add('visible'); }
-function closeAddModal() { document.getElementById('add-modal').classList.remove('visible'); }
-
-function addSection(type) {
-  const def = DEFAULTS[type];
-  if (!def) return;
-  const sec = { id:uid(), type, name:def.name, icon:def.icon, visible:true, data:JSON.parse(JSON.stringify(def.data)) };
-  sections.push(sec);
-  closeAddModal();
-  renderSectionList();
-  selectSection(sec.id);
-  markUnsaved();
-  toast(def.name + ' section added!');
-}
-
-// ── SECTION LIST ──
-function renderSectionList() {
-  const list = document.getElementById('section-list');
-  if (!sections.length) {
-    list.innerHTML = '<div style="padding:20px;text-align:center;color:#444;font-size:12px">No sections yet<br>Click + Add to start</div>';
-    return;
+function setSaveBtnState(id, state) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  if (state === 'saving') {
+    btn.classList.add('saving');
+    btn.textContent = '⏳ Saving...';
+    btn.disabled = true;
+  } else if (state === 'saved') {
+    btn.classList.remove('saving');
+    btn.classList.add('saved');
+    btn.textContent = '✅ Saved!';
+    btn.disabled = false;
+    setTimeout(() => {
+      btn.classList.remove('saved');
+      btn.innerHTML = btn.innerHTML.replace('✅ Saved!', '💾 ' + btn.dataset.label);
+    }, 2000);
+  } else {
+    btn.classList.remove('saving','saved');
+    btn.disabled = false;
   }
-  list.innerHTML = sections.map(sec => `
-    <div class="sec-item ${sec.id===activeSecId?'active':''}" id="si-${sec.id}"
+}
+
+// ── TABS ──
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+}
+
+// ── SAVE DOC ──
+async function saveDoc(docId, data, btnId) {
+  const btn = document.getElementById(btnId);
+  if (btn) {
+    btn.dataset.label = btn.textContent.replace('💾 ','').replace('✅ ','').replace('⏳ ','');
+    setSaveBtnState(btnId,'saving');
+  }
+  try {
+    // Check auth first
+    const user = auth.currentUser;
+    if (!user) throw new Error('Not logged in. Please refresh and sign in again.');
+    if (user.email !== ADMIN) throw new Error('Only administrator@cafemoliere.com can save.');
+
+    await db.collection('homepage').doc(docId).set({
+      ...data,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    if (btnId) setSaveBtnState(btnId,'saved');
+    setStatus(true);
+    toast('Saved successfully!', 'success');
+  } catch(e) {
+    if (btnId) setSaveBtnState(btnId,'error');
+    let msg = e.message;
+    if (e.code === 'permission-denied') {
+      msg = 'Permission denied — update your Firestore rules to allow homepage writes';
+    }
+    toast('Save failed: ' + msg, 'error');
+    console.error('saveDoc error:', e);
+    alert('Save failed!\n\n' + msg + '\n\nMake sure your Firestore rules include:\nmatch /homepage/{docId} {\n  allow write: if request.auth.token.email == "administrator@cafemoliere.com";\n}');
+  }
+}
+
+// ── IMAGE UPLOAD ──
+async function uploadImg(docId, field, input, curImgId, progId) {
+  const file = input.files[0];
+  if (!file) return;
+  const prog = document.getElementById(progId);
+  const bar  = document.getElementById(progId.replace('prog','bar'));
+  if (prog) prog.style.display = 'block';
+  toast('Uploading image...', 'info');
+
+  try {
+    const ref  = storage.ref(`homepage/${docId}_${field}_${Date.now()}_${file.name}`);
+    const task = ref.put(file);
+    await new Promise((res, rej) => {
+      task.on('state_changed',
+        snap => { if(bar) bar.style.width = (snap.bytesTransferred/snap.totalBytes*100)+'%'; },
+        rej,
+        async () => {
+          const url = await task.snapshot.ref.getDownloadURL();
+          // Save URL to Firestore
+          await db.collection('homepage').doc(docId).set(
+            { [field]: url, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
+            { merge: true }
+          );
+          // Show preview
+          const cur = document.getElementById(curImgId);
+          if (cur) { cur.src = url; cur.style.display = 'block'; }
+          if (prog) prog.style.display = 'none';
+          setStatus(true);
+          toast('Image uploaded & saved!', 'success');
+          res();
+        }
+      );
+    });
+  } catch(e) {
+    if (prog) prog.style.display = 'none';
+    toast('Upload failed: ' + e.message, 'error');
+  }
+}
+
+// ── GALLERY ──
+function renderGallery() {
+  const grid = document.getElementById('gallery-grid');
+  grid.innerHTML = galleryImages.map((img, i) => `
+    <div style="position:relative;border-radius:8px;overflow:hidden;aspect-ratio:1;border:1px solid #2A2A2A"
       draggable="true"
-      ondragstart="secDragStart(event,'${sec.id}')"
-      ondragover="secDragOver(event,'${sec.id}')"
-      ondragleave="secDragLeave(event)"
-      ondrop="secDrop(event,'${sec.id}')">
-      <div class="sec-item-header" onclick="selectSection('${sec.id}')">
-        <span class="sec-drag-handle">⠿</span>
-        <span class="sec-icon">${sec.icon||'📦'}</span>
-        <div class="sec-info">
-          <div class="sec-name">${sec.name}</div>
-          <div class="sec-type">${sec.type}</div>
-        </div>
-        <div class="sec-actions" onclick="event.stopPropagation()">
-          <button class="sec-btn sec-btn-vis ${sec.visible?'':'hidden-sec'}" onclick="toggleSecVisible('${sec.id}')" title="${sec.visible?'Hide':'Show'}">
-            ${sec.visible?'👁':'🚫'}
-          </button>
-          <button class="sec-btn sec-btn-dup" onclick="duplicateSec('${sec.id}')" title="Duplicate">⧉</button>
-          <button class="sec-btn sec-btn-del" onclick="deleteSec('${sec.id}')" title="Delete">🗑</button>
-        </div>
-      </div>
+      ondragstart="galDragStart(${i})"
+      ondragover="event.preventDefault()"
+      ondrop="galDrop(${i})">
+      <img src="${img.url}" style="width:100%;height:100%;object-fit:cover">
+      <button onclick="deleteGalImg(${i})" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.75);color:#fff;border:none;border-radius:5px;padding:3px 7px;font-size:11px;cursor:pointer;font-weight:600">✕</button>
     </div>`).join('');
 }
 
-// ── DRAG SECTIONS ──
-function secDragStart(e,id){dragSecId=id;setTimeout(()=>document.getElementById('si-'+id)?.classList.add('dragging'),0);}
-function secDragOver(e,id){e.preventDefault();if(id!==dragSecId)document.getElementById('si-'+id)?.classList.add('drag-over');}
-function secDragLeave(e){e.currentTarget.classList.remove('drag-over');}
-function secDrop(e,toId){
-  e.preventDefault();
-  document.querySelectorAll('.sec-item').forEach(el=>{el.classList.remove('drag-over','dragging');});
-  if(!dragSecId||dragSecId===toId)return;
-  const fi=sections.findIndex(s=>s.id===dragSecId);
-  const ti=sections.findIndex(s=>s.id===toId);
-  const [sec]=sections.splice(fi,1);
-  sections.splice(ti,0,sec);
-  dragSecId=null;
-  renderSectionList();
-  refreshCanvas();
-  markUnsaved();
-  toast('Section reordered');
+function galDragStart(i) { galDragIdx = i; }
+let galDragIdx = null;
+async function galDrop(toIdx) {
+  if (galDragIdx === null || galDragIdx === toIdx) return;
+  const item = galleryImages.splice(galDragIdx, 1)[0];
+  galleryImages.splice(toIdx, 0, item);
+  galDragIdx = null;
+  renderGallery();
+  await saveGallery();
+  toast('Photo order updated!', 'success');
 }
 
-// ── SECTION ACTIONS ──
-function toggleSecVisible(id){const s=sections.find(s=>s.id===id);if(s){s.visible=!s.visible;renderSectionList();refreshCanvas();markUnsaved();}}
-function duplicateSec(id){const s=sections.find(s=>s.id===id);if(s){const n={...JSON.parse(JSON.stringify(s)),id:uid(),name:s.name+' (copy)'};sections.splice(sections.indexOf(s)+1,0,n);renderSectionList();markUnsaved();toast('Section duplicated');}}
-function deleteSec(id){if(!confirm('Delete this section?'))return;sections=sections.filter(s=>s.id!==id);if(activeSecId===id){activeSecId=null;showEditEmpty();}renderSectionList();refreshCanvas();markUnsaved();}
-
-// ── SELECT SECTION ── 
-function selectSection(id) {
-  activeSecId = id;
-  renderSectionList();
-  const sec = sections.find(s=>s.id===id);
-  if (!sec) return;
-  document.getElementById('ep-empty').style.display = 'none';
-  document.getElementById('ep-content').style.display = 'block';
-  document.querySelector('.ep-header').textContent = sec.icon+' Edit: '+sec.name;
-  renderEditPanel(sec);
+async function deleteGalImg(idx) {
+  if (!confirm('Delete this photo?')) return;
+  galleryImages.splice(idx, 1);
+  renderGallery();
+  await saveGallery();
+  toast('Photo deleted', 'success');
 }
 
-function showEditEmpty(){document.getElementById('ep-empty').style.display='block';document.getElementById('ep-content').style.display='none';document.querySelector('.ep-header').textContent='✏️ Edit Section';}
-
-// ── EDIT PANEL RENDERER ──
-function renderEditPanel(sec) {
-  const c = document.getElementById('ep-content');
-  c.innerHTML = '';
-  const d = sec.data;
-
-  // NAME
-  c.innerHTML += `<div class="ep-section"><div class="ep-section-title">Section Settings</div>
-    <label class="fl">Section Name</label>
-    <input class="fi" value="${sec.name}" onchange="sec_updateName('${sec.id}',this.value)">
-  </div>`;
-
-  if (sec.type === 'hero') {
-    c.innerHTML += `<div class="ep-section"><div class="ep-section-title">Background Image</div>
-      ${d.bg ? `<img class="img-cur" src="${d.bg}" style="display:block">` : ''}
-      <div class="img-up"><input type="file" accept="image/*" onchange="uploadSecImage('${sec.id}','bg',this)">
-        <div class="img-up-text">📁 Upload background<br><strong>Click to browse</strong></div>
-        <div class="img-prog" id="prog-${sec.id}-bg"><div class="img-prog-bar"></div></div>
-      </div>
-      <label class="fl">Background Position</label>
-      <input class="fi" value="${d.bgPosition||'center center'}" onchange="sec_update('${sec.id}','bgPosition',this.value)">
-      <label class="fl">Overlay Darkness (0-1)</label>
-      <div class="slider-row"><input type="range" min="0" max="1" step="0.05" value="${d.bgOverlay||0.35}" oninput="sec_update('${sec.id}','bgOverlay',this.value);this.nextElementSibling.textContent=this.value"><span class="slider-val">${d.bgOverlay||0.35}</span></div>
-    </div>
-    <div class="ep-section"><div class="ep-section-title">Logo</div>
-      ${d.logo ? `<img class="img-cur" src="${d.logo}" style="display:block;max-height:60px;object-fit:contain;background:#FF5E00;padding:8px">` : ''}
-      <div class="img-up"><input type="file" accept="image/*" onchange="uploadSecImage('${sec.id}','logo',this)">
-        <div class="img-up-text">📁 Upload logo<br><strong>Click to browse</strong></div>
-      </div>
-    </div>
-    <div class="ep-section"><div class="ep-section-title">Text & Button</div>
-      <label class="fl">Tagline</label>
-      <input class="fi" value="${d.tagline||''}" onchange="sec_update('${sec.id}','tagline',this.value)">
-      <label class="fl">Button Text</label>
-      <input class="fi" value="${d.ctaText||''}" onchange="sec_update('${sec.id}','ctaText',this.value)">
-      <label class="fl">Button Link</label>
-      <input class="fi" value="${d.ctaLink||''}" onchange="sec_update('${sec.id}','ctaLink',this.value)">
-    </div>`;
-  }
-
-  else if (sec.type === 'about') {
-    c.innerHTML += `<div class="ep-section"><div class="ep-section-title">Content</div>
-      <label class="fl">Badge Text</label>
-      <input class="fi" value="${d.badge||''}" onchange="sec_update('${sec.id}','badge',this.value)">
-      <label class="fl">Title Part 1</label>
-      <input class="fi" value="${d.title1||''}" onchange="sec_update('${sec.id}','title1',this.value)">
-      <label class="fl">Title Part 2 (italic)</label>
-      <input class="fi" value="${d.title2||''}" onchange="sec_update('${sec.id}','title2',this.value)">
-      <label class="fl">Deco Icon</label>
-      <input class="fi" value="${d.decoIcon||'🎭'}" maxlength="4" onchange="sec_update('${sec.id}','decoIcon',this.value)">
-      <label class="fl">Body Text</label>
-      <textarea class="fi" onchange="sec_update('${sec.id}','text',this.value)">${d.text||''}</textarea>
-    </div>
-    <div class="ep-section"><div class="ep-section-title">Colors</div>
-      <div class="color-row"><span class="color-label-sm">Background</span><input type="color" class="color-swatch" value="${d.bgColor||'#1A1A1A'}" oninput="sec_update('${sec.id}','bgColor',this.value)"><input class="color-hex-fi" value="${d.bgColor||'#1A1A1A'}" maxlength="7" oninput="sec_update('${sec.id}','bgColor',this.value)"></div>
-      <div class="color-row"><span class="color-label-sm">Text Color</span><input type="color" class="color-swatch" value="${d.textColor||'#ffffff'}" oninput="sec_update('${sec.id}','textColor',this.value)"><input class="color-hex-fi" value="${d.textColor||'#ffffff'}" maxlength="7" oninput="sec_update('${sec.id}','textColor',this.value)"></div>
-    </div>`;
-  }
-
-  else if (sec.type === 'gallery') {
-    const imgs = d.images||[];
-    c.innerHTML += `<div class="ep-section"><div class="ep-section-title">Content</div>
-      <label class="fl">Badge</label><input class="fi" value="${d.badge||''}" onchange="sec_update('${sec.id}','badge',this.value)">
-      <label class="fl">Title</label><input class="fi" value="${d.title||''}" onchange="sec_update('${sec.id}','title',this.value)">
-      <label class="fl">Caption</label><input class="fi" value="${d.caption||''}" onchange="sec_update('${sec.id}','caption',this.value)">
-    </div>
-    <div class="ep-section"><div class="ep-section-title">Photos (${imgs.length})</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
-        ${imgs.map((img,i)=>`<div style="position:relative;border-radius:6px;overflow:hidden;aspect-ratio:1">
-          <img src="${img.url}" style="width:100%;height:100%;object-fit:cover">
-          <button onclick="removeGalleryImg('${sec.id}',${i})" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.7);color:#fff;border:none;border-radius:4px;padding:2px 5px;font-size:10px;cursor:pointer">✕</button>
-        </div>`).join('')}
-      </div>
-      <div class="img-up"><input type="file" accept="image/*" multiple onchange="uploadGalleryImg('${sec.id}',this)">
-        <div class="img-up-text">📁 Add photos<br><strong>Click to browse</strong></div>
-        <div class="img-prog" id="prog-${sec.id}-gal"><div class="img-prog-bar"></div></div>
-      </div>
-    </div>
-    <div class="ep-section"><div class="ep-section-title">Colors</div>
-      <div class="color-row"><span class="color-label-sm">Background</span><input type="color" class="color-swatch" value="${d.bgColor||'#111111'}" oninput="sec_update('${sec.id}','bgColor',this.value)"></div>
-    </div>`;
-  }
-
-  else if (sec.type === 'cta') {
-    c.innerHTML += `<div class="ep-section"><div class="ep-section-title">Content</div>
-      <label class="fl">Badge</label><input class="fi" value="${d.badge||''}" onchange="sec_update('${sec.id}','badge',this.value)">
-      <label class="fl">Title Part 1</label><input class="fi" value="${d.title1||''}" onchange="sec_update('${sec.id}','title1',this.value)">
-      <label class="fl">Title Part 2 (italic)</label><input class="fi" value="${d.title2||''}" onchange="sec_update('${sec.id}','title2',this.value)">
-      <label class="fl">Subtitle</label><input class="fi" value="${d.subtitle||''}" onchange="sec_update('${sec.id}','subtitle',this.value)">
-      <label class="fl">Button Text</label><input class="fi" value="${d.btnText||''}" onchange="sec_update('${sec.id}','btnText',this.value)">
-      <label class="fl">Button Link</label><input class="fi" value="${d.btnLink||''}" onchange="sec_update('${sec.id}','btnLink',this.value)">
-    </div>
-    <div class="ep-section"><div class="ep-section-title">Colors</div>
-      <div class="color-row"><span class="color-label-sm">Background</span><input type="color" class="color-swatch" value="${d.bgColor||'#FF5E00'}" oninput="sec_update('${sec.id}','bgColor',this.value)"><input class="color-hex-fi" value="${d.bgColor||'#FF5E00'}" maxlength="7" oninput="sec_update('${sec.id}','bgColor',this.value)"></div>
-    </div>`;
-  }
-
-  else if (sec.type === 'cards') {
-    c.innerHTML += `<div class="ep-section"><div class="ep-section-title">Section Header</div>
-      <label class="fl">Badge</label><input class="fi" value="${d.badge||''}" onchange="sec_update('${sec.id}','badge',this.value)">
-      <label class="fl">Title</label><input class="fi" value="${d.title||''}" onchange="sec_update('${sec.id}','title',this.value)">
-    </div>
-    <div class="ep-section"><div class="ep-section-title">Cards (${(d.cards||[]).length})</div>
-      ${(d.cards||[]).map((card,i)=>`
-        <div style="background:#111;border-radius:8px;padding:10px;margin-bottom:8px;border:1px solid #2A2A2A">
-          <div class="fi-row">
-            <div><label class="fl">Icon</label><input class="fi" value="${card.icon||''}" maxlength="4" onchange="updateCard('${sec.id}',${i},'icon',this.value)"></div>
-            <div><label class="fl">Title</label><input class="fi" value="${card.title||''}" onchange="updateCard('${sec.id}',${i},'title',this.value)"></div>
-          </div>
-          <label class="fl">Text</label>
-          <textarea class="fi" style="min-height:50px" onchange="updateCard('${sec.id}',${i},'text',this.value)">${card.text||''}</textarea>
-          <button onclick="removeCard('${sec.id}',${i})" style="width:100%;padding:5px;background:rgba(231,76,60,0.15);color:#e74c3c;border:none;border-radius:5px;font-size:10px;cursor:pointer;margin-top:4px">Remove Card</button>
-        </div>`).join('')}
-      <button class="ep-btn ep-btn-sec" onclick="addCard('${sec.id}')">+ Add Card</button>
-    </div>`;
-  }
-
-  else if (sec.type === 'text') {
-    c.innerHTML += `<div class="ep-section"><div class="ep-section-title">Content</div>
-      <label class="fl">Text</label><textarea class="fi" onchange="sec_update('${sec.id}','text',this.value)">${d.text||''}</textarea>
-      <label class="fl">Alignment</label>
-      <select class="fi" onchange="sec_update('${sec.id}','align',this.value)">
-        <option value="left" ${d.align==='left'?'selected':''}>Left</option>
-        <option value="center" ${d.align==='center'?'selected':''}>Center</option>
-        <option value="right" ${d.align==='right'?'selected':''}>Right</option>
-      </select>
-      <label class="fl">Padding (px)</label>
-      <div class="slider-row"><input type="range" min="20" max="120" value="${d.padding||60}" oninput="sec_update('${sec.id}','padding',this.value);this.nextElementSibling.textContent=this.value+'px'"><span class="slider-val">${d.padding||60}px</span></div>
-    </div>
-    <div class="ep-section"><div class="ep-section-title">Colors</div>
-      <div class="color-row"><span class="color-label-sm">Background</span><input type="color" class="color-swatch" value="${d.bgColor||'#1A1A1A'}" oninput="sec_update('${sec.id}','bgColor',this.value)"></div>
-      <div class="color-row"><span class="color-label-sm">Text</span><input type="color" class="color-swatch" value="${d.textColor||'#ffffff'}" oninput="sec_update('${sec.id}','textColor',this.value)"></div>
-    </div>`;
-  }
-
-  else if (sec.type === 'staff') {
-    c.innerHTML += `<div class="ep-section"><div class="ep-section-title">Content</div>
-      <label class="fl">Title</label><input class="fi" value="${d.title||''}" onchange="sec_update('${sec.id}','title',this.value)">
-      <label class="fl">Login Prompt</label><input class="fi" value="${d.prompt||''}" onchange="sec_update('${sec.id}','prompt',this.value)">
-      <label class="fl">Dashboard Button</label><input class="fi" value="${d.dashText||''}" onchange="sec_update('${sec.id}','dashText',this.value)">
-      <label class="fl">Admin Button</label><input class="fi" value="${d.adminText||''}" onchange="sec_update('${sec.id}','adminText',this.value)">
-    </div>
-    <div class="ep-section"><div class="ep-section-title">Colors</div>
-      <div class="color-row"><span class="color-label-sm">Background</span><input type="color" class="color-swatch" value="${d.bgColor||'#111111'}" oninput="sec_update('${sec.id}','bgColor',this.value)"></div>
-    </div>`;
-  }
-
-  else if (sec.type === 'divider') {
-    c.innerHTML += `<div class="ep-section"><div class="ep-section-title">Divider Style</div>
-      <label class="fl">Style</label>
-      <select class="fi" onchange="sec_update('${sec.id}','style',this.value)">
-        <option value="line" ${d.style==='line'?'selected':''}>Simple Line</option>
-        <option value="deco" ${d.style==='deco'?'selected':''}>Decorative (🎭)</option>
-        <option value="space" ${d.style==='space'?'selected':''}>Spacer</option>
-      </select>
-      <div class="color-row" style="margin-top:10px"><span class="color-label-sm">Line Color</span><input type="color" class="color-swatch" value="${d.color||'#333333'}" oninput="sec_update('${sec.id}','color',this.value)"></div>
-      <div class="color-row"><span class="color-label-sm">Background</span><input type="color" class="color-swatch" value="${d.bgColor||'#1A1A1A'}" oninput="sec_update('${sec.id}','bgColor',this.value)"></div>
-    </div>`;
-  }
-
-  else if (sec.type === 'image') {
-    c.innerHTML += `<div class="ep-section"><div class="ep-section-title">Image</div>
-      ${d.url ? `<img class="img-cur" src="${d.url}" style="display:block;max-height:120px;object-fit:cover">` : ''}
-      <div class="img-up"><input type="file" accept="image/*" onchange="uploadSecImage('${sec.id}','url',this)">
-        <div class="img-up-text">📁 Upload image<br><strong>Click to browse</strong></div>
-        <div class="img-prog" id="prog-${sec.id}-url"><div class="img-prog-bar"></div></div>
-      </div>
-      <label class="fl">Alt Text</label><input class="fi" value="${d.alt||''}" onchange="sec_update('${sec.id}','alt',this.value)">
-      <label class="fl">Height (px)</label>
-      <div class="slider-row"><input type="range" min="100" max="800" value="${d.height||400}" oninput="sec_update('${sec.id}','height',this.value);this.nextElementSibling.textContent=this.value+'px'"><span class="slider-val">${d.height||400}px</span></div>
-      <label class="fl">Object Position</label><input class="fi" value="${d.objectPosition||'center center'}" onchange="sec_update('${sec.id}','objectPosition',this.value)">
-    </div>`;
-  }
+async function saveGallery() {
+  await db.collection('homepage').doc('gallery').set({
+    images: galleryImages,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+  setStatus(true);
 }
 
-// ── UPDATE HELPERS ──
-function sec_update(id, field, value) {
-  const s = sections.find(s=>s.id===id);
-  if (s) { s.data[field]=value; markUnsaved(); refreshCanvas(); }
-}
-function sec_updateName(id, value) {
-  const s = sections.find(s=>s.id===id);
-  if (s) { s.name=value; renderSectionList(); markUnsaved(); }
-}
-function updateCard(secId,idx,field,value){const s=sections.find(s=>s.id===secId);if(s&&s.data.cards){s.data.cards[idx][field]=value;markUnsaved();refreshCanvas();}}
-function addCard(secId){const s=sections.find(s=>s.id===secId);if(s){if(!s.data.cards)s.data.cards=[];s.data.cards.push({icon:'ℹ️',title:'New Card',text:'Content here'});markUnsaved();refreshCanvas();selectSection(secId);}}
-function removeCard(secId,idx){const s=sections.find(s=>s.id===secId);if(s){s.data.cards.splice(idx,1);markUnsaved();refreshCanvas();selectSection(secId);}}
-function removeGalleryImg(secId,idx){const s=sections.find(s=>s.id===secId);if(s){s.data.images.splice(idx,1);markUnsaved();refreshCanvas();selectSection(secId);}}
-
-// ── IMAGE UPLOAD ──
-async function uploadSecImage(secId, field, input) {
-  const file = input.files[0]; if(!file) return;
-  const progWrap = document.getElementById(`prog-${secId}-${field}`);
-  if (progWrap) progWrap.style.display='block';
-  const ref = storage.ref(`homepage/${secId}_${field}_${Date.now()}_${file.name}`);
-  const task = ref.put(file);
-  task.on('state_changed',
-    snap => { const bar=progWrap?.querySelector('.img-prog-bar'); if(bar) bar.style.width=(snap.bytesTransferred/snap.totalBytes*100)+'%'; },
-    err  => { toast('Upload failed: '+err.message); if(progWrap) progWrap.style.display='none'; },
-    async () => {
-      const url = await task.snapshot.ref.getDownloadURL();
-      sec_update(secId, field, url);
-      if(progWrap){progWrap.style.display='none';progWrap.querySelector('.img-prog-bar').style.width='0%';}
-      selectSection(secId);
-      toast('Image uploaded!');
-    }
-  );
-}
-
-async function uploadGalleryImg(secId, input) {
-  const files = Array.from(input.files); if(!files.length) return;
-  const s = sections.find(s=>s.id===secId); if(!s) return;
-  if(!s.data.images) s.data.images=[];
-  const progWrap = document.getElementById(`prog-${secId}-gal`);
-  if(progWrap) progWrap.style.display='block';
-  for(const file of files){
-    const ref=storage.ref(`homepage/gallery/${secId}_${Date.now()}_${file.name}`);
-    await new Promise((res,rej)=>{
-      const task=ref.put(file);
-      task.on('state_changed',null,rej,async()=>{
-        const url=await task.snapshot.ref.getDownloadURL();
-        s.data.images.push({url,id:Date.now()});
-        res();
-      });
+async function uploadGallery(input) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  const prog = document.getElementById('gal-prog');
+  const bar  = document.getElementById('gal-bar');
+  prog.style.display = 'block';
+  toast(`Uploading ${files.length} photo(s)...`, 'info');
+  let done = 0;
+  for (const file of files) {
+    const ref  = storage.ref(`homepage/gallery/${Date.now()}_${file.name}`);
+    const task = ref.put(file);
+    await new Promise((res, rej) => {
+      task.on('state_changed',
+        snap => { bar.style.width = ((done + snap.bytesTransferred/snap.totalBytes)/files.length*100)+'%'; },
+        rej,
+        async () => {
+          const url = await task.snapshot.ref.getDownloadURL();
+          galleryImages.push({ url, id: Date.now()+'_'+Math.random() });
+          done++;
+          res();
+        }
+      );
     });
   }
-  if(progWrap) progWrap.style.display='none';
-  markUnsaved(); refreshCanvas(); selectSection(secId);
-  toast(files.length+' photo(s) added!');
+  await saveGallery();
+  renderGallery();
+  prog.style.display = 'none';
+  toast(`${files.length} photo(s) added!`, 'success');
 }
 
-// ── CANVAS REFRESH ──
-function refreshCanvas() {
-  const frame = document.getElementById('canvas-frame');
-  // Post message to iframe to update content
+// ── INFO CARDS ──
+function renderInfoCards() {
+  const list = document.getElementById('info-cards-list');
+  list.innerHTML = infoCards.map((c, i) => `
+    <div class="card-item">
+      <div class="card-item-head">
+        <span class="card-item-label">${c.icon||'📍'} Card ${i+1}</span>
+        <button class="card-item-del" onclick="deleteInfoCard(${i})">✕ Delete</button>
+      </div>
+      <div class="fi-row">
+        <div>
+          <label class="fl" style="margin-top:0">Icon</label>
+          <input class="fi" value="${c.icon||''}" maxlength="4" onchange="infoCards[${i}].icon=this.value">
+        </div>
+        <div>
+          <label class="fl" style="margin-top:0">Title</label>
+          <input class="fi" value="${c.title||''}" onchange="infoCards[${i}].title=this.value">
+        </div>
+      </div>
+      <label class="fl">Content</label>
+      <textarea class="fi" style="min-height:60px" onchange="infoCards[${i}].text=this.value">${c.text||''}</textarea>
+    </div>`).join('');
+}
+
+function addInfoCard() {
+  infoCards.push({ icon:'ℹ️', title:'New Card', text:'Content here' });
+  renderInfoCards();
+  setStatus(false);
+}
+
+function deleteInfoCard(idx) {
+  if (!confirm('Delete this card?')) return;
+  infoCards.splice(idx, 1);
+  renderInfoCards();
+  setStatus(false);
+}
+
+async function saveInfoCards() {
+  // Read current values from inputs
+  const items = document.querySelectorAll('#info-cards-list .card-item');
+  const cards = Array.from(items).map(item => ({
+    icon:  item.querySelectorAll('.fi')[0].value,
+    title: item.querySelectorAll('.fi')[1].value,
+    text:  item.querySelector('textarea').value,
+  }));
+  infoCards = cards;
+  await saveDoc('info-cards', {
+    badge:  v('info-badge'),
+    title:  v('info-title'),
+    cards,
+  }, 'save-info');
+}
+
+// ── SECTIONS MANAGER ──
+const DEFAULT_SECTIONS = [
+  { id:'s-hero',    type:'hero',     name:'Hero Banner',      icon:'🎬', visible:true },
+  { id:'s-about',   type:'about',    name:'About Section',    icon:'📖', visible:true },
+  { id:'s-cta',     type:'menu-cta', name:'Menu CTA',         icon:'🍽️', visible:true },
+  { id:'s-gallery', type:'gallery',  name:'Photo Gallery',    icon:'📸', visible:true },
+  { id:'s-info',    type:'cards',    name:'Info Cards',       icon:'📍', visible:true },
+  { id:'s-staff',   type:'staff',    name:'Staff Portal',     icon:'👤', visible:true },
+];
+
+function renderSections() {
+  const list = document.getElementById('sec-list');
+  list.innerHTML = pageSections.map((sec, i) => `
+    <div class="sec-row ${sec.visible?'':'opacity-50'}" id="secrow-${i}"
+      draggable="true"
+      ondragstart="secDragStart(${i})"
+      ondragover="event.preventDefault();document.getElementById('secrow-${i}').classList.add('drag-over')"
+      ondragleave="document.getElementById('secrow-${i}').classList.remove('drag-over')"
+      ondrop="secDrop(event,${i})">
+      <div class="sec-row-head">
+        <span class="sec-drag">⠿</span>
+        <span class="sec-row-icon">${sec.icon||'📦'}</span>
+        <span class="sec-row-name">${sec.name}</span>
+        <span class="sec-row-type">${sec.type}</span>
+        <div class="sec-row-btns" onclick="event.stopPropagation()">
+          <button class="srb srb-vis ${sec.visible?'':'hidden-s'}" onclick="toggleSecVis(${i})" title="${sec.visible?'Hide':'Show'}">${sec.visible?'👁':'🚫'}</button>
+          <button class="srb srb-del" onclick="deleteSec(${i})" title="Delete">🗑</button>
+        </div>
+      </div>
+      ${sec.type==='text'||sec.type==='image'||sec.type==='divider'||sec.type==='custom-cta'||sec.type==='two-col'||sec.type==='quote' ? `
+      <div class="sec-row-body" id="secbody-${i}">
+        ${renderSecBody(sec, i)}
+        <button class="save-btn" style="margin-top:10px" onclick="saveCustomSec(${i})">💾 Save This Section</button>
+      </div>` : ''}
+    </div>`).join('');
+}
+
+function renderSecBody(sec, i) {
+  const d = sec.data || {};
+  if (sec.type === 'text') return `
+    <label class="fl" style="margin-top:0">Text Content</label>
+    <textarea class="fi" onchange="pageSections[${i}].data.text=this.value">${d.text||''}</textarea>
+    <div class="fi-row" style="margin-top:8px">
+      <div><label class="fl">Alignment</label>
+        <select class="fi" onchange="pageSections[${i}].data.align=this.value">
+          <option value="left" ${d.align==='left'?'selected':''}>Left</option>
+          <option value="center" ${d.align==='center'?'selected':''}>Center</option>
+          <option value="right" ${d.align==='right'?'selected':''}>Right</option>
+        </select>
+      </div>
+      <div><label class="fl">Background</label>
+        <input type="color" class="color-swatch" value="${d.bgColor||'#1A1A1A'}" oninput="pageSections[${i}].data.bgColor=this.value" style="width:100%;height:38px">
+      </div>
+    </div>`;
+  if (sec.type === 'image') return `
+    <div class="img-zone"><input type="file" accept="image/*" onchange="uploadCustomSecImg(${i},this)">
+      <div class="img-zone-text">📁 Upload image · <strong>Click to browse</strong></div>
+    </div>
+    ${d.url ? `<img src="${d.url}" style="width:100%;max-height:100px;object-fit:cover;border-radius:7px;margin-top:8px">` : ''}
+    <label class="fl">Height (px)</label>
+    <input class="fi" type="number" value="${d.height||400}" onchange="pageSections[${i}].data.height=this.value">`;
+  if (sec.type === 'divider') return `
+    <label class="fl" style="margin-top:0">Style</label>
+    <select class="fi" onchange="pageSections[${i}].data.style=this.value">
+      <option value="line" ${d.style==='line'?'selected':''}>Simple Line</option>
+      <option value="deco" ${d.style==='deco'?'selected':''}>🎭 Decorative</option>
+      <option value="space" ${d.style==='space'?'selected':''}>Spacer</option>
+    </select>`;
+  if (sec.type === 'custom-cta') return `
+    <label class="fl" style="margin-top:0">Title</label><input class="fi" value="${d.title||''}" onchange="pageSections[${i}].data.title=this.value">
+    <label class="fl">Subtitle</label><input class="fi" value="${d.subtitle||''}" onchange="pageSections[${i}].data.subtitle=this.value">
+    <label class="fl">Button Text</label><input class="fi" value="${d.btnText||''}" onchange="pageSections[${i}].data.btnText=this.value">
+    <label class="fl">Button Link</label><input class="fi" value="${d.btnLink||''}" onchange="pageSections[${i}].data.btnLink=this.value">`;
+  if (sec.type === 'two-col') return `
+    <label class="fl" style="margin-top:0">Left Column Text</label><textarea class="fi" onchange="pageSections[${i}].data.left=this.value">${d.left||''}</textarea>
+    <label class="fl">Right Column Text</label><textarea class="fi" onchange="pageSections[${i}].data.right=this.value">${d.right||''}</textarea>`;
+  if (sec.type === 'quote') return `
+    <label class="fl" style="margin-top:0">Quote Text</label><textarea class="fi" onchange="pageSections[${i}].data.text=this.value">${d.text||''}</textarea>
+    <label class="fl">Author</label><input class="fi" value="${d.author||''}" onchange="pageSections[${i}].data.author=this.value">`;
+  return '';
+}
+
+function secDragStart(i) { dragSecIdx = i; }
+function secDrop(e, toIdx) {
+  e.preventDefault();
+  document.querySelectorAll('.sec-row').forEach(r => r.classList.remove('drag-over'));
+  if (dragSecIdx === null || dragSecIdx === toIdx) return;
+  const item = pageSections.splice(dragSecIdx, 1)[0];
+  pageSections.splice(toIdx, 0, item);
+  dragSecIdx = null;
+  renderSections();
+  setStatus(false);
+  toast('Section reordered — click Save to apply', 'info');
+}
+
+function toggleSecVis(i) { pageSections[i].visible = !pageSections[i].visible; renderSections(); setStatus(false); }
+function deleteSec(i) { if(!confirm('Delete this section?')) return; pageSections.splice(i,1); renderSections(); setStatus(false); }
+
+function addCustomSection(type) {
+  const icons = {text:'📝',image:'🖼️',divider:'➖','custom-cta':'🎯','two-col':'⬛','quote':'💬'};
+  const names = {text:'Text Block',image:'Full Image',divider:'Divider','custom-cta':'Custom CTA','two-col':'Two Columns','quote':'Quote'};
+  pageSections.push({ id:'s-'+Date.now(), type, name:names[type]||type, icon:icons[type]||'📦', visible:true, data:{} });
+  renderSections();
+  setStatus(false);
+  toast(names[type]+' added!', 'success');
+}
+
+async function uploadCustomSecImg(idx, input) {
+  const file = input.files[0]; if(!file) return;
+  const ref  = storage.ref(`homepage/custom/${Date.now()}_${file.name}`);
+  await ref.put(file);
+  const url  = await ref.getDownloadURL();
+  pageSections[idx].data.url = url;
+  renderSections();
+  setStatus(false);
+}
+
+async function saveCustomSec(i) { await saveSections(); }
+
+async function saveSections() {
+  const btn = document.getElementById('save-sections');
+  if(btn){ btn.dataset.label='Save Section Order & Visibility'; setSaveBtnState('save-sections','saving'); }
   try {
-    frame.contentWindow.postMessage({ type:'UPDATE_SECTIONS', sections, globalData }, '*');
-  } catch(e) {}
-}
-
-// ── PREVIEW ──
-function openPreview() {
-  window.open('index.html?preview=1', '_blank');
-}
-
-// ── SAVE GLOBAL ──
-async function saveGlobal(type) {
-  let data = {};
-  if (type === 'colors') {
-    data = { orange:document.getElementById('gh-orange').value, cream:document.getElementById('gh-cream').value, dark:document.getElementById('gh-dark').value };
-  } else if (type === 'fonts') {
-    data = { display:document.getElementById('gf-display').value, body:document.getElementById('gf-body').value };
-  } else if (type === 'nav') {
-    data = { logoText:document.getElementById('nav-logo').value, menuText:document.getElementById('nav-menu-text').value, loginText:document.getElementById('nav-login-text').value, bgColor:document.getElementById('nav-bg-hex').value };
-  } else if (type === 'footer') {
-    data = { logoText:document.getElementById('footer-logo').value, tagline:document.getElementById('footer-tagline').value, copy:document.getElementById('footer-copy').value };
-  }
-  globalData[type] = data;
-  await db.collection('homepage').doc('global-'+type).set({ ...data, updatedAt:firebase.firestore.FieldValue.serverTimestamp() });
-  markUnsaved();
-  toast(type.charAt(0).toUpperCase()+type.slice(1)+' settings saved!');
-}
-
-// ── PUBLISH ──
-async function publishAll() {
-  try {
-    // Save all sections
-    await db.collection('homepage').doc('sections').set({
-      items: sections,
+    await db.collection('homepage').doc('page-sections').set({
+      sections: pageSections,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-    // Save publish record
-    await db.collection('homepage').doc('_published').set({
-      publishedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      publishedBy: auth.currentUser?.email,
-      sectionCount: sections.length
-    });
-    markSaved();
-    toast('🚀 Published! Homepage is now live.', 3500);
+    setSaveBtnState('save-sections','saved');
+    setStatus(true);
+    toast('Sections saved!', 'success');
   } catch(e) {
-    toast('Publish failed: '+e.message);
-    console.error(e);
+    toast('Save failed: '+e.message, 'error');
+    setSaveBtnState('save-sections','error');
   }
 }
 
-// ── LOAD DATA ──
-async function loadData() {
-  // Load sections
-  const secDoc = await db.collection('homepage').doc('sections').get();
-  if (secDoc.exists && secDoc.data().items) {
-    sections = secDoc.data().items;
-  } else {
-    // Load defaults from current homepage structure
-    sections = [
-      { id:uid(), type:'hero', name:'Hero', icon:'🎬', visible:true, data:JSON.parse(JSON.stringify(DEFAULTS.hero.data)) },
-      { id:uid(), type:'about', name:'About', icon:'📖', visible:true, data:JSON.parse(JSON.stringify(DEFAULTS.about.data)) },
-      { id:uid(), type:'cta', name:'Menu Shortcut', icon:'🍽️', visible:true, data:JSON.parse(JSON.stringify(DEFAULTS.cta.data)) },
-      { id:uid(), type:'gallery', name:'Gallery', icon:'📸', visible:true, data:JSON.parse(JSON.stringify(DEFAULTS.gallery.data)) },
-      { id:uid(), type:'cards', name:'Info Cards', icon:'📋', visible:true, data:JSON.parse(JSON.stringify(DEFAULTS.cards.data)) },
-      { id:uid(), type:'staff', name:'Staff Portal', icon:'👤', visible:true, data:JSON.parse(JSON.stringify(DEFAULTS.staff.data)) },
+// ── FONTS ──
+async function saveFonts() {
+  await saveDoc('design-fonts', {
+    display: v('font-display'),
+    body:    v('font-body'),
+  }, 'save-fonts');
+  updateFontPreview();
+}
+function updateFontPreview() {
+  const d = v('font-display');
+  const b = v('font-body');
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${d.replace(/ /g,'+')}:ital,wght@0,400;1,400&family=${b.replace(/ /g,'+')}&display=swap`;
+  document.head.appendChild(link);
+  const prev = document.getElementById('font-preview');
+  if(prev) prev.style.fontFamily = d;
+}
+document.getElementById('font-display')?.addEventListener('change', updateFontPreview);
+
+// ── CHECK RULES ──
+async function checkRules() {
+  try {
+    await db.collection('homepage').doc('_test').set({ test: true });
+    await db.collection('homepage').doc('_test').delete();
+  } catch(e) {
+    if (e.code === 'permission-denied') {
+      document.getElementById('status-text').textContent = '⚠️ Permission denied — update Firestore rules first!';
+      document.getElementById('status-dot').style.background = '#e74c3c';
+      alert('⚠️ Firestore Permission Error!\n\nYou need to update your Firestore rules.\n\nGo to:\nFirebase Console → Firestore → Rules\n\nAnd add this rule:\n\nmatch /homepage/{docId} {\n  allow read: if true;\n  allow write: if request.auth != null && request.auth.token.email == "administrator@cafemoliere.com";\n}');
+    }
+  }
+}
+  setStatus(false);
+  document.getElementById('status-text').textContent = 'Loading data...';
+  try {
+    const docs = ['hero','about','gallery','gallery-text','menu-cta','info-cards','staff','design-colors','design-fonts','navbar','footer','page-sections'];
+    const results = {};
+    for (const d of docs) {
+      const doc = await db.collection('homepage').doc(d).get();
+      if (doc.exists) results[d] = doc.data();
+    }
+
+    // HERO
+    const h = results['hero'] || {};
+    if(h.heroBg)   { const i=document.getElementById('hero-bg-cur');   i.src=h.heroBg;   i.style.display='block'; }
+    if(h.heroLogo) { const i=document.getElementById('hero-logo-cur'); i.src=h.heroLogo; i.style.display='block'; }
+    if(h.tagline)  document.getElementById('hero-tagline').value = h.tagline;
+    if(h.ctaText)  document.getElementById('hero-cta-text').value = h.ctaText;
+    if(h.ctaLink)  document.getElementById('hero-cta-link').value = h.ctaLink;
+    if(h.overlay)  document.getElementById('hero-overlay').value  = h.overlay;
+
+    // ABOUT
+    const a = results['about'] || {};
+    if(a.badge)   document.getElementById('about-badge').value = a.badge;
+    if(a.title1)  document.getElementById('about-t1').value    = a.title1;
+    if(a.title2)  document.getElementById('about-t2').value    = a.title2;
+    if(a.deco)    document.getElementById('about-deco').value  = a.deco;
+    if(a.body)    document.getElementById('about-body').value  = a.body;
+    if(a.bgColor) { document.getElementById('about-bg-c').value=a.bgColor; document.getElementById('about-bg-h').value=a.bgColor; }
+
+    // GALLERY
+    const g = results['gallery'] || {};
+    if(g.images) { galleryImages = g.images; renderGallery(); }
+    const gt = results['gallery-text'] || {};
+    if(gt.badge)   document.getElementById('gal-badge').value   = gt.badge;
+    if(gt.title)   document.getElementById('gal-title').value   = gt.title;
+    if(gt.caption) document.getElementById('gal-caption').value = gt.caption;
+
+    // MENU CTA
+    const m = results['menu-cta'] || {};
+    if(m.badge)    document.getElementById('cta-badge').value = m.badge;
+    if(m.title1)   document.getElementById('cta-t1').value    = m.title1;
+    if(m.title2)   document.getElementById('cta-t2').value    = m.title2;
+    if(m.subtitle) document.getElementById('cta-sub').value   = m.subtitle;
+    if(m.btnText)  document.getElementById('cta-btn').value   = m.btnText;
+    if(m.btnLink)  document.getElementById('cta-link').value  = m.btnLink;
+    if(m.bgColor)  { document.getElementById('cta-bg-c').value=m.bgColor; document.getElementById('cta-bg-h').value=m.bgColor; }
+
+    // INFO CARDS
+    const ic = results['info-cards'] || {};
+    if(ic.badge)  document.getElementById('info-badge').value = ic.badge;
+    if(ic.title)  document.getElementById('info-title').value = ic.title;
+    infoCards = ic.cards || [
+      {icon:'📍',title:'Adresse',text:'Lycée Montaigne\nBeit Chabab'},
+      {icon:'🕐',title:'Horaires',text:'Lundi – Vendredi\nHeures scolaires'},
+      {icon:'📱',title:'Commander',text:'Via notre menu en ligne'},
+      {icon:'📞',title:'Contact',text:'+961 71 503 555'},
     ];
-  }
+    renderInfoCards();
 
-  // Load global settings
-  const types = ['colors','fonts','nav','footer'];
-  for(const t of types){
-    const doc=await db.collection('homepage').doc('global-'+t).get();
-    if(doc.exists) globalData[t]=doc.data();
-  }
+    // STAFF
+    const s = results['staff'] || {};
+    if(s.title)     document.getElementById('staff-title').value  = s.title;
+    if(s.prompt)    document.getElementById('staff-prompt').value  = s.prompt;
+    if(s.dashText)  document.getElementById('staff-dash').value    = s.dashText;
+    if(s.adminText) document.getElementById('staff-admin').value   = s.adminText;
+    if(s.bgColor)   { document.getElementById('staff-bg-c').value=s.bgColor; document.getElementById('staff-bg-h').value=s.bgColor; }
 
-  // Populate global panels
-  if(globalData.colors){
-    ['orange','cream','dark'].forEach(k=>{
-      if(globalData.colors[k]){document.getElementById('gc-'+k).value=globalData.colors[k];document.getElementById('gh-'+k).value=globalData.colors[k];}
-    });
-  }
-  if(globalData.fonts){
-    if(globalData.fonts.display) document.getElementById('gf-display').value=globalData.fonts.display;
-    if(globalData.fonts.body) document.getElementById('gf-body').value=globalData.fonts.body;
-  }
-  if(globalData.nav){
-    if(globalData.nav.logoText) document.getElementById('nav-logo').value=globalData.nav.logoText;
-    if(globalData.nav.menuText) document.getElementById('nav-menu-text').value=globalData.nav.menuText;
-    if(globalData.nav.loginText) document.getElementById('nav-login-text').value=globalData.nav.loginText;
-    if(globalData.nav.bgColor){document.getElementById('nav-bg-color').value=globalData.nav.bgColor;document.getElementById('nav-bg-hex').value=globalData.nav.bgColor;}
-  }
-  if(globalData.footer){
-    if(globalData.footer.logoText) document.getElementById('footer-logo').value=globalData.footer.logoText;
-    if(globalData.footer.tagline) document.getElementById('footer-tagline').value=globalData.footer.tagline;
-    if(globalData.footer.copy) document.getElementById('footer-copy').value=globalData.footer.copy;
-  }
+    // DESIGN COLORS
+    const dc = results['design-colors'] || {};
+    if(dc.orange) { document.getElementById('dc-orange').value=dc.orange; document.getElementById('dh-orange').value=dc.orange; }
+    if(dc.cream)  { document.getElementById('dc-cream').value=dc.cream;   document.getElementById('dh-cream').value=dc.cream; }
+    if(dc.dark)   { document.getElementById('dc-dark').value=dc.dark;     document.getElementById('dh-dark').value=dc.dark; }
 
-  renderSectionList();
-  toast('Content loaded!');
+    // FONTS
+    const df = results['design-fonts'] || {};
+    if(df.display) document.getElementById('font-display').value = df.display;
+    if(df.body)    document.getElementById('font-body').value    = df.body;
+    updateFontPreview();
+
+    // NAVBAR
+    const nav = results['navbar'] || {};
+    if(nav.logoText)  document.getElementById('nav-logo').value  = nav.logoText;
+    if(nav.menuText)  document.getElementById('nav-menu').value  = nav.menuText;
+    if(nav.loginText) document.getElementById('nav-login').value = nav.loginText;
+    if(nav.bgColor)   { document.getElementById('nav-bg-c').value=nav.bgColor; document.getElementById('nav-bg-h').value=nav.bgColor; }
+
+    // FOOTER
+    const ft = results['footer'] || {};
+    if(ft.logoText)  document.getElementById('footer-logo').value = ft.logoText;
+    if(ft.tagline)   document.getElementById('footer-tag').value  = ft.tagline;
+    if(ft.copyright) document.getElementById('footer-copy').value = ft.copyright;
+
+    // PAGE SECTIONS
+    const ps = results['page-sections'] || {};
+    pageSections = ps.sections || JSON.parse(JSON.stringify(DEFAULT_SECTIONS));
+    renderSections();
+
+    setStatus(true);
+    toast('All data loaded!', 'success');
+  } catch(e) {
+    document.getElementById('status-text').textContent = 'Load error: '+e.message;
+    toast('Load error: '+e.message, 'error');
+    console.error(e);
+  }
 }
 
 // ── AUTH ──
@@ -845,20 +1008,13 @@ auth.getRedirectResult().catch(e=>console.error('Redirect:',e));
 auth.onAuthStateChanged(user=>{
   if(user&&user.email===ADMIN){
     document.getElementById('login-screen').classList.add('hidden');
-    document.getElementById('app').style.display='flex';
-    loadData();
+    document.getElementById('app').style.display='block';
+    document.getElementById('user-tag').textContent = user.email;
+    checkRules();
+    loadAll();
   } else if(user&&user.email!==ADMIN){
     auth.signOut();
     const err=document.getElementById('login-error');
     err.textContent='Access restricted to administrator@cafemoliere.com only.';
     err.style.display='block';
-    document.getElementById('login-btn').innerHTML=`<svg width="20" height="20" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg> Sign in with Microsoft`;
-    document.getElementById('login-btn').disabled=false;
-  } else {
-    document.getElementById('login-screen').classList.remove('hidden');
-    document.getElementById('app').style.display='none';
-  }
-});
-</script>
-</body>
-</html>
+    document.getElementById('login-btn').innerHTML=`<svg width="20" height="20" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg> Sign in with Mic
