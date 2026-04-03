@@ -755,6 +755,7 @@ const firebaseConfig = {
   apiKey:     "AIzaSyANahV1JOHQqEweg6e8i_LvltXNCTW-kIw",
   authDomain: "cafe-moliere.firebaseapp.com",
   projectId:  "cafe-moliere",
+
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
@@ -946,8 +947,7 @@ function renderSection(sec) {
         <div class="section-badge">${d.badge||''}</div>
         <h2 class="about-title">${d.title1||''}<br><em>${d.title2||''}</em></h2>
         <div class="about-deco"><div class="about-deco-line"></div><div class="about-deco-icon">${d.decoIcon||'🎭'}</div><div class="about-deco-line"></div></div>
-        <p class="about-text">${(d.text||'').replace(/
-/g,'<br>')}</p>
+        <p class="about-text">${(d.text||'').replace(/\n/g,'<br>')}</p>
       </section>`;
 
     case 'cta': return `
@@ -988,16 +988,14 @@ function renderSection(sec) {
             <div class="info-card">
               <div class="info-icon">${card.icon||''}</div>
               <div class="info-card-title">${card.title||''}</div>
-              <div class="info-card-text">${(card.text||'').replace(/
-/g,'<br>')}</div>
+              <div class="info-card-text">${(card.text||'').replace(/\n/g,'<br>')}</div>
             </div>`).join('')}
         </div>
       </section>`;
 
     case 'text': return `
       <section class="reveal" style="background:${d.bgColor||'#1A1A1A'};padding:${d.padding||60}px 24px;text-align:${d.align||'center'}">
-        <div style="max-width:700px;margin:0 auto;color:${d.textColor||'#fff'};font-family:'Cormorant Garamond',serif;font-size:1.1rem;line-height:1.9">${(d.text||'').replace(/
-/g,'<br>')}</div>
+        <div style="max-width:700px;margin:0 auto;color:${d.textColor||'#fff'};font-family:'Cormorant Garamond',serif;font-size:1.1rem;line-height:1.9">${(d.text||'').replace(/\n/g,'<br>')}</div>
       </section>`;
 
     case 'staff': return `
