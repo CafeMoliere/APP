@@ -472,7 +472,7 @@ function v(id) { return document.getElementById(id)?.value || ''; }
 
 function toast(msg, type='info') {
   document.querySelector('.toast')?.remove();
-  const el = document.createElement('div');
+  let el = document.createElement('div');
   el.className = `toast ${type}`;
   el.textContent = msg;
   document.body.appendChild(el);
@@ -480,14 +480,14 @@ function toast(msg, type='info') {
 }
 
 function setStatus(saved) {
-  const dot  = document.getElementById('status-dot');
-  const text = document.getElementById('status-text');
+  let dot  = document.getElementById('status-dot');
+  let text = document.getElementById('status-text');
   dot.className  = 'status-dot ' + (saved ? 'saved' : 'unsaved');
   text.textContent = saved ? 'All changes saved' : 'Unsaved changes';
 }
 
 function setSaveBtnState(id, state) {
-  const btn = document.getElementById(id);
+  let btn = document.getElementById(id);
   if (!btn) return;
   if (state === 'saving') {
     btn.classList.add('saving');
@@ -518,14 +518,14 @@ function switchTab(name, btn) {
 
 // ── SAVE DOC ──
 async function saveDoc(docId, data, btnId) {
-  const btn = document.getElementById(btnId);
+  let btn = document.getElementById(btnId);
   if (btn) {
     btn.dataset.label = btn.textContent.replace('💾 ','').replace('✅ ','').replace('⏳ ','');
     setSaveBtnState(btnId,'saving');
   }
   try {
     // Check auth first
-    const user = auth.currentUser;
+    let user = auth.currentUser;
     if (!user) throw new Error('Not logged in. Please refresh and sign in again.');
     if (user.email !== ADMIN) throw new Error('Only administrator@cafemoliere.com can save.');
 
@@ -550,29 +550,29 @@ async function saveDoc(docId, data, btnId) {
 
 // ── IMAGE UPLOAD ──
 async function uploadImg(docId, field, input, curImgId, progId) {
-  const file = input.files[0];
+  let file = input.files[0];
   if (!file) return;
-  const prog = document.getElementById(progId);
-  const bar  = document.getElementById(progId.replace('prog','bar'));
+  let prog = document.getElementById(progId);
+  let bar  = document.getElementById(progId.replace('prog','bar'));
   if (prog) prog.style.display = 'block';
   toast('Uploading image...', 'info');
 
   try {
-    const ref  = storage.ref(`homepage/${docId}_${field}_${Date.now()}_${file.name}`);
-    const task = ref.put(file);
+    let ref  = storage.ref(`homepage/${docId}_${field}_${Date.now()}_${file.name}`);
+    let task = ref.put(file);
     await new Promise((res, rej) => {
       task.on('state_changed',
         snap => { if(bar) bar.style.width = (snap.bytesTransferred/snap.totalBytes*100)+'%'; },
         rej,
         async () => {
-          const url = await task.snapshot.ref.getDownloadURL();
+          let url = await task.snapshot.ref.getDownloadURL();
           // Save URL to Firestore
           await db.collection('homepage').doc(docId).set(
             { [field]: url, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
             { merge: true }
           );
           // Show preview
-          const cur = document.getElementById(curImgId);
+          let cur = document.getElementById(curImgId);
           if (cur) { cur.src = url; cur.style.display = 'block'; }
           if (prog) prog.style.display = 'none';
           setStatus(true);
@@ -589,7 +589,7 @@ async function uploadImg(docId, field, input, curImgId, progId) {
 
 // ── GALLERY ──
 function renderGallery() {
-  const grid = document.getElementById('gallery-grid');
+  let grid = document.getElementById('gallery-grid');
   grid.innerHTML = galleryImages.map((img, i) => `
     <div style="position:relative;border-radius:8px;overflow:hidden;aspect-ratio:1;border:1px solid #2A2A2A"
       draggable="true"
@@ -605,7 +605,7 @@ function galDragStart(i) { galDragIdx = i; }
 let galDragIdx = null;
 async function galDrop(toIdx) {
   if (galDragIdx === null || galDragIdx === toIdx) return;
-  const item = galleryImages.splice(galDragIdx, 1)[0];
+  let item = galleryImages.splice(galDragIdx, 1)[0];
   galleryImages.splice(toIdx, 0, item);
   galDragIdx = null;
   renderGallery();
@@ -630,22 +630,22 @@ async function saveGallery() {
 }
 
 async function uploadGallery(input) {
-  const files = Array.from(input.files);
+  let files = Array.from(input.files);
   if (!files.length) return;
-  const prog = document.getElementById('gal-prog');
-  const bar  = document.getElementById('gal-bar');
+  let prog = document.getElementById('gal-prog');
+  let bar  = document.getElementById('gal-bar');
   prog.style.display = 'block';
   toast(`Uploading ${files.length} photo(s)...`, 'info');
   let done = 0;
   for (const file of files) {
-    const ref  = storage.ref(`homepage/gallery/${Date.now()}_${file.name}`);
-    const task = ref.put(file);
+    let ref  = storage.ref(`homepage/gallery/${Date.now()}_${file.name}`);
+    let task = ref.put(file);
     await new Promise((res, rej) => {
       task.on('state_changed',
         snap => { bar.style.width = ((done + snap.bytesTransferred/snap.totalBytes)/files.length*100)+'%'; },
         rej,
         async () => {
-          const url = await task.snapshot.ref.getDownloadURL();
+          let url = await task.snapshot.ref.getDownloadURL();
           galleryImages.push({ url, id: Date.now()+'_'+Math.random() });
           done++;
           res();
@@ -661,7 +661,7 @@ async function uploadGallery(input) {
 
 // ── INFO CARDS ──
 function renderInfoCards() {
-  const list = document.getElementById('info-cards-list');
+  let list = document.getElementById('info-cards-list');
   list.innerHTML = infoCards.map((c, i) => `
     <div class="card-item">
       <div class="card-item-head">
@@ -698,8 +698,8 @@ function deleteInfoCard(idx) {
 
 async function saveInfoCards() {
   // Read current values from inputs
-  const items = document.querySelectorAll('#info-cards-list .card-item');
-  const cards = Array.from(items).map(item => ({
+  let items = document.querySelectorAll('#info-cards-list .card-item');
+  let cards = Array.from(items).map(item => ({
     icon:  item.querySelectorAll('.fi')[0].value,
     title: item.querySelectorAll('.fi')[1].value,
     text:  item.querySelector('textarea').value,
@@ -723,7 +723,7 @@ const DEFAULT_SECTIONS = [
 ];
 
 function renderSections() {
-  const list = document.getElementById('sec-list');
+  let list = document.getElementById('sec-list');
   list.innerHTML = pageSections.map((sec, i) => `
     <div class="sec-row ${sec.visible?'':'opacity-50'}" id="secrow-${i}"
       draggable="true"
@@ -750,7 +750,7 @@ function renderSections() {
 }
 
 function renderSecBody(sec, i) {
-  const d = sec.data || {};
+  let d = sec.data || {};
   if (sec.type === 'text') return `
     <label class="fl" style="margin-top:0">Text Content</label>
     <textarea class="fi" onchange="pageSections[${i}].data.text=this.value">${d.text||''}</textarea>
@@ -799,7 +799,7 @@ function secDrop(e, toIdx) {
   e.preventDefault();
   document.querySelectorAll('.sec-row').forEach(r => r.classList.remove('drag-over'));
   if (dragSecIdx === null || dragSecIdx === toIdx) return;
-  const item = pageSections.splice(dragSecIdx, 1)[0];
+  let item = pageSections.splice(dragSecIdx, 1)[0];
   pageSections.splice(toIdx, 0, item);
   dragSecIdx = null;
   renderSections();
@@ -811,8 +811,8 @@ function toggleSecVis(i) { pageSections[i].visible = !pageSections[i].visible; r
 function deleteSec(i) { if(!confirm('Delete this section?')) return; pageSections.splice(i,1); renderSections(); setStatus(false); }
 
 function addCustomSection(type) {
-  const icons = {text:'📝',image:'🖼️',divider:'➖','custom-cta':'🎯','two-col':'⬛','quote':'💬'};
-  const names = {text:'Text Block',image:'Full Image',divider:'Divider','custom-cta':'Custom CTA','two-col':'Two Columns','quote':'Quote'};
+  let icons = {text:'📝',image:'🖼️',divider:'➖','custom-cta':'🎯','two-col':'⬛','quote':'💬'};
+  let names = {text:'Text Block',image:'Full Image',divider:'Divider','custom-cta':'Custom CTA','two-col':'Two Columns','quote':'Quote'};
   pageSections.push({ id:'s-'+Date.now(), type, name:names[type]||type, icon:icons[type]||'📦', visible:true, data:{} });
   renderSections();
   setStatus(false);
@@ -820,10 +820,10 @@ function addCustomSection(type) {
 }
 
 async function uploadCustomSecImg(idx, input) {
-  const file = input.files[0]; if(!file) return;
-  const ref  = storage.ref(`homepage/custom/${Date.now()}_${file.name}`);
+  let file = input.files[0]; if(!file) return;
+  let ref  = storage.ref(`homepage/custom/${Date.now()}_${file.name}`);
   await ref.put(file);
-  const url  = await ref.getDownloadURL();
+  let url  = await ref.getDownloadURL();
   pageSections[idx].data.url = url;
   renderSections();
   setStatus(false);
@@ -832,7 +832,7 @@ async function uploadCustomSecImg(idx, input) {
 async function saveCustomSec(i) { await saveSections(); }
 
 async function saveSections() {
-  const btn = document.getElementById('save-sections');
+  let btn = document.getElementById('save-sections');
   if(btn){ btn.dataset.label='Save Section Order & Visibility'; setSaveBtnState('save-sections','saving'); }
   try {
     await db.collection('homepage').doc('page-sections').set({
@@ -857,13 +857,13 @@ async function saveFonts() {
   updateFontPreview();
 }
 function updateFontPreview() {
-  const d = v('font-display');
-  const b = v('font-body');
-  const link = document.createElement('link');
+  let d = v('font-display');
+  let b = v('font-body');
+  let link = document.createElement('link');
   link.rel = 'stylesheet';
   link.href = `https://fonts.googleapis.com/css2?family=${d.replace(/ /g,'+')}:ital,wght@0,400;1,400&family=${b.replace(/ /g,'+')}&display=swap`;
   document.head.appendChild(link);
-  const prev = document.getElementById('font-preview');
+  let prev = document.getElementById('font-preview');
   if(prev) prev.style.fontFamily = d;
 }
 document.getElementById('font-display')?.addEventListener('change', updateFontPreview);
@@ -884,15 +884,15 @@ async function checkRules() {
   setStatus(false);
   document.getElementById('status-text').textContent = 'Loading data...';
   try {
-    const docs = ['hero','about','gallery','gallery-text','menu-cta','info-cards','staff','design-colors','design-fonts','navbar','footer','page-sections'];
-    const results = {};
+    let docs = ['hero','about','gallery','gallery-text','menu-cta','info-cards','staff','design-colors','design-fonts','navbar','footer','page-sections'];
+    let results = {};
     for (const d of docs) {
-      const doc = await db.collection('homepage').doc(d).get();
+      let doc = await db.collection('homepage').doc(d).get();
       if (doc.exists) results[d] = doc.data();
     }
 
     // HERO
-    const h = results['hero'] || {};
+    let h = results['hero'] || {};
     if(h.heroBg)   { const i=document.getElementById('hero-bg-cur');   i.src=h.heroBg;   i.style.display='block'; }
     if(h.heroLogo) { const i=document.getElementById('hero-logo-cur'); i.src=h.heroLogo; i.style.display='block'; }
     if(h.tagline)  document.getElementById('hero-tagline').value = h.tagline;
@@ -901,7 +901,7 @@ async function checkRules() {
     if(h.overlay)  document.getElementById('hero-overlay').value  = h.overlay;
 
     // ABOUT
-    const a = results['about'] || {};
+    let a = results['about'] || {};
     if(a.badge)   document.getElementById('about-badge').value = a.badge;
     if(a.title1)  document.getElementById('about-t1').value    = a.title1;
     if(a.title2)  document.getElementById('about-t2').value    = a.title2;
@@ -910,15 +910,15 @@ async function checkRules() {
     if(a.bgColor) { document.getElementById('about-bg-c').value=a.bgColor; document.getElementById('about-bg-h').value=a.bgColor; }
 
     // GALLERY
-    const g = results['gallery'] || {};
+    let g = results['gallery'] || {};
     if(g.images) { galleryImages = g.images; renderGallery(); }
-    const gt = results['gallery-text'] || {};
+    let gt = results['gallery-text'] || {};
     if(gt.badge)   document.getElementById('gal-badge').value   = gt.badge;
     if(gt.title)   document.getElementById('gal-title').value   = gt.title;
     if(gt.caption) document.getElementById('gal-caption').value = gt.caption;
 
     // MENU CTA
-    const m = results['menu-cta'] || {};
+    let m = results['menu-cta'] || {};
     if(m.badge)    document.getElementById('cta-badge').value = m.badge;
     if(m.title1)   document.getElementById('cta-t1').value    = m.title1;
     if(m.title2)   document.getElementById('cta-t2').value    = m.title2;
@@ -928,7 +928,7 @@ async function checkRules() {
     if(m.bgColor)  { document.getElementById('cta-bg-c').value=m.bgColor; document.getElementById('cta-bg-h').value=m.bgColor; }
 
     // INFO CARDS
-    const ic = results['info-cards'] || {};
+    let ic = results['info-cards'] || {};
     if(ic.badge)  document.getElementById('info-badge').value = ic.badge;
     if(ic.title)  document.getElementById('info-title').value = ic.title;
     infoCards = ic.cards || [
@@ -940,7 +940,7 @@ async function checkRules() {
     renderInfoCards();
 
     // STAFF
-    const s = results['staff'] || {};
+    let s = results['staff'] || {};
     if(s.title)     document.getElementById('staff-title').value  = s.title;
     if(s.prompt)    document.getElementById('staff-prompt').value  = s.prompt;
     if(s.dashText)  document.getElementById('staff-dash').value    = s.dashText;
@@ -948,32 +948,32 @@ async function checkRules() {
     if(s.bgColor)   { document.getElementById('staff-bg-c').value=s.bgColor; document.getElementById('staff-bg-h').value=s.bgColor; }
 
     // DESIGN COLORS
-    const dc = results['design-colors'] || {};
+    let dc = results['design-colors'] || {};
     if(dc.orange) { document.getElementById('dc-orange').value=dc.orange; document.getElementById('dh-orange').value=dc.orange; }
     if(dc.cream)  { document.getElementById('dc-cream').value=dc.cream;   document.getElementById('dh-cream').value=dc.cream; }
     if(dc.dark)   { document.getElementById('dc-dark').value=dc.dark;     document.getElementById('dh-dark').value=dc.dark; }
 
     // FONTS
-    const df = results['design-fonts'] || {};
+    let df = results['design-fonts'] || {};
     if(df.display) document.getElementById('font-display').value = df.display;
     if(df.body)    document.getElementById('font-body').value    = df.body;
     updateFontPreview();
 
     // NAVBAR
-    const nav = results['navbar'] || {};
+    let nav = results['navbar'] || {};
     if(nav.logoText)  document.getElementById('nav-logo').value  = nav.logoText;
     if(nav.menuText)  document.getElementById('nav-menu').value  = nav.menuText;
     if(nav.loginText) document.getElementById('nav-login').value = nav.loginText;
     if(nav.bgColor)   { document.getElementById('nav-bg-c').value=nav.bgColor; document.getElementById('nav-bg-h').value=nav.bgColor; }
 
     // FOOTER
-    const ft = results['footer'] || {};
+    let ft = results['footer'] || {};
     if(ft.logoText)  document.getElementById('footer-logo').value = ft.logoText;
     if(ft.tagline)   document.getElementById('footer-tag').value  = ft.tagline;
     if(ft.copyright) document.getElementById('footer-copy').value = ft.copyright;
 
     // PAGE SECTIONS
-    const ps = results['page-sections'] || {};
+    let ps = results['page-sections'] || {};
     pageSections = ps.sections || JSON.parse(JSON.stringify(DEFAULT_SECTIONS));
     renderSections();
 
@@ -991,8 +991,8 @@ const msProvider = new firebase.auth.OAuthProvider('microsoft.com');
 msProvider.setCustomParameters({ tenant: 'cafemoliere.com' });
 
 function doLogin() {
-  const btn = document.getElementById('login-btn');
-  const err = document.getElementById('login-error');
+  let btn = document.getElementById('login-btn');
+  let err = document.getElementById('login-error');
   if (err) err.style.display = 'none';
   if (btn) { btn.textContent = 'Redirecting to Microsoft...'; btn.disabled = true; }
   auth.signInWithRedirect(msProvider);
@@ -1006,8 +1006,8 @@ auth.getRedirectResult().then(result => {
   if (result && result.user) console.log('Login success:', result.user.email);
 }).catch(e => {
   if (e.code && e.code !== 'auth/no-auth-event') {
-    const err = document.getElementById('login-error');
-    const btn = document.getElementById('login-btn');
+    let err = document.getElementById('login-error');
+    let btn = document.getElementById('login-btn');
     if (err) { err.textContent = 'Sign-in error: ' + e.message; err.style.display = 'block'; }
     if (btn) { btn.innerHTML = MS_BTN_HTML; btn.disabled = false; }
   }
@@ -1022,14 +1022,14 @@ auth.onAuthStateChanged(user => {
     loadAll();
   } else if (user && user.email !== ADMIN) {
     auth.signOut();
-    const err = document.getElementById('login-error');
-    const btn = document.getElementById('login-btn');
+    let err = document.getElementById('login-error');
+    let btn = document.getElementById('login-btn');
     if (err) { err.textContent = 'Access restricted to administrator@cafemoliere.com — you signed in as: ' + user.email; err.style.display = 'block'; }
     if (btn) { btn.innerHTML = MS_BTN_HTML; btn.disabled = false; }
   } else {
     document.getElementById('login-screen').classList.remove('hidden');
     document.getElementById('app').style.display = 'none';
-    const btn = document.getElementById('login-btn');
+    let btn = document.getElementById('login-btn');
     if (btn && !btn.textContent.includes('Redirecting')) {
       btn.innerHTML = MS_BTN_HTML;
       btn.disabled = false;
