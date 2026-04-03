@@ -993,24 +993,23 @@ msProvider.setCustomParameters({ tenant: 'cafemoliere.com' });
 function doLogin() {
   const btn = document.getElementById('login-btn');
   const err = document.getElementById('login-error');
-  err.style.display = 'none';
-  btn.textContent = 'Redirecting to Microsoft...';
-  btn.disabled = true;
-  // Use redirect — avoids all popup blocking issues
+  if (err) err.style.display = 'none';
+  if (btn) { btn.textContent = 'Redirecting to Microsoft...'; btn.disabled = true; }
   auth.signInWithRedirect(msProvider);
 }
 
 function doLogout() { auth.signOut(); }
 
-// Handle redirect result
+const MS_BTN_HTML = '<svg width="20" height="20" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg> Sign in with Microsoft';
+
 auth.getRedirectResult().then(result => {
   if (result && result.user) console.log('Login success:', result.user.email);
 }).catch(e => {
   if (e.code && e.code !== 'auth/no-auth-event') {
     const err = document.getElementById('login-error');
-    if (err) { err.textContent = 'Sign-in error: ' + e.message; err.style.display = 'block'; }
     const btn = document.getElementById('login-btn');
-    if (btn) { btn.innerHTML =  + ms_svg + ; btn.disabled = false; }
+    if (err) { err.textContent = 'Sign-in error: ' + e.message; err.style.display = 'block'; }
+    if (btn) { btn.innerHTML = MS_BTN_HTML; btn.disabled = false; }
   }
 });
 
@@ -1024,18 +1023,19 @@ auth.onAuthStateChanged(user => {
   } else if (user && user.email !== ADMIN) {
     auth.signOut();
     const err = document.getElementById('login-error');
-    err.textContent = 'Access restricted to administrator@cafemoliere.com — you signed in as: ' + user.email;
-    err.style.display = 'block';
     const btn = document.getElementById('login-btn');
-    btn.innerHTML =  + ms_svg + ;
-    btn.disabled = false;
+    if (err) { err.textContent = 'Access restricted to administrator@cafemoliere.com — you signed in as: ' + user.email; err.style.display = 'block'; }
+    if (btn) { btn.innerHTML = MS_BTN_HTML; btn.disabled = false; }
   } else {
     document.getElementById('login-screen').classList.remove('hidden');
     document.getElementById('app').style.display = 'none';
     const btn = document.getElementById('login-btn');
     if (btn && !btn.textContent.includes('Redirecting')) {
-      btn.innerHTML =  + ms_svg + ;
+      btn.innerHTML = MS_BTN_HTML;
       btn.disabled = false;
     }
   }
 });
+</script>
+</body>
+</html>
