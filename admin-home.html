@@ -453,7 +453,7 @@ const firebaseConfig = {
   apiKey:     "AIzaSyANahV1JOHQqEweg6e8i_LvltXNCTW-kIw",
   authDomain: "cafe-moliere.firebaseapp.com",
   projectId:  "cafe-moliere",
-  storageBucket: "cafe-moliere.firebasestorage.app",
+storageBucket: "cafe-moliere.firebasestorage.app",
 };
 firebase.initializeApp(firebaseConfig);
 const db      = firebase.firestore();
@@ -881,6 +881,8 @@ async function checkRules() {
     }
   }
 }
+
+async function loadAll() {
   setStatus(false);
   document.getElementById('status-text').textContent = 'Loading data...';
   try {
@@ -984,6 +986,8 @@ async function checkRules() {
     toast('Load error: '+e.message, 'error');
     console.error(e);
   }
+}
+
 }
 
 // ── AUTH ──
