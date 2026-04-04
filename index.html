@@ -817,8 +817,7 @@ async function loadFromFirestore() {
       if (a.title1) { const el = document.querySelector('.about-title');  if (el) el.childNodes[0].textContent = a.title1 + ' '; }
       if (a.title2) { const el = document.querySelector('.about-title em'); if (el) el.textContent = a.title2; }
       if (a.deco)   { const el = document.querySelector('.about-deco-icon'); if (el) el.textContent = a.deco; }
-      if (a.body)   { const el = document.querySelector('.about-text');   if (el) el.innerHTML = a.body.replace(/
-/g, '<br>'); }
+      if (a.body)   { const el = document.querySelector('.about-text');   if (el) el.innerHTML = a.body.replace(/\n/g, '<br>'); }
       if (a.bgColor){ const el = document.querySelector('.about');        if (el) el.style.background = a.bgColor; }
     }
 
@@ -860,8 +859,7 @@ async function loadFromFirestore() {
             <div class="info-card">
               <div class="info-icon">${card.icon || ''}</div>
               <div class="info-card-title">${card.title || ''}</div>
-              <div class="info-card-text">${(card.text || '').replace(/
-/g, '<br>')}</div>
+              <div class="info-card-text">${(card.text || '').replace(/\n/g, '<br>')}</div>
             </div>`).join('');
         }
       }
