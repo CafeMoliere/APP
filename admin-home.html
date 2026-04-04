@@ -171,6 +171,7 @@ select.fi{cursor:pointer}
   <div class="header-btns">
     <span id="user-tag" style="font-size:11px;color:rgba(255,255,255,0.6)"></span>
     <button class="hbtn hbtn-preview" onclick="window.open('index.html','_blank')">👁 Preview Site</button>
+    <button class="hbtn" style="background:#FCECBB;color:#FF5E00;font-weight:700" onclick="publishSite()">🚀 Publish All</button>
     <button class="hbtn hbtn-logout" onclick="doLogout()">Sign Out</button>
   </div>
 </div>
@@ -988,6 +989,31 @@ async function loadAll() {
   }
 }
 
+
+// ── PUBLISH ──
+async function publishSite() {
+  const btn = event.target;
+  btn.textContent = '⏳ Publishing...';
+  btn.disabled = true;
+  try {
+    await db.collection('homepage').doc('_published').set({
+      publishedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      publishedBy: auth.currentUser?.email || ADMIN,
+    });
+    btn.textContent = '✅ Published!';
+    btn.style.background = '#27ae60';
+    toast('🚀 Site published! Open Preview to see changes.', 'success');
+    setTimeout(() => {
+      btn.textContent = '🚀 Publish All';
+      btn.style.background = '#FCECBB';
+      btn.disabled = false;
+    }, 3000);
+  } catch(e) {
+    btn.textContent = '🚀 Publish All';
+    btn.disabled = false;
+    toast('Publish failed: ' + e.message, 'error');
+  }
+}
 
 // ── AUTH ──
 const msProvider = new firebase.auth.OAuthProvider('microsoft.com');

@@ -755,292 +755,146 @@ const firebaseConfig = {
   apiKey:     "AIzaSyANahV1JOHQqEweg6e8i_LvltXNCTW-kIw",
   authDomain: "cafe-moliere.firebaseapp.com",
   projectId:  "cafe-moliere",
-
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db   = firebase.firestore();
 
-// ── LOAD DYNAMIC HOMEPAGE CONTENT ──
-async function loadHomeContent() {
+// ── LOAD CONTENT FROM FIRESTORE ──
+async function loadFromFirestore() {
   try {
-    // Hero text
-    const hero = await db.collection('homepage').doc('hero').get();
-    if (hero.exists) {
-      const h = hero.data();
-      if (h.tagline)  document.querySelector('.hero-tagline').textContent = h.tagline;
-      if (h.ctaText)  document.querySelector('.hero-cta').textContent = h.ctaText;
-      if (h.ctaLink)  document.querySelector('.hero-cta').href = h.ctaLink;
-    }
+    // Load all docs in parallel
+    const [heroDoc, aboutDoc, galleryDoc, galTextDoc, ctaDoc, infoDoc, staffDoc, colorsDoc, navDoc, footerDoc] = await Promise.all([
+      db.collection('homepage').doc('hero').get(),
+      db.collection('homepage').doc('about').get(),
+      db.collection('homepage').doc('gallery').get(),
+      db.collection('homepage').doc('gallery-text').get(),
+      db.collection('homepage').doc('menu-cta').get(),
+      db.collection('homepage').doc('info-cards').get(),
+      db.collection('homepage').doc('staff').get(),
+      db.collection('homepage').doc('design-colors').get(),
+      db.collection('homepage').doc('navbar').get(),
+      db.collection('homepage').doc('footer').get(),
+    ]);
 
-    // Hero background image
-    const heroBg = await db.collection('homepage').doc('hero-bg').get();
-    if (heroBg.exists && heroBg.data().url) {
-      document.querySelector('.hero-bg').style.backgroundImage = `url('${heroBg.data().url}')`;
-    }
-
-    // Hero logo
-    const heroLogo = await db.collection('homepage').doc('hero-logo').get();
-    if (heroLogo.exists && heroLogo.data().url) {
-      document.querySelector('.hero-logo').src = heroLogo.data().url;
-    }
-
-    // About
-    const about = await db.collection('homepage').doc('about').get();
-    if (about.exists) {
-      const a = about.data();
-      if (a.badge)  document.querySelector('#about .section-badge').textContent = a.badge;
-      if (a.title1) document.querySelector('#about .about-title').childNodes[0].textContent = a.title1;
-      if (a.title2) document.querySelector('#about .about-title em').textContent = a.title2;
-      if (a.text)   document.querySelector('.about-text').innerHTML = a.text.replace(/\n/g, '<br>');
-    }
-
-    // Gallery
-    const gallery = await db.collection('homepage').doc('gallery').get();
-    if (gallery.exists && gallery.data().items?.length) {
-      const grid = document.querySelector('.gallery-grid');
-      grid.innerHTML = gallery.data().items.map((item, i) => `
-        <div class="gallery-item ${i === 0 ? 'tall' : ''}">
-          <img src="${item.url}" alt="Café Molière" />
-        </div>`).join('');
-    }
-
-    // Menu section
-    const menuSec = await db.collection('homepage').doc('menu-sec').get();
-    if (menuSec.exists) {
-      const m = menuSec.data();
-      if (m.badge)    document.querySelector('#menu .section-badge').textContent = m.badge;
-      if (m.subtitle) document.querySelector('.menu-shortcut-sub').textContent = m.subtitle;
-      if (m.btnText)  document.querySelector('.menu-cta').textContent = m.btnText;
-    }
-
-    // Colors
-    const colors = await db.collection('homepage').doc('colors').get();
-    if (colors.exists) {
-      const c = colors.data();
+    // ── COLORS ──
+    if (colorsDoc.exists) {
+      const c = colorsDoc.data();
       const root = document.documentElement;
       if (c.orange) root.style.setProperty('--orange', c.orange);
       if (c.cream)  root.style.setProperty('--cream',  c.cream);
       if (c.dark)   root.style.setProperty('--dark',   c.dark);
-      if (c.card)   root.style.setProperty('--card',   c.card);
     }
 
-    // Info cards
-    const info = await db.collection('homepage').doc('info').get();
-    if (info.exists && info.data().cards) {
-      const grid = document.querySelector('.info-inner');
-      grid.innerHTML = info.data().cards.map(card => `
-        <div class="info-card">
-          <div class="info-icon">${card.icon}</div>
-          <div class="info-card-title">${card.title}</div>
-          <div class="info-card-text">${card.text.replace(/\n/g,'<br>')}</div>
-        </div>`).join('');
+    // ── NAVBAR ──
+    if (navDoc.exists) {
+      const n = navDoc.data();
+      if (n.logoText) {
+        const el = document.querySelector('.nav-logo');
+        if (el) el.innerHTML = n.logoText.replace('Molière', '<em>Molière</em>');
+      }
+      if (n.menuText) {
+        const el = document.querySelector('.nav-btn');
+        if (el) el.textContent = n.menuText;
+      }
     }
 
-    // Staff section
-    const staff = await db.collection('homepage').doc('staff-sec').get();
-    if (staff.exists) {
-      const s = staff.data();
-      if (s.title)     document.querySelector('.staff-title').innerHTML = s.title;
-      if (s.prompt)    document.querySelector('#portal-logged-out p').textContent = s.prompt;
-      if (s.dashText)  document.querySelector('a[href="orders-dashboard.html"]').textContent = s.dashText;
-      if (s.adminText) document.querySelector('a[href="admin.html"]').textContent = s.adminText;
-    }
-  } catch(e) {
-    console.log('Dynamic content load error:', e);
-  }
-}
-
-loadHomeContent();
-
-// ── NAVBAR SCROLL ──
-window.addEventListener('scroll', () => {
-  document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 60);
-});
-
-// ── SCROLL REVEAL ──
-const revealAll = () => document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
-
-if ('IntersectionObserver' in window) {
-  const observer = new IntersectionObserver(entries => {
-    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
-  }, { threshold: 0.05, rootMargin: '0px 0px -40px 0px' });
-  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-  // Fallback: reveal everything after 3s in case observer fails
-  setTimeout(revealAll, 3000);
-} else {
-  // No IntersectionObserver support - reveal all immediately
-  revealAll();
-}
-
-
-// ── RENDER SECTIONS FROM FIRESTORE ──
-async function renderDynamicSections() {
-  try {
-    const secDoc = await db.collection('homepage').doc('sections').get();
-    if (!secDoc.exists || !secDoc.data().items) { loadHomeContent(); return; }
-
-    const sections = secDoc.data().items.filter(s => s.visible !== false);
-    const globalColors = (await db.collection('homepage').doc('global-colors').get()).data() || {};
-    const globalFonts  = (await db.collection('homepage').doc('global-fonts').get()).data() || {};
-    const globalNav    = (await db.collection('homepage').doc('global-nav').get()).data() || {};
-    const globalFooter = (await db.collection('homepage').doc('global-footer').get()).data() || {};
-
-    // Apply global colors
-    const root = document.documentElement;
-    if (globalColors.orange) root.style.setProperty('--orange', globalColors.orange);
-    if (globalColors.cream)  root.style.setProperty('--cream',  globalColors.cream);
-    if (globalColors.dark)   root.style.setProperty('--dark',   globalColors.dark);
-
-    // Apply global fonts
-    if (globalFonts.display || globalFonts.body) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      const families = [globalFonts.display, globalFonts.body].filter(Boolean).map(f=>f.replace(/ /g,'+')).join('&family=');
-      link.href = `https://fonts.googleapis.com/css2?family=${families}&display=swap`;
-      document.head.appendChild(link);
+    // ── HERO ──
+    if (heroDoc.exists) {
+      const h = heroDoc.data();
+      if (h.heroBg)  { const el = document.querySelector('.hero-bg');   if (el) el.style.backgroundImage = `url('${h.heroBg}')`; }
+      if (h.heroLogo){ const el = document.querySelector('.hero-logo');  if (el) el.src = h.heroLogo; }
+      if (h.tagline) { const el = document.querySelector('.hero-tagline'); if (el) el.textContent = h.tagline; }
+      if (h.ctaText) { const el = document.querySelector('.hero-cta');   if (el) el.textContent = h.ctaText; }
+      if (h.ctaLink) { const el = document.querySelector('.hero-cta');   if (el) el.href = h.ctaLink; }
+      if (h.overlay) { const el = document.querySelector('.hero-bg');    if (el) el.style.filter = `brightness(${h.overlay})`; }
     }
 
-    // Apply navbar
-    if (globalNav.logoText) document.querySelector('.nav-logo').innerHTML = globalNav.logoText.replace('Molière','<em>Molière</em>');
-    if (globalNav.bgColor) document.querySelector('nav').style.setProperty('--nav-bg', globalNav.bgColor);
+    // ── ABOUT ──
+    if (aboutDoc.exists) {
+      const a = aboutDoc.data();
+      if (a.badge)  { const el = document.querySelector('#about .section-badge'); if (el) el.textContent = a.badge; }
+      if (a.title1) { const el = document.querySelector('.about-title');  if (el) el.childNodes[0].textContent = a.title1 + ' '; }
+      if (a.title2) { const el = document.querySelector('.about-title em'); if (el) el.textContent = a.title2; }
+      if (a.deco)   { const el = document.querySelector('.about-deco-icon'); if (el) el.textContent = a.deco; }
+      if (a.body)   { const el = document.querySelector('.about-text');   if (el) el.innerHTML = a.body.replace(/
+/g, '<br>'); }
+      if (a.bgColor){ const el = document.querySelector('.about');        if (el) el.style.background = a.bgColor; }
+    }
 
-    // Apply footer
-    if (globalFooter.logoText) document.querySelector('.footer-logo').innerHTML = globalFooter.logoText.replace('Molière','<em>Molière</em>');
-    if (globalFooter.copy) document.querySelector('.footer-text').textContent = globalFooter.copy;
+    // ── GALLERY ──
+    const gal = galleryDoc.exists ? galleryDoc.data() : {};
+    const galText = galTextDoc.exists ? galTextDoc.data() : {};
+    if (galText.badge) { const el = document.querySelector('#gallery .section-badge'); if (el) el.textContent = galText.badge; }
+    if (galText.title) { const el = document.querySelector('.gallery-title'); if (el) el.innerHTML = galText.title.replace(/(\w+)$/, '<em>$1</em>'); }
+    if (galText.caption) { const el = document.querySelector('#gallery p'); if (el) el.textContent = galText.caption; }
+    if (gal.images && gal.images.length) {
+      const grid = document.querySelector('.gallery-grid');
+      if (grid) {
+        grid.innerHTML = gal.images.map((img, i) => `
+          <div class="gallery-item ${i === 0 ? 'tall' : ''}">
+            <img src="${img.url}" alt="Café Molière" loading="lazy"/>
+          </div>`).join('');
+      }
+    }
 
-    // Render sections
-    const main = document.getElementById('dynamic-sections');
-    if (!main) return;
-    main.innerHTML = sections.map(sec => renderSection(sec)).join('');
+    // ── MENU CTA ──
+    if (ctaDoc.exists) {
+      const m = ctaDoc.data();
+      if (m.badge)    { const el = document.querySelector('#menu .section-badge'); if (el) el.textContent = m.badge; }
+      if (m.title1)   { const el = document.querySelector('.menu-shortcut-title'); if (el) el.childNodes[0].textContent = m.title1 + ' '; }
+      if (m.title2)   { const el = document.querySelector('.menu-shortcut-title em'); if (el) el.textContent = m.title2; }
+      if (m.subtitle) { const el = document.querySelector('.menu-shortcut-sub'); if (el) el.textContent = m.subtitle; }
+      if (m.btnText)  { const el = document.querySelector('.menu-cta'); if (el) el.childNodes[0].textContent = m.btnText; }
+      if (m.btnLink)  { const el = document.querySelector('.menu-cta'); if (el) el.href = m.btnLink; }
+      if (m.bgColor)  { const el = document.querySelector('.menu-shortcut'); if (el) el.style.background = m.bgColor; }
+    }
 
-    // Re-observe for animations
-    document.querySelectorAll('.reveal').forEach(el => {
-      el.classList.remove('visible');
-      if ('IntersectionObserver' in window) observer.observe(el);
-    });
-    setTimeout(() => document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible')), 3000);
-
-  } catch(e) {
-    console.log('Dynamic render error:', e);
-    loadHomeContent();
-  }
-}
-
-function renderSection(sec) {
-  const d = sec.data || {};
-  switch(sec.type) {
-    case 'hero': return `
-      <div class="hero">
-        <div class="hero-bg" style="background-image:url('${d.bg||'cafe-wall.jpg'}');background-position:${d.bgPosition||'center 20%'};filter:brightness(${d.bgOverlay||0.35})"></div>
-        <div class="hero-overlay"></div>
-        <div class="hero-content">
-          <img class="hero-logo" src="${d.logo||'logo-orange.png'}" alt="Logo"/>
-          <p class="hero-tagline">${d.tagline||''}</p>
-          <a href="${d.ctaLink||'menu.html'}" class="hero-cta">${d.ctaText||'Voir le Menu'}</a>
-        </div>
-        <div class="hero-scroll"><span>Découvrir</span><span style="font-size:16px">↓</span></div>
-      </div>`;
-
-    case 'about': return `
-      <section class="about reveal" style="background:${d.bgColor||'#1A1A1A'};color:${d.textColor||'#fff'}">
-        <div class="section-badge">${d.badge||''}</div>
-        <h2 class="about-title">${d.title1||''}<br><em>${d.title2||''}</em></h2>
-        <div class="about-deco"><div class="about-deco-line"></div><div class="about-deco-icon">${d.decoIcon||'🎭'}</div><div class="about-deco-line"></div></div>
-        <p class="about-text">${(d.text||'').replace(/\n/g,'<br>')}</p>
-      </section>`;
-
-    case 'cta': return `
-      <div class="menu-shortcut reveal" style="background:${d.bgColor||'#FF5E00'}">
-        <div class="section-badge" style="border-color:rgba(255,255,255,0.3);color:#fff">${d.badge||''}</div>
-        <h2 class="menu-shortcut-title">${d.title1||''} <em>${d.title2||''}</em></h2>
-        <p class="menu-shortcut-sub">${d.subtitle||''}</p>
-        <div style="display:flex;align-items:center;justify-content:center;gap:40px;flex-wrap:wrap;margin-top:8px">
-          <a href="${d.btnLink||'menu.html'}" class="menu-cta">${d.btnText||''}</a>
-          <div style="text-align:center">
-            <img src="qr-code.png" style="width:160px;height:160px;object-fit:contain;border-radius:16px;display:block;margin:0 auto 8px"/>
-            <p style="font-size:11px;color:rgba(255,255,255,0.7);letter-spacing:0.1em;text-transform:uppercase">Scanner pour commander</p>
-          </div>
-        </div>
-      </div>`;
-
-    case 'gallery': return `
-      <section class="gallery reveal" style="background:${d.bgColor||'#111'}">
-        <div class="gallery-header">
-          <div class="section-badge">${d.badge||''}</div>
-          <h2 class="gallery-title">Notre <em>Espace</em></h2>
-        </div>
-        <div class="gallery-grid">
-          ${(d.images&&d.images.length ? d.images : [{url:'cafe-wall.jpg'},{url:'cafe-wall.jpg'},{url:'cafe-wall.jpg'}]).map((img,i)=>`
-            <div class="gallery-item ${i===0?'tall':''}"><img src="${img.url}" alt="Café Molière"/></div>`).join('')}
-        </div>
-        <p style="text-align:center;font-size:11px;color:#444;margin-top:20px;letter-spacing:0.1em">${d.caption||''}</p>
-      </section>`;
-
-    case 'cards': return `
-      <section class="info-section reveal" style="background:${d.bgColor||'#1A1A1A'}">
-        <div style="text-align:center;margin-bottom:40px">
-          <div class="section-badge">${d.badge||''}</div>
-          <h2 style="font-family:'Playfair Display',serif;font-size:clamp(1.6rem,4vw,2.2rem);color:#FCECBB;font-weight:400">${d.title||''}</h2>
-        </div>
-        <div class="info-inner">
-          ${(d.cards||[]).map(card=>`
+    // ── INFO CARDS ──
+    if (infoDoc.exists) {
+      const ic = infoDoc.data();
+      if (ic.cards && ic.cards.length) {
+        const grid = document.querySelector('.info-inner');
+        if (grid) {
+          grid.innerHTML = ic.cards.map(card => `
             <div class="info-card">
-              <div class="info-icon">${card.icon||''}</div>
-              <div class="info-card-title">${card.title||''}</div>
-              <div class="info-card-text">${(card.text||'').replace(/\n/g,'<br>')}</div>
-            </div>`).join('')}
-        </div>
-      </section>`;
+              <div class="info-icon">${card.icon || ''}</div>
+              <div class="info-card-title">${card.title || ''}</div>
+              <div class="info-card-text">${(card.text || '').replace(/
+/g, '<br>')}</div>
+            </div>`).join('');
+        }
+      }
+    }
 
-    case 'text': return `
-      <section class="reveal" style="background:${d.bgColor||'#1A1A1A'};padding:${d.padding||60}px 24px;text-align:${d.align||'center'}">
-        <div style="max-width:700px;margin:0 auto;color:${d.textColor||'#fff'};font-family:'Cormorant Garamond',serif;font-size:1.1rem;line-height:1.9">${(d.text||'').replace(/\n/g,'<br>')}</div>
-      </section>`;
+    // ── STAFF ──
+    if (staffDoc.exists) {
+      const s = staffDoc.data();
+      if (s.title)   { const el = document.querySelector('.staff-title'); if (el) el.innerHTML = s.title.replace('Staff', '<em>Staff</em>'); }
+      if (s.prompt)  { const el = document.querySelector('#portal-logged-out p'); if (el) el.textContent = s.prompt; }
+      if (s.dashText){ const el = document.querySelector('a[href="orders-dashboard.html"]'); if (el) el.textContent = s.dashText; }
+      if (s.adminText){ const el = document.querySelector('a[href="admin.html"]'); if (el) el.textContent = s.adminText; }
+      if (s.bgColor) { const el = document.querySelector('.staff-portal'); if (el) el.style.background = s.bgColor; }
+    }
 
-    case 'staff': return `
-      <section class="staff-portal reveal" style="background:${d.bgColor||'#111'}">
-        <div class="staff-portal-inner">
-          <h3 class="staff-title">${(d.title||'Espace Staff').replace('Staff','<em>Staff</em>')}</h3>
-          <div id="portal-logged-out">
-            <p style="font-size:12px;color:#444;margin-bottom:16px">${d.prompt||''}</p>
-            <div class="staff-btns"><button class="staff-btn" onclick="doLogin()">
-              <svg width="16" height="16" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
-              Se connecter avec Microsoft</button></div>
-          </div>
-          <div id="portal-logged-in" style="display:none">
-            <p style="font-size:12px;color:#555;margin-bottom:20px">Connecté: <span id="portal-email" style="color:#FF5E00"></span></p>
-            <div class="staff-btns">
-              <a href="orders-dashboard.html" class="staff-btn active-staff">${d.dashText||'🗂️ Tableau de bord'}</a>
-              <a href="admin.html" class="staff-btn active-staff">${d.adminText||'⚙️ Administration'}</a>
-              <a href="admin-home.html" class="staff-btn active-staff" id="admin-home-link" style="display:none">🏠 Admin Homepage</a>
-              <button class="staff-btn" onclick="doLogout()">Déconnexion</button>
-            </div>
-          </div>
-        </div>
-      </section>`;
+    // ── FOOTER ──
+    if (footerDoc.exists) {
+      const f = footerDoc.data();
+      if (f.logoText)  { const el = document.querySelector('.footer-logo'); if (el) el.innerHTML = f.logoText.replace('Molière', '<em>Molière</em>'); }
+      if (f.tagline)   { const el = document.querySelector('.footer-text'); if (el) el.textContent = f.tagline; }
+      if (f.copyright) { const el = document.querySelector('.footer-text'); if (el) el.textContent = f.copyright; }
+    }
 
-    case 'divider': return `
-      <div style="background:${d.bgColor||'#1A1A1A'};padding:20px 0">
-        ${d.style==='line' ? `<div style="height:1px;background:${d.color||'#333'};max-width:600px;margin:0 auto"></div>` : ''}
-        ${d.style==='deco' ? `<div style="text-align:center;color:${d.color||'#333'};font-size:1.5rem;letter-spacing:1rem">🎭 ✦ 🎭</div>` : ''}
-        ${d.style==='space' ? `<div style="height:40px"></div>` : ''}
-      </div>`;
-
-    case 'image': return `
-      <div class="reveal" style="overflow:hidden">
-        ${d.url ? `<img src="${d.url}" alt="${d.alt||''}" style="width:100%;height:${d.height||400}px;object-fit:cover;object-position:${d.objectPosition||'center'}">` : '<div style="height:200px;background:#222;display:flex;align-items:center;justify-content:center;color:#444">Upload an image</div>'}
-      </div>`;
-
-    default: return '';
+    console.log('✅ Homepage content loaded from Firestore');
+  } catch(e) {
+    console.log('Firestore load error (using defaults):', e.message);
   }
 }
 
-// Try dynamic render, fall back to static
-db.collection('homepage').doc('sections').get().then(doc => {
-  if (doc.exists && doc.data().items) renderDynamicSections();
-  else loadHomeContent();
-}).catch(() => loadHomeContent());
+// Load from Firestore on every page load
+loadFromFirestore();
+
+
 
 // ── AUTH ──
 function doLogin() {
