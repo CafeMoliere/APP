@@ -750,12 +750,13 @@ const auth = firebase.auth();
 const db   = firebase.firestore();
 
 // ── LOAD CONTENT FROM FIRESTORE ──
-async function loadFromFirestore() {
+async function loadFromFirestore(draft) {
+  var collection = draft ? 'homepage-draft' : 'homepage';
   try {
     var results = {};
     var docs = ['hero','about','gallery','gallery-text','menu-cta','info-cards','staff','design-colors','navbar','footer'];
     for (var i = 0; i < docs.length; i++) {
-      var snap = await db.collection('homepage').doc(docs[i]).get();
+      var snap = await db.collection(collection).doc(docs[i]).get();
       if (snap.exists) results[docs[i]] = snap.data();
     }
 
@@ -859,7 +860,16 @@ function doLogin() {
 function doLogout() { auth.signOut(); }
 
 
-loadFromFirestore();
+// Check if preview draft mode
+var isDraft = window.location.search.indexOf('draft=1') > -1;
+if (isDraft) {
+  // Show draft banner
+  var banner = document.createElement('div');
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#FF5E00;color:#fff;text-align:center;padding:8px;font-size:12px;font-weight:600;z-index:9999;letter-spacing:0.1em';
+  banner.innerHTML = '👁 DRAFT PREVIEW — <a href="admin-home.html" style="color:#FCECBB">Back to Admin</a> · Changes not yet published';
+  document.body.prepend(banner);
+}
+loadFromFirestore(isDraft);
 
 // ── NAVBAR SCROLL ──
 window.addEventListener('scroll', function() {

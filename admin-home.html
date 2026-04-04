@@ -170,8 +170,8 @@ select.fi{cursor:pointer}
   <div class="header-title">Café <em>Molière</em> — Homepage CMS</div>
   <div class="header-btns">
     <span id="user-tag" style="font-size:11px;color:rgba(255,255,255,0.6)"></span>
-    <button class="hbtn hbtn-preview" onclick="window.open('index.html','_blank')">👁 Preview Site</button>
-    <button class="hbtn" style="background:#FCECBB;color:#FF5E00;font-weight:700" onclick="publishSite()">🚀 Publish All</button>
+    <button class="hbtn hbtn-preview" onclick="window.open('index.html?draft=1','_blank')">👁 Preview Draft</button>
+    <button class="hbtn" id="publish-btn" style="background:#FCECBB;color:#FF5E00;font-weight:700" onclick="publishSite()">🚀 Publish Live</button>
     <button class="hbtn hbtn-logout" onclick="doLogout()">Sign Out</button>
   </div>
 </div>
@@ -538,13 +538,13 @@ async function saveDoc(docId, data, btnId) {
     if (!user) throw new Error('Not logged in. Please refresh and sign in again.');
     if (user.email !== ADMIN) throw new Error('Only administrator@cafemoliere.com can save.');
 
-    await db.collection('homepage').doc(docId).set({
+    await db.collection('homepage-draft').doc(docId).set({
       ...data,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     if (btnId) setSaveBtnState(btnId,'saved');
     setStatus(true);
-    toast('Saved successfully!', 'success');
+    toast('Draft saved! Click 🚀 Publish to go live.', 'success');
   } catch(e) {
     if (btnId) setSaveBtnState(btnId,'error');
     let msg = e.message;
@@ -576,7 +576,7 @@ async function uploadImg(docId, field, input, curImgId, progId) {
         async () => {
           let url = await task.snapshot.ref.getDownloadURL();
           // Save URL to Firestore
-          await db.collection('homepage').doc(docId).set(
+          await db.collection('homepage-draft').doc(docId).set(
             { [field]: url, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
             { merge: true }
           );
@@ -631,7 +631,7 @@ async function deleteGalImg(idx) {
 }
 
 async function saveGallery() {
-  await db.collection('homepage').doc('gallery').set({
+  await db.collection('homepage-draft').doc('gallery').set({
     images: galleryImages,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   }, { merge: true });
@@ -1005,13 +1005,21 @@ async function publishSite() {
   btn.textContent = '⏳ Publishing...';
   btn.disabled = true;
   try {
+    // Copy all draft docs to live homepage collection
+    const draftDocs = ['hero','about','gallery','gallery-text','menu-cta','info-cards','staff','design-colors','navbar','footer','design-fonts'];
+    for (var i = 0; i < draftDocs.length; i++) {
+      var draftSnap = await db.collection('homepage-draft').doc(draftDocs[i]).get();
+      if (draftSnap.exists) {
+        await db.collection('homepage').doc(draftDocs[i]).set(draftSnap.data());
+      }
+    }
     await db.collection('homepage').doc('_published').set({
       publishedAt: firebase.firestore.FieldValue.serverTimestamp(),
       publishedBy: auth.currentUser?.email || ADMIN,
     });
     btn.textContent = '✅ Published!';
     btn.style.background = '#27ae60';
-    toast('🚀 Site published! Open Preview to see changes.', 'success');
+    toast('🚀 Published! Homepage is now live.', 'success');
     setTimeout(() => {
       btn.textContent = '🚀 Publish All';
       btn.style.background = '#FCECBB';
