@@ -763,180 +763,147 @@ const db   = firebase.firestore();
 // ── LOAD CONTENT FROM FIRESTORE ──
 async function loadFromFirestore() {
   try {
-    // Load all docs in parallel
-    const [heroDoc, aboutDoc, galleryDoc, galTextDoc, ctaDoc, infoDoc, staffDoc, colorsDoc, navDoc, footerDoc] = await Promise.all([
-      db.collection('homepage').doc('hero').get(),
-      db.collection('homepage').doc('about').get(),
-      db.collection('homepage').doc('gallery').get(),
-      db.collection('homepage').doc('gallery-text').get(),
-      db.collection('homepage').doc('menu-cta').get(),
-      db.collection('homepage').doc('info-cards').get(),
-      db.collection('homepage').doc('staff').get(),
-      db.collection('homepage').doc('design-colors').get(),
-      db.collection('homepage').doc('navbar').get(),
-      db.collection('homepage').doc('footer').get(),
-    ]);
-
-    // ── COLORS ──
-    if (colorsDoc.exists) {
-      const c = colorsDoc.data();
-      const root = document.documentElement;
-      if (c.orange) root.style.setProperty('--orange', c.orange);
-      if (c.cream)  root.style.setProperty('--cream',  c.cream);
-      if (c.dark)   root.style.setProperty('--dark',   c.dark);
+    const results = {};
+    const docs = ['hero','about','gallery','gallery-text','menu-cta','info-cards','staff','design-colors','navbar','footer'];
+    for (var i = 0; i < docs.length; i++) {
+      const snap = await db.collection('homepage').doc(docs[i]).get();
+      if (snap.exists) results[docs[i]] = snap.data();
     }
 
-    // ── NAVBAR ──
-    if (navDoc.exists) {
-      const n = navDoc.data();
-      if (n.logoText) {
-        const el = document.querySelector('.nav-logo');
-        if (el) el.innerHTML = n.logoText.replace('Molière', '<em>Molière</em>');
-      }
-      if (n.menuText) {
-        const el = document.querySelector('.nav-btn');
-        if (el) el.textContent = n.menuText;
-      }
-    }
+    // Colors
+    const c = results['design-colors'] || {};
+    if (c.orange) document.documentElement.style.setProperty('--orange', c.orange);
+    if (c.cream)  document.documentElement.style.setProperty('--cream',  c.cream);
+    if (c.dark)   document.documentElement.style.setProperty('--dark',   c.dark);
 
-    // ── HERO ──
-    if (heroDoc.exists) {
-      const h = heroDoc.data();
-      if (h.heroBg)  { const el = document.querySelector('.hero-bg');   if (el) el.style.backgroundImage = `url('${h.heroBg}')`; }
-      if (h.heroLogo){ const el = document.querySelector('.hero-logo');  if (el) el.src = h.heroLogo; }
-      if (h.tagline) { const el = document.querySelector('.hero-tagline'); if (el) el.textContent = h.tagline; }
-      if (h.ctaText) { const el = document.querySelector('.hero-cta');   if (el) el.textContent = h.ctaText; }
-      if (h.ctaLink) { const el = document.querySelector('.hero-cta');   if (el) el.href = h.ctaLink; }
-      if (h.overlay) { const el = document.querySelector('.hero-bg');    if (el) el.style.filter = `brightness(${h.overlay})`; }
-    }
+    // Hero
+    const h = results['hero'] || {};
+    if (h.heroBg)  { var el = document.querySelector('.hero-bg');      if (el) el.style.backgroundImage = "url('" + h.heroBg + "')"; }
+    if (h.heroLogo){ var el = document.querySelector('.hero-logo');    if (el) el.src = h.heroLogo; }
+    if (h.tagline) { var el = document.querySelector('.hero-tagline'); if (el) el.textContent = h.tagline; }
+    if (h.ctaText) { var el = document.querySelector('.hero-cta');     if (el) el.textContent = h.ctaText; }
+    if (h.ctaLink) { var el = document.querySelector('.hero-cta');     if (el) el.href = h.ctaLink; }
+    if (h.overlay) { var el = document.querySelector('.hero-bg');      if (el) el.style.filter = 'brightness(' + h.overlay + ')'; }
 
-    // ── ABOUT ──
-    if (aboutDoc.exists) {
-      const a = aboutDoc.data();
-      if (a.badge)  { const el = document.querySelector('#about .section-badge'); if (el) el.textContent = a.badge; }
-      if (a.title1) { const el = document.querySelector('.about-title');  if (el) el.childNodes[0].textContent = a.title1 + ' '; }
-      if (a.title2) { const el = document.querySelector('.about-title em'); if (el) el.textContent = a.title2; }
-      if (a.deco)   { const el = document.querySelector('.about-deco-icon'); if (el) el.textContent = a.deco; }
-      if (a.body)   { const el = document.querySelector('.about-text');   if (el) el.innerHTML = a.body.replace(/\n/g, '<br>'); }
-      if (a.bgColor){ const el = document.querySelector('.about');        if (el) el.style.background = a.bgColor; }
-    }
+    // About
+    const a = results['about'] || {};
+    if (a.badge)  { var el = document.querySelector('#about .section-badge'); if (el) el.textContent = a.badge; }
+    if (a.title1) { var el = document.querySelector('.about-title'); if (el && el.childNodes[0]) el.childNodes[0].textContent = a.title1 + ' '; }
+    if (a.title2) { var el = document.querySelector('.about-title em'); if (el) el.textContent = a.title2; }
+    if (a.deco)   { var el = document.querySelector('.about-deco-icon'); if (el) el.textContent = a.deco; }
+    if (a.body)   { var el = document.querySelector('.about-text'); if (el) el.innerHTML = a.body.split('
+').join('<br>'); }
+    if (a.bgColor){ var el = document.querySelector('.about'); if (el) el.style.background = a.bgColor; }
 
-    // ── GALLERY ──
-    const gal = galleryDoc.exists ? galleryDoc.data() : {};
-    const galText = galTextDoc.exists ? galTextDoc.data() : {};
-    if (galText.badge) { const el = document.querySelector('#gallery .section-badge'); if (el) el.textContent = galText.badge; }
-    if (galText.title) { const el = document.querySelector('.gallery-title'); if (el) el.innerHTML = galText.title.replace(/(\w+)$/, '<em>$1</em>'); }
-    if (galText.caption) { const el = document.querySelector('#gallery p'); if (el) el.textContent = galText.caption; }
+    // Gallery text
+    const gt = results['gallery-text'] || {};
+    if (gt.badge)   { var el = document.querySelector('#gallery .section-badge'); if (el) el.textContent = gt.badge; }
+    if (gt.caption) { var el = document.querySelector('#gallery p'); if (el) el.textContent = gt.caption; }
+
+    // Gallery images
+    const gal = results['gallery'] || {};
     if (gal.images && gal.images.length) {
-      const grid = document.querySelector('.gallery-grid');
+      var grid = document.querySelector('.gallery-grid');
       if (grid) {
-        grid.innerHTML = gal.images.map((img, i) => `
-          <div class="gallery-item ${i === 0 ? 'tall' : ''}">
-            <img src="${img.url}" alt="Café Molière" loading="lazy"/>
-          </div>`).join('');
-      }
-    }
-
-    // ── MENU CTA ──
-    if (ctaDoc.exists) {
-      const m = ctaDoc.data();
-      if (m.badge)    { const el = document.querySelector('#menu .section-badge'); if (el) el.textContent = m.badge; }
-      if (m.title1)   { const el = document.querySelector('.menu-shortcut-title'); if (el) el.childNodes[0].textContent = m.title1 + ' '; }
-      if (m.title2)   { const el = document.querySelector('.menu-shortcut-title em'); if (el) el.textContent = m.title2; }
-      if (m.subtitle) { const el = document.querySelector('.menu-shortcut-sub'); if (el) el.textContent = m.subtitle; }
-      if (m.btnText)  { const el = document.querySelector('.menu-cta'); if (el) el.childNodes[0].textContent = m.btnText; }
-      if (m.btnLink)  { const el = document.querySelector('.menu-cta'); if (el) el.href = m.btnLink; }
-      if (m.bgColor)  { const el = document.querySelector('.menu-shortcut'); if (el) el.style.background = m.bgColor; }
-    }
-
-    // ── INFO CARDS ──
-    if (infoDoc.exists) {
-      const ic = infoDoc.data();
-      if (ic.cards && ic.cards.length) {
-        const grid = document.querySelector('.info-inner');
-        if (grid) {
-          grid.innerHTML = ic.cards.map(card => `
-            <div class="info-card">
-              <div class="info-icon">${card.icon || ''}</div>
-              <div class="info-card-title">${card.title || ''}</div>
-              <div class="info-card-text">${(card.text || '').replace(/\n/g, '<br>')}</div>
-            </div>`).join('');
+        var html = '';
+        for (var gi = 0; gi < gal.images.length; gi++) {
+          html += '<div class="gallery-item ' + (gi === 0 ? 'tall' : '') + '"><img src="' + gal.images[gi].url + '" alt="Cafe Moliere" loading="lazy"/></div>';
         }
+        grid.innerHTML = html;
       }
     }
 
-    // ── STAFF ──
-    if (staffDoc.exists) {
-      const s = staffDoc.data();
-      if (s.title)   { const el = document.querySelector('.staff-title'); if (el) el.innerHTML = s.title.replace('Staff', '<em>Staff</em>'); }
-      if (s.prompt)  { const el = document.querySelector('#portal-logged-out p'); if (el) el.textContent = s.prompt; }
-      if (s.dashText){ const el = document.querySelector('a[href="orders-dashboard.html"]'); if (el) el.textContent = s.dashText; }
-      if (s.adminText){ const el = document.querySelector('a[href="admin.html"]'); if (el) el.textContent = s.adminText; }
-      if (s.bgColor) { const el = document.querySelector('.staff-portal'); if (el) el.style.background = s.bgColor; }
+    // Menu CTA
+    const m = results['menu-cta'] || {};
+    if (m.subtitle){ var el = document.querySelector('.menu-shortcut-sub'); if (el) el.textContent = m.subtitle; }
+    if (m.btnText) { var el = document.querySelector('.menu-cta'); if (el && el.childNodes[0]) el.childNodes[0].textContent = m.btnText; }
+    if (m.btnLink) { var el = document.querySelector('.menu-cta'); if (el) el.href = m.btnLink; }
+    if (m.bgColor) { var el = document.querySelector('.menu-shortcut'); if (el) el.style.background = m.bgColor; }
+
+    // Info cards
+    const ic = results['info-cards'] || {};
+    if (ic.cards && ic.cards.length) {
+      var grid = document.querySelector('.info-inner');
+      if (grid) {
+        var html = '';
+        for (var ci = 0; ci < ic.cards.length; ci++) {
+          var card = ic.cards[ci];
+          html += '<div class="info-card"><div class="info-icon">' + (card.icon || '') + '</div><div class="info-card-title">' + (card.title || '') + '</div><div class="info-card-text">' + (card.text || '').split('
+').join('<br>') + '</div></div>';
+        }
+        grid.innerHTML = html;
+      }
     }
 
-    // ── FOOTER ──
-    if (footerDoc.exists) {
-      const f = footerDoc.data();
-      if (f.logoText)  { const el = document.querySelector('.footer-logo'); if (el) el.innerHTML = f.logoText.replace('Molière', '<em>Molière</em>'); }
-      if (f.tagline)   { const el = document.querySelector('.footer-text'); if (el) el.textContent = f.tagline; }
-      if (f.copyright) { const el = document.querySelector('.footer-text'); if (el) el.textContent = f.copyright; }
-    }
+    // Staff
+    const s = results['staff'] || {};
+    if (s.prompt)   { var el = document.querySelector('#portal-logged-out p'); if (el) el.textContent = s.prompt; }
+    if (s.dashText) { var el = document.querySelector('a[href="orders-dashboard.html"]'); if (el) el.textContent = s.dashText; }
+    if (s.adminText){ var el = document.querySelector('a[href="admin.html"]'); if (el) el.textContent = s.adminText; }
+    if (s.bgColor)  { var el = document.querySelector('.staff-portal'); if (el) el.style.background = s.bgColor; }
 
-    console.log('✅ Homepage content loaded from Firestore');
+    // Footer
+    const f = results['footer'] || {};
+    if (f.copyright){ var el = document.querySelector('.footer-text'); if (el) el.textContent = f.copyright; }
+
   } catch(e) {
-    console.log('Firestore load error (using defaults):', e.message);
+    console.log('Firestore load error:', e.message);
   }
 }
 
-// Load from Firestore on every page load
 loadFromFirestore();
 
+// ── NAVBAR SCROLL ──
+window.addEventListener('scroll', function() {
+  document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 60);
+});
 
+// ── SCROLL REVEAL ──
+function revealAll() {
+  document.querySelectorAll('.reveal').forEach(function(el) { el.classList.add('visible'); });
+}
+if ('IntersectionObserver' in window) {
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.05, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('.reveal').forEach(function(el) { observer.observe(el); });
+  setTimeout(revealAll, 3000);
+} else {
+  revealAll();
+}
 
 // ── AUTH ──
 function doLogin() {
-  const provider = new firebase.auth.OAuthProvider('microsoft.com');
+  var provider = new firebase.auth.OAuthProvider('microsoft.com');
   provider.setCustomParameters({ tenant: 'cafemoliere.com' });
-  auth.signInWithPopup(provider)
-    .then(() => {})
-    .catch(e => {
-      if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') {
-        // Fallback to redirect if popup blocked
-        auth.signInWithRedirect(provider);
-      } else if (e.code !== 'auth/popup-closed-by-user') {
-        alert('Connexion échouée. Utilisez votre compte @cafemoliere.com\nErreur: ' + e.message);
-      }
-    });
+  auth.signInWithPopup(provider).catch(function(e) {
+    if (e.code === 'auth/popup-blocked') {
+      auth.signInWithRedirect(provider);
+    } else if (e.code !== 'auth/popup-closed-by-user') {
+      alert('Connexion echouee. Utilisez votre compte @cafemoliere.com');
+    }
+  });
 }
 
 function doLogout() { auth.signOut(); }
 
-// Handle redirect result (fallback from popup-blocked)
-auth.getRedirectResult().then(result => {
-  if (result && result.user) console.log('Redirect login success');
-}).catch(e => { console.error('Redirect error:', e); });
+auth.getRedirectResult().then(function(r) {
+  if (r && r.user) console.log('Login OK');
+}).catch(function(e) { console.error(e); });
 
-auth.onAuthStateChanged(user => {
-  const isStaff = user && user.email && user.email.endsWith('@cafemoliere.com');
-
-  // Navbar
+auth.onAuthStateChanged(function(user) {
+  var isStaff = user && user.email && user.email.endsWith('@cafemoliere.com');
   document.getElementById('nav-login-btn').style.display  = isStaff ? 'none'        : 'inline-flex';
   document.getElementById('nav-logout-btn').style.display = isStaff ? 'inline-flex' : 'none';
   if (isStaff) {
     document.getElementById('nav-user-name').textContent = user.email.split('@')[0];
   }
-
-  // Staff portal
   document.getElementById('portal-logged-out').style.display = isStaff ? 'none'  : 'block';
   document.getElementById('portal-logged-in').style.display  = isStaff ? 'block' : 'none';
   if (isStaff) {
     document.getElementById('portal-email').textContent = user.email;
-    // Show admin-home only for administrator
-    const adminHomeLink = document.getElementById('admin-home-link');
-    if (adminHomeLink) {
-      adminHomeLink.style.display = user.email === 'administrator@cafemoliere.com' ? 'inline-flex' : 'none';
-    }
+    var lnk = document.getElementById('admin-home-link');
+    if (lnk) lnk.style.display = user.email === 'administrator@cafemoliere.com' ? 'inline-flex' : 'none';
   }
 });
 </script>
