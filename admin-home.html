@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Café Molière — Homepage CMS</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#111;color:#fff;font-family:'DM Sans',sans-serif;min-height:100vh}
+
+/* LOGIN */
+.login-screen{position:fixed;inset:0;background:#111;display:flex;align-items:center;justify-content:center;z-index:9999;padding:24px}
+.login-screen.hidden{display:none}
+.login-box{background:#1A1A1A;border-radius:20px;padding:40px 32px;width:100%;max-width:380px;border:1px solid #2A2A2A}
+.login-title{font-family:'Playfair Display',serif;font-size:1.8rem;color:#FCECBB;text-align:center}
+.login-title em{font-style:italic;color:#FF5E00}
+.login-bar{width:40px;height:2px;background:#FF5E00;margin:12px auto 24px;border-radius:2px}
+.login-error{background:rgba(255,94,0,0.1);border:1px solid rgba(255,94,0,0.3);color:#FF5E00;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:16px;display:none}
+.ms-btn{width:100%;padding:14px;background:#fff;color:#333;border:1.5px solid #ddd;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px}
+.ms-btn:hover{background:#f5f5f5}
+.ms-btn:disabled{opacity:0.5;cursor:not-allowed}
+.login-note{text-align:center;font-size:11px;color:#444;margin-top:12px}
+.login-note strong{color:#FF5E00}
+
+/* HEADER */
+.header{background:#FF5E00;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.header-title{font-family:'Playfair Display',serif;font-size:1rem;color:#fff}
+.header-title em{font-style:italic}
+.header-btns{display:flex;gap:6px;align-items:center}
+.hbtn{padding:7px 16px;border:none;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;letter-spacing:0.05em;transition:all 0.2s}
+.hbtn-preview{background:#fff;color:#FF5E00}
+.hbtn-preview:hover{background:#FCECBB}
+.hbtn-logout{background:rgba(255,255,255,0.2);color:#fff}
+
+/* TABS */
+.tabs{display:flex;background:#1A1A1A;border-bottom:1px solid #2A2A2A;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:12px 18px;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#555;background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all 0.2s}
+.tab.active{color:#FF5E00;border-bottom-color:#FF5E00}
+
+/* CONTENT */
+.content{max-width:800px;margin:0 auto;padding:24px 16px 80px}
+.panel{display:none}
+.panel.active{display:block}
+
+/* CARDS */
+.card{background:#1A1A1A;border-radius:14px;padding:22px;border:1px solid #2A2A2A;margin-bottom:16px}
+.card-title{font-family:'Playfair Display',serif;font-size:1.05rem;color:#FCECBB;margin-bottom:3px}
+.card-title em{font-style:italic;color:#FF5E00}
+.card-sub{font-size:11px;color:#555;margin-bottom:16px}
+
+/* FIELDS */
+.fl{font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#555;margin-bottom:5px;margin-top:14px;display:block}
+.fl:first-of-type{margin-top:0}
+.fi{width:100%;padding:11px 13px;background:#111;border:1.5px solid #2A2A2A;border-radius:9px;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color 0.2s}
+.fi:focus{border-color:#FF5E00}
+.fi::placeholder{color:#444}
+textarea.fi{resize:vertical;min-height:100px;line-height:1.6}
+select.fi{cursor:pointer}
+.fi-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:500px){.fi-row{grid-template-columns:1fr}}
+
+/* SAVE BTN */
+.save-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:#FF5E00;color:#fff;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-top:16px;transition:opacity 0.2s,transform 0.15s}
+.save-btn:hover{opacity:0.88;transform:translateY(-1px)}
+.save-btn:active{transform:translateY(0)}
+.save-btn.saving{opacity:0.6;cursor:not-allowed}
+.save-btn.saved{background:#27ae60}
+.add-btn{padding:9px 18px;background:#2A2A2A;color:#FCECBB;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;margin-top:10px;display:inline-flex;align-items:center;gap:6px}
+.add-btn:hover{background:#333}
+
+/* COLOR */
+.color-row{display:flex;align-items:center;gap:10px;margin-top:12px}
+.color-swatch{width:38px;height:32px;border:none;border-radius:7px;cursor:pointer;padding:2px;background:none;flex-shrink:0}
+.color-hex{flex:1;padding:9px 11px;background:#111;border:1.5px solid #2A2A2A;border-radius:8px;color:#fff;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;transition:border-color 0.2s}
+.color-hex:focus{border-color:#FF5E00}
+.color-lbl{font-size:11px;color:#666;width:100px;flex-shrink:0}
+
+/* IMAGE UPLOAD */
+.img-zone{border:2px dashed #2A2A2A;border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;margin-top:8px}
+.img-zone:hover{border-color:#FF5E00;background:rgba(255,94,0,0.04)}
+.img-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.img-zone-icon{font-size:1.8rem;margin-bottom:6px}
+.img-zone-text{font-size:12px;color:#555}
+.img-zone-text strong{color:#FF5E00}
+.img-cur{width:100%;max-height:140px;object-fit:cover;border-radius:9px;margin-bottom:10px;border:1px solid #2A2A2A;display:none}
+.img-prog{height:3px;background:#2A2A2A;border-radius:2px;margin-top:8px;overflow:hidden;display:none}
+.img-prog-bar{height:100%;background:#FF5E00;width:0%;transition:width 0.2s;border-radius:2px}
+
+/* SECTIONS LIST */
+.sec-list{display:flex;flex-direction:column;gap:8px}
+.sec-row{background:#1A1A1A;border:1px solid #2A2A2A;border-radius:10px;overflow:hidden;transition:border-color 0.2s}
+.sec-row.drag-over{border-color:#FF5E00;border-style:dashed}
+.sec-row.dragging{opacity:0.4}
+.sec-row-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer}
+.sec-row-head:hover{background:#222}
+.sec-drag{color:#333;cursor:grab;font-size:15px;flex-shrink:0;user-select:none}
+.sec-row-icon{font-size:1.2rem;flex-shrink:0}
+.sec-row-name{flex:1;font-weight:600;font-size:13px;color:#FCECBB}
+.sec-row-type{font-size:10px;color:#555;margin-left:6px}
+.sec-row-btns{display:flex;gap:5px;flex-shrink:0}
+.srb{width:28px;height:28px;border:none;border-radius:6px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;flex-shrink:0}
+.srb-vis{background:#222;color:#888}
+.srb-vis.hidden-s{color:#FF5E00;background:#2A2A2A}
+.srb-del{background:#2A2A2A;color:#e74c3c}
+.srb-del:hover{background:rgba(231,76,60,0.2)}
+.sec-row-body{display:none;padding:14px;border-top:1px solid #2A2A2A;background:#111}
+.sec-row-body.open{display:block}
+
+/* ADD SECTION */
+.add-sec-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+@media(max-width:500px){.add-sec-grid{grid-template-columns:1fr 1fr}}
+.add-sec-btn{padding:14px 8px;background:#1A1A1A;border:1.5px solid #2A2A2A;border-radius:10px;cursor:pointer;text-align:center;transition:all 0.2s;width:100%}
+.add-sec-btn:hover{border-color:#FF5E00;background:#1E1E1E}
+.asb-icon{font-size:1.5rem;margin-bottom:5px}
+.asb-name{font-size:11px;font-weight:600;color:#FCECBB}
+
+/* CARDS IN SECTION */
+.card-item{background:#1A1A1A;border-radius:9px;padding:12px;margin-bottom:8px;border:1px solid #2A2A2A}
+.card-item-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.card-item-label{font-size:12px;font-weight:600;color:#888}
+.card-item-del{padding:3px 9px;background:rgba(231,76,60,0.15);color:#e74c3c;border:none;border-radius:5px;font-size:11px;cursor:pointer}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:11px 22px;border-radius:10px;font-size:13px;font-weight:500;z-index:9999;animation:toastIn 0.3s ease;white-space:nowrap;pointer-events:none}
+.toast.success{background:#27ae60;color:#fff}
+.toast.error{background:#e74c3c;color:#fff}
+.toast.info{background:#FF5E00;color:#fff}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* STATUS */
+.status-bar{background:#1A1A1A;border-bottom:1px solid #2A2A2A;padding:8px 20px;font-size:11px;color:#555;display:flex;align-items:center;gap:8px}
+.status-dot{width:7px;height:7px;border-radius:50%;background:#555;flex-shrink:0}
+.status-dot.saved{background:#27ae60}
+.status-dot.unsaved{background:#FF5E00;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div class="login-title">Café <em>Molière</em></div>
+    <div style="font-size:11px;color:#555;letter-spacing:0.12em;text-transform:uppercase;text-align:center;margin-top:4px">Homepage CMS</div>
+    <div class="login-bar"></div>
+    <div class="login-error" id="login-error"></div>
+    <button class="ms-btn" id="login-btn" onclick="doLogin()">
+      <svg width="20" height="20" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+        <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+        <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+        <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+      </svg>
+      Sign in with Microsoft
+    </button>
+    <p class="login-note">Only <strong><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="99f8fdf4f0f7f0eaedebf8edf6ebd9faf8fffcf4f6f5f0fcebfcb7faf6f4">[email&#160;protected]</a></strong></p>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none">
+
+<div class="header">
+  <div class="header-title">Café <em>Molière</em> — Homepage CMS</div>
+  <div class="header-btns">
+    <span id="user-tag" style="font-size:11px;color:rgba(255,255,255,0.6)"></span>
+    <button class="hbtn hbtn-preview" onclick="window.open('index.html','_blank')">👁 Preview Site</button>
+    <button class="hbtn" style="background:#FCECBB;color:#FF5E00;font-weight:700" onclick="publishSite()">🚀 Publish All</button>
+    <button class="hbtn hbtn-logout" onclick="doLogout()">Sign Out</button>
+  </div>
+</div>
+
+<div class="status-bar">
+  <div class="status-dot" id="status-dot"></div>
+  <span id="status-text">Loading...</span>
+</div>
+
+<div class="tabs" id="tabs">
+  <button class="tab active" onclick="switchTab('hero',this)">🎬 Hero</button>
+  <button class="tab" onclick="switchTab('about',this)">📖 About</button>
+  <button class="tab" onclick="switchTab('gallery',this)">📸 Gallery</button>
+  <button class="tab" onclick="switchTab('menu-cta',this)">🍽️ Menu CTA</button>
+  <button class="tab" onclick="switchTab('info',this)">📍 Info Cards</button>
+  <button class="tab" onclick="switchTab('staff',this)">👤 Staff</button>
+  <button class="tab" onclick="switchTab('sections',this)">📦 Sections</button>
+  <button class="tab" onclick="switchTab('design',this)">🎨 Design</button>
+  <button class="tab" onclick="switchTab('nav-footer',this)">🧭 Nav & Footer</button>
+</div>
+
+<div class="content">
+
+  <!-- ══ HERO ══ -->
+  <div class="panel active" id="panel-hero">
+    <div class="card">
+      <div class="card-title">🎬 Hero <em>Background Image</em></div>
+      <div class="card-sub">Full-screen image shown behind the logo</div>
+      <img id="hero-bg-cur" class="img-cur" alt="Current background">
+      <div class="img-zone">
+        <input type="file" accept="image/*" id="hero-bg-file" onchange="uploadImg('hero','heroBg',this,'hero-bg-cur','hero-bg-prog')">
+        <div class="img-zone-icon">🖼️</div>
+        <div class="img-zone-text">Drop image or <strong>click to upload</strong><br>Best: 1920×1080px JPG</div>
+      </div>
+      <div class="img-prog" id="hero-bg-prog"><div class="img-prog-bar" id="hero-bg-bar"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🎭 Hero <em>Logo</em></div>
+      <div class="card-sub">Logo shown on the hero section</div>
+      <img id="hero-logo-cur" class="img-cur" style="object-fit:contain;background:#FF5E00;padding:10px" alt="Current logo">
+      <div class="img-zone">
+        <input type="file" accept="image/*" id="hero-logo-file" onchange="uploadImg('hero','heroLogo',this,'hero-logo-cur','hero-logo-prog')">
+        <div class="img-zone-icon">🏷️</div>
+        <div class="img-zone-text">Drop logo or <strong>click to upload</strong><br>PNG transparent recommended</div>
+      </div>
+      <div class="img-prog" id="hero-logo-prog"><div class="img-prog-bar" id="hero-logo-bar"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">✍️ Hero <em>Text</em></div>
+      <label class="fl">Tagline</label>
+      <input class="fi" id="hero-tagline" placeholder="Goûter la culture, savourer l'instant">
+      <label class="fl">CTA Button Text</label>
+      <input class="fi" id="hero-cta-text" placeholder="🍽️ Voir le Menu & Commander">
+      <label class="fl">CTA Button Link</label>
+      <input class="fi" id="hero-cta-link" placeholder="menu.html">
+      <label class="fl">Background Darkness (0 = bright, 1 = very dark)</label>
+      <input class="fi" id="hero-overlay" type="number" min="0" max="1" step="0.05" placeholder="0.35">
+      <button class="save-btn" id="save-hero-text" onclick="saveDoc('hero',{tagline:v('hero-tagline'),ctaText:v('hero-cta-text'),ctaLink:v('hero-cta-link'),overlay:v('hero-overlay')},'save-hero-text')">
+        💾 Save Hero Text
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ ABOUT ══ -->
+  <div class="panel" id="panel-about">
+    <div class="card">
+      <div class="card-title">📖 About <em>Section</em></div>
+      <label class="fl">Badge Text</label>
+      <input class="fi" id="about-badge" placeholder="Notre Histoire">
+      <label class="fl">Title — First Part</label>
+      <input class="fi" id="about-t1" placeholder="Le Café Molière">
+      <label class="fl">Title — Italic Part</label>
+      <input class="fi" id="about-t2" placeholder="entre en scène">
+      <label class="fl">Deco Emoji</label>
+      <input class="fi" id="about-deco" placeholder="🎭" maxlength="4">
+      <label class="fl">Body Text (use new lines freely)</label>
+      <textarea class="fi" id="about-body" placeholder="Your about text here..."></textarea>
+      <div class="color-row">
+        <span class="color-lbl">Background</span>
+        <input type="color" class="color-swatch" id="about-bg-c" value="#1A1A1A" oninput="document.getElementById('about-bg-h').value=this.value">
+        <input class="color-hex" id="about-bg-h" value="#1A1A1A" maxlength="7" oninput="document.getElementById('about-bg-c').value=this.value">
+      </div>
+      <button class="save-btn" id="save-about" onclick="saveDoc('about',{badge:v('about-badge'),title1:v('about-t1'),title2:v('about-t2'),deco:v('about-deco'),body:v('about-body'),bgColor:v('about-bg-h')},'save-about')">
+        💾 Save About Section
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ GALLERY ══ -->
+  <div class="panel" id="panel-gallery">
+    <div class="card">
+      <div class="card-title">📸 Gallery <em>Photos</em></div>
+      <div class="card-sub">Upload photos · Click ✕ to delete · Drag to reorder</div>
+      <label class="fl">Section Badge</label>
+      <input class="fi" id="gal-badge" placeholder="Galerie">
+      <label class="fl">Section Title</label>
+      <input class="fi" id="gal-title" placeholder="Notre Espace">
+      <label class="fl">Caption Below Gallery</label>
+      <input class="fi" id="gal-caption" placeholder="BEIT CHABAB · LYCÉE MONTAIGNE ÉCOLE">
+      <button class="save-btn" id="save-gal-text" onclick="saveDoc('gallery-text',{badge:v('gal-badge'),title:v('gal-title'),caption:v('gal-caption')},'save-gal-text')" style="margin-bottom:16px">
+        💾 Save Gallery Text
+      </button>
+      <div id="gallery-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px"></div>
+      <div class="img-zone">
+        <input type="file" accept="image/*" multiple onchange="uploadGallery(this)">
+        <div class="img-zone-icon">📷</div>
+        <div class="img-zone-text">Add photos — <strong>click to upload</strong><br>You can select multiple at once</div>
+      </div>
+      <div class="img-prog" id="gal-prog"><div class="img-prog-bar" id="gal-bar"></div></div>
+    </div>
+  </div>
+
+  <!-- ══ MENU CTA ══ -->
+  <div class="panel" id="panel-menu-cta">
+    <div class="card">
+      <div class="card-title">🍽️ Menu <em>Shortcut Section</em></div>
+      <label class="fl">Badge</label>
+      <input class="fi" id="cta-badge" placeholder="Notre Carte">
+      <label class="fl">Title — First Part</label>
+      <input class="fi" id="cta-t1" placeholder="Découvrez notre">
+      <label class="fl">Title — Italic Part</label>
+      <input class="fi" id="cta-t2" placeholder="Menu">
+      <label class="fl">Subtitle</label>
+      <input class="fi" id="cta-sub" placeholder="Des plats aux noms de Molière...">
+      <label class="fl">Button Text</label>
+      <input class="fi" id="cta-btn" placeholder="🍽️ Ouvrir le Menu & Commander">
+      <label class="fl">Button Link</label>
+      <input class="fi" id="cta-link" placeholder="menu.html">
+      <div class="color-row">
+        <span class="color-lbl">Background</span>
+        <input type="color" class="color-swatch" id="cta-bg-c" value="#FF5E00" oninput="document.getElementById('cta-bg-h').value=this.value">
+        <input class="color-hex" id="cta-bg-h" value="#FF5E00" maxlength="7" oninput="document.getElementById('cta-bg-c').value=this.value">
+      </div>
+      <button class="save-btn" id="save-cta" onclick="saveDoc('menu-cta',{badge:v('cta-badge'),title1:v('cta-t1'),title2:v('cta-t2'),subtitle:v('cta-sub'),btnText:v('cta-btn'),btnLink:v('cta-link'),bgColor:v('cta-bg-h')},'save-cta')">
+        💾 Save Menu CTA Section
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ INFO CARDS ══ -->
+  <div class="panel" id="panel-info">
+    <div class="card">
+      <div class="card-title">📍 Info <em>Cards</em></div>
+      <div class="card-sub">Edit, add or delete the info cards shown on the homepage</div>
+      <label class="fl">Section Badge</label>
+      <input class="fi" id="info-badge" placeholder="Informations">
+      <label class="fl">Section Title</label>
+      <input class="fi" id="info-title" placeholder="Nous trouver">
+      <div id="info-cards-list" style="margin-top:14px"></div>
+      <button class="add-btn" onclick="addInfoCard()">+ Add Card</button>
+      <button class="save-btn" id="save-info" onclick="saveInfoCards()">
+        💾 Save All Info Cards
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ STAFF ══ -->
+  <div class="panel" id="panel-staff">
+    <div class="card">
+      <div class="card-title">👤 Staff <em>Portal Section</em></div>
+      <label class="fl">Section Title</label>
+      <input class="fi" id="staff-title" placeholder="Espace Staff">
+      <label class="fl">Login Prompt Text</label>
+      <input class="fi" id="staff-prompt" placeholder="Connectez-vous avec votre compte @cafemoliere.com">
+      <label class="fl">Dashboard Button Label</label>
+      <input class="fi" id="staff-dash" placeholder="🗂️ Tableau de bord">
+      <label class="fl">Admin Button Label</label>
+      <input class="fi" id="staff-admin" placeholder="⚙️ Administration">
+      <div class="color-row">
+        <span class="color-lbl">Background</span>
+        <input type="color" class="color-swatch" id="staff-bg-c" value="#111111" oninput="document.getElementById('staff-bg-h').value=this.value">
+        <input class="color-hex" id="staff-bg-h" value="#111111" maxlength="7" oninput="document.getElementById('staff-bg-c').value=this.value">
+      </div>
+      <button class="save-btn" id="save-staff" onclick="saveDoc('staff',{title:v('staff-title'),prompt:v('staff-prompt'),dashText:v('staff-dash'),adminText:v('staff-admin'),bgColor:v('staff-bg-h')},'save-staff')">
+        💾 Save Staff Section
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ SECTIONS MANAGER ══ -->
+  <div class="panel" id="panel-sections">
+    <div class="card">
+      <div class="card-title">📦 Sections <em>Manager</em></div>
+      <div class="card-sub">Drag ⠿ to reorder · 👁 to show/hide · 🗑 to delete · Click to expand</div>
+      <div class="sec-list" id="sec-list"></div>
+      <div style="margin-top:16px">
+        <p style="font-size:11px;color:#555;margin-bottom:10px;letter-spacing:0.05em">ADD NEW SECTION:</p>
+        <div class="add-sec-grid">
+          <button class="add-sec-btn" onclick="addCustomSection('text')"><div class="asb-icon">📝</div><div class="asb-name">Text Block</div></button>
+          <button class="add-sec-btn" onclick="addCustomSection('image')"><div class="asb-icon">🖼️</div><div class="asb-name">Full Image</div></button>
+          <button class="add-sec-btn" onclick="addCustomSection('divider')"><div class="asb-icon">➖</div><div class="asb-name">Divider</div></button>
+          <button class="add-sec-btn" onclick="addCustomSection('custom-cta')"><div class="asb-icon">🎯</div><div class="asb-name">Custom CTA</div></button>
+          <button class="add-sec-btn" onclick="addCustomSection('two-col')"><div class="asb-icon">⬛⬛</div><div class="asb-name">Two Columns</div></button>
+          <button class="add-sec-btn" onclick="addCustomSection('quote')"><div class="asb-icon">💬</div><div class="asb-name">Quote</div></button>
+        </div>
+      </div>
+      <button class="save-btn" id="save-sections" onclick="saveSections()">
+        💾 Save Section Order & Visibility
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ DESIGN ══ -->
+  <div class="panel" id="panel-design">
+    <div class="card">
+      <div class="card-title">🎨 Brand <em>Colors</em></div>
+      <div class="color-row"><span class="color-lbl">🟠 Primary Orange</span><input type="color" class="color-swatch" id="dc-orange" value="#FF5E00" oninput="document.getElementById('dh-orange').value=this.value"><input class="color-hex" id="dh-orange" value="#FF5E00" maxlength="7" oninput="document.getElementById('dc-orange').value=this.value"></div>
+      <div class="color-row"><span class="color-lbl">🟡 Cream Accent</span><input type="color" class="color-swatch" id="dc-cream" value="#FCECBB" oninput="document.getElementById('dh-cream').value=this.value"><input class="color-hex" id="dh-cream" value="#FCECBB" maxlength="7" oninput="document.getElementById('dc-cream').value=this.value"></div>
+      <div class="color-row"><span class="color-lbl">⚫ Dark BG</span><input type="color" class="color-swatch" id="dc-dark" value="#1A1A1A" oninput="document.getElementById('dh-dark').value=this.value"><input class="color-hex" id="dh-dark" value="#1A1A1A" maxlength="7" oninput="document.getElementById('dc-dark').value=this.value"></div>
+      <button class="save-btn" id="save-colors" onclick="saveDoc('design-colors',{orange:v('dh-orange'),cream:v('dh-cream'),dark:v('dh-dark')},'save-colors')">
+        💾 Save Colors
+      </button>
+    </div>
+    <div class="card">
+      <div class="card-title">🔤 <em>Typography</em></div>
+      <label class="fl">Display / Title Font</label>
+      <select class="fi" id="font-display">
+        <option value="Playfair Display">Playfair Display (current)</option>
+        <option value="Cormorant Garamond">Cormorant Garamond</option>
+        <option value="Lora">Lora</option>
+        <option value="Merriweather">Merriweather</option>
+        <option value="Libre Baskerville">Libre Baskerville</option>
+      </select>
+      <label class="fl">Body / Text Font</label>
+      <select class="fi" id="font-body">
+        <option value="DM Sans">DM Sans (current)</option>
+        <option value="Nunito">Nunito</option>
+        <option value="Poppins">Poppins</option>
+        <option value="Raleway">Raleway</option>
+        <option value="Work Sans">Work Sans</option>
+      </select>
+      <div id="font-preview" style="margin-top:12px;padding:14px;background:#111;border-radius:8px;text-align:center;font-size:1.2rem;color:#FCECBB;border:1px solid #2A2A2A">
+        Café Molière — Goûter la culture
+      </div>
+      <button class="save-btn" id="save-fonts" onclick="saveFonts()">
+        💾 Save Typography
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ NAV & FOOTER ══ -->
+  <div class="panel" id="panel-nav-footer">
+    <div class="card">
+      <div class="card-title">🧭 <em>Navbar</em></div>
+      <label class="fl">Logo Text</label>
+      <input class="fi" id="nav-logo" placeholder="Café Molière">
+      <label class="fl">Menu Button Text</label>
+      <input class="fi" id="nav-menu" placeholder="🍽️ Notre Menu">
+      <label class="fl">Login Button Text</label>
+      <input class="fi" id="nav-login" placeholder="Connexion Staff">
+      <div class="color-row">
+        <span class="color-lbl">Navbar BG</span>
+        <input type="color" class="color-swatch" id="nav-bg-c" value="#FF5E00" oninput="document.getElementById('nav-bg-h').value=this.value">
+        <input class="color-hex" id="nav-bg-h" value="#FF5E00" maxlength="7" oninput="document.getElementById('nav-bg-c').value=this.value">
+      </div>
+      <button class="save-btn" id="save-nav" onclick="saveDoc('navbar',{logoText:v('nav-logo'),menuText:v('nav-menu'),loginText:v('nav-login'),bgColor:v('nav-bg-h')},'save-nav')">
+        💾 Save Navbar
+      </button>
+    </div>
+    <div class="card">
+      <div class="card-title">🦶 <em>Footer</em></div>
+      <label class="fl">Footer Logo Text</label>
+      <input class="fi" id="footer-logo" placeholder="Le Café Molière">
+      <label class="fl">Tagline</label>
+      <input class="fi" id="footer-tag" placeholder="Goûter la culture, savourer l'instant">
+      <label class="fl">Copyright Line</label>
+      <input class="fi" id="footer-copy" placeholder="© 2024 · Beit Chabab · Lycée Montaigne École">
+      <button class="save-btn" id="save-footer" onclick="saveDoc('footer',{logoText:v('footer-logo'),tagline:v('footer-tag'),copyright:v('footer-copy')},'save-footer')">
+        💾 Save Footer
+      </button>
+    </div>
+  </div>
+
+</div><!-- end content -->
+</div><!-- end app -->
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// ── FIREBASE ──
+const firebaseConfig = {
+  apiKey:     "AIzaSyANahV1JOHQqEweg6e8i_LvltXNCTW-kIw",
+  authDomain: "cafe-moliere.firebaseapp.com",
+  projectId:  "cafe-moliere",
+  storageBucket: "cafe-moliere.firebasestorage.app",
+};
+firebase.initializeApp(firebaseConfig);
+const db      = firebase.firestore();
+const auth    = firebase.auth();
+const storage = firebase.storage();
+const ADMIN   = 'administrator@cafemoliere.com';
+
+// ── STATE ──
+let galleryImages = [];
+let infoCards     = [];
+let pageSections  = [];
+let dragSecIdx    = null;
+
+// ── HELPERS ──
+function v(id) { return document.getElementById(id)?.value || ''; }
+
+function toast(msg, type='info') {
+  document.querySelector('.toast')?.remove();
+  let el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+function setStatus(saved) {
+  let dot  = document.getElementById('status-dot');
+  let text = document.getElementById('status-text');
+  dot.className  = 'status-dot ' + (saved ? 'saved' : 'unsaved');
+  text.textContent = saved ? 'All changes saved' : 'Unsaved changes';
+}
+
+function setSaveBtnState(id, state) {
+  let btn = document.getElementById(id);
+  if (!btn) return;
+  if (state === 'saving') {
+    btn.classList.add('saving');
+    btn.textContent = '⏳ Saving...';
+    btn.disabled = true;
+  } else if (state === 'saved') {
+    btn.classList.remove('saving');
+    btn.classList.add('saved');
+    btn.textContent = '✅ Saved!';
+    btn.disabled = false;
+    setTimeout(() => {
+      btn.classList.remove('saved');
+      btn.innerHTML = btn.innerHTML.replace('✅ Saved!', '💾 ' + btn.dataset.label);
+    }, 2000);
+  } else {
+    btn.classList.remove('saving','saved');
+    btn.disabled = false;
+  }
+}
+
+// ── TABS ──
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+}
+
+// ── SAVE DOC ──
+async function saveDoc(docId, data, btnId) {
+  let btn = document.getElementById(btnId);
+  if (btn) {
+    btn.dataset.label = btn.textContent.replace('💾 ','').replace('✅ ','').replace('⏳ ','');
+    setSaveBtnState(btnId,'saving');
+  }
+  try {
+    // Check auth first
+    let user = auth.currentUser;
+    if (!user) throw new Error('Not logged in. Please refresh and sign in again.');
+    if (user.email !== ADMIN) throw new Error('Only administrator@cafemoliere.com can save.');
+
+    await db.collection('homepage').doc(docId).set({
+      ...data,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    if (btnId) setSaveBtnState(btnId,'saved');
+    setStatus(true);
+    toast('Saved successfully!', 'success');
+  } catch(e) {
+    if (btnId) setSaveBtnState(btnId,'error');
+    let msg = e.message;
+    if (e.code === 'permission-denied') {
+      msg = 'Permission denied — update your Firestore rules to allow homepage writes';
+    }
+    toast('Save failed: ' + msg, 'error');
+    console.error('saveDoc error:', e);
+    alert('Save failed!\n\n' + msg + '\n\nMake sure your Firestore rules include:\nmatch /homepage/{docId} {\n  allow write: if request.auth.token.email == "administrator@cafemoliere.com";\n}');
+  }
+}
+
+// ── IMAGE UPLOAD ──
+async function uploadImg(docId, field, input, curImgId, progId) {
+  let file = input.files[0];
+  if (!file) return;
+  let prog = document.getElementById(progId);
+  let bar  = document.getElementById(progId.replace('prog','bar'));
+  if (prog) prog.style.display = 'block';
+  toast('Uploading image...', 'info');
+
+  try {
+    let ref  = storage.ref(`homepage/${docId}_${field}_${Date.now()}_${file.name}`);
+    let task = ref.put(file);
+    await new Promise((res, rej) => {
+      task.on('state_changed',
+        snap => { if(bar) bar.style.width = (snap.bytesTransferred/snap.totalBytes*100)+'%'; },
+        rej,
+        async () => {
+          let url = await task.snapshot.ref.getDownloadURL();
+          // Save URL to Firestore
+          await db.collection('homepage').doc(docId).set(
+            { [field]: url, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
+            { merge: true }
+          );
+          // Show preview
+          let cur = document.getElementById(curImgId);
+          if (cur) { cur.src = url; cur.style.display = 'block'; }
+          if (prog) prog.style.display = 'none';
+          setStatus(true);
+          toast('Image uploaded & saved!', 'success');
+          res();
+        }
+      );
+    });
+  } catch(e) {
+    if (prog) prog.style.display = 'none';
+    toast('Upload failed: ' + e.message, 'error');
+  }
+}
+
+// ── GALLERY ──
+function renderGallery() {
+  let grid = document.getElementById('gallery-grid');
+  grid.innerHTML = galleryImages.map((img, i) => `
+    <div style="position:relative;border-radius:8px;overflow:hidden;aspect-ratio:1;border:1px solid #2A2A2A"
+      draggable="true"
+      ondragstart="galDragStart(${i})"
+      ondragover="event.preventDefault()"
+      ondrop="galDrop(${i})">
+      <img src="${img.url}" style="width:100%;height:100%;object-fit:cover">
+      <button onclick="deleteGalImg(${i})" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.75);color:#fff;border:none;border-radius:5px;padding:3px 7px;font-size:11px;cursor:pointer;font-weight:600">✕</button>
+    </div>`).join('');
+}
+
+function galDragStart(i) { galDragIdx = i; }
+let galDragIdx = null;
+async function galDrop(toIdx) {
+  if (galDragIdx === null || galDragIdx === toIdx) return;
+  let item = galleryImages.splice(galDragIdx, 1)[0];
+  galleryImages.splice(toIdx, 0, item);
+  galDragIdx = null;
+  renderGallery();
+  await saveGallery();
+  toast('Photo order updated!', 'success');
+}
+
+async function deleteGalImg(idx) {
+  if (!confirm('Delete this photo?')) return;
+  galleryImages.splice(idx, 1);
+  renderGallery();
+  await saveGallery();
+  toast('Photo deleted', 'success');
+}
+
+async function saveGallery() {
+  await db.collection('homepage').doc('gallery').set({
+    images: galleryImages,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+  setStatus(true);
+}
+
+async function uploadGallery(input) {
+  let files = Array.from(input.files);
+  if (!files.length) return;
+  let prog = document.getElementById('gal-prog');
+  let bar  = document.getElementById('gal-bar');
+  prog.style.display = 'block';
+  toast(`Uploading ${files.length} photo(s)...`, 'info');
+  let done = 0;
+  for (const file of files) {
+    let ref  = storage.ref(`homepage/gallery/${Date.now()}_${file.name}`);
+    let task = ref.put(file);
+    await new Promise((res, rej) => {
+      task.on('state_changed',
+        snap => { bar.style.width = ((done + snap.bytesTransferred/snap.totalBytes)/files.length*100)+'%'; },
+        rej,
+        async () => {
+          let url = await task.snapshot.ref.getDownloadURL();
+          galleryImages.push({ url, id: Date.now()+'_'+Math.random() });
+          done++;
+          res();
+        }
+      );
+    });
+  }
+  await saveGallery();
+  renderGallery();
+  prog.style.display = 'none';
+  toast(`${files.length} photo(s) added!`, 'success');
+}
+
+// ── INFO CARDS ──
+function renderInfoCards() {
+  let list = document.getElementById('info-cards-list');
+  list.innerHTML = infoCards.map((c, i) => `
+    <div class="card-item">
+      <div class="card-item-head">
+        <span class="card-item-label">${c.icon||'📍'} Card ${i+1}</span>
+        <button class="card-item-del" onclick="deleteInfoCard(${i})">✕ Delete</button>
+      </div>
+      <div class="fi-row">
+        <div>
+          <label class="fl" style="margin-top:0">Icon</label>
+          <input class="fi" value="${c.icon||''}" maxlength="4" onchange="infoCards[${i}].icon=this.value">
+        </div>
+        <div>
+          <label class="fl" style="margin-top:0">Title</label>
+          <input class="fi" value="${c.title||''}" onchange="infoCards[${i}].title=this.value">
+        </div>
+      </div>
+      <label class="fl">Content</label>
+      <textarea class="fi" style="min-height:60px" onchange="infoCards[${i}].text=this.value">${c.text||''}</textarea>
+    </div>`).join('');
+}
+
+function addInfoCard() {
+  infoCards.push({ icon:'ℹ️', title:'New Card', text:'Content here' });
+  renderInfoCards();
+  setStatus(false);
+}
+
+function deleteInfoCard(idx) {
+  if (!confirm('Delete this card?')) return;
+  infoCards.splice(idx, 1);
+  renderInfoCards();
+  setStatus(false);
+}
+
+async function saveInfoCards() {
+  // Read current values from inputs
+  let items = document.querySelectorAll('#info-cards-list .card-item');
+  let cards = Array.from(items).map(item => ({
+    icon:  item.querySelectorAll('.fi')[0].value,
+    title: item.querySelectorAll('.fi')[1].value,
+    text:  item.querySelector('textarea').value,
+  }));
+  infoCards = cards;
+  await saveDoc('info-cards', {
+    badge:  v('info-badge'),
+    title:  v('info-title'),
+    cards,
+  }, 'save-info');
+}
+
+// ── SECTIONS MANAGER ──
+const DEFAULT_SECTIONS = [
+  { id:'s-hero',    type:'hero',     name:'Hero Banner',      icon:'🎬', visible:true },
+  { id:'s-about',   type:'about',    name:'About Section',    icon:'📖', visible:true },
+  { id:'s-cta',     type:'menu-cta', name:'Menu CTA',         icon:'🍽️', visible:true },
+  { id:'s-gallery', type:'gallery',  name:'Photo Gallery',    icon:'📸', visible:true },
+  { id:'s-info',    type:'cards',    name:'Info Cards',       icon:'📍', visible:true },
+  { id:'s-staff',   type:'staff',    name:'Staff Portal',     icon:'👤', visible:true },
+];
+
+function renderSections() {
+  let list = document.getElementById('sec-list');
+  list.innerHTML = pageSections.map((sec, i) => `
+    <div class="sec-row ${sec.visible?'':'opacity-50'}" id="secrow-${i}"
+      draggable="true"
+      ondragstart="secDragStart(${i})"
+      ondragover="event.preventDefault();document.getElementById('secrow-${i}').classList.add('drag-over')"
+      ondragleave="document.getElementById('secrow-${i}').classList.remove('drag-over')"
+      ondrop="secDrop(event,${i})">
+      <div class="sec-row-head">
+        <span class="sec-drag">⠿</span>
+        <span class="sec-row-icon">${sec.icon||'📦'}</span>
+        <span class="sec-row-name">${sec.name}</span>
+        <span class="sec-row-type">${sec.type}</span>
+        <div class="sec-row-btns" onclick="event.stopPropagation()">
+          <button class="srb srb-vis ${sec.visible?'':'hidden-s'}" onclick="toggleSecVis(${i})" title="${sec.visible?'Hide':'Show'}">${sec.visible?'👁':'🚫'}</button>
+          <button class="srb srb-del" onclick="deleteSec(${i})" title="Delete">🗑</button>
+        </div>
+      </div>
+      ${sec.type==='text'||sec.type==='image'||sec.type==='divider'||sec.type==='custom-cta'||sec.type==='two-col'||sec.type==='quote' ? `
+      <div class="sec-row-body" id="secbody-${i}">
+        ${renderSecBody(sec, i)}
+        <button class="save-btn" style="margin-top:10px" onclick="saveCustomSec(${i})">💾 Save This Section</button>
+      </div>` : ''}
+    </div>`).join('');
+}
+
+function renderSecBody(sec, i) {
+  let d = sec.data || {};
+  if (sec.type === 'text') return `
+    <label class="fl" style="margin-top:0">Text Content</label>
+    <textarea class="fi" onchange="pageSections[${i}].data.text=this.value">${d.text||''}</textarea>
+    <div class="fi-row" style="margin-top:8px">
+      <div><label class="fl">Alignment</label>
+        <select class="fi" onchange="pageSections[${i}].data.align=this.value">
+          <option value="left" ${d.align==='left'?'selected':''}>Left</option>
+          <option value="center" ${d.align==='center'?'selected':''}>Center</option>
+          <option value="right" ${d.align==='right'?'selected':''}>Right</option>
+        </select>
+      </div>
+      <div><label class="fl">Background</label>
+        <input type="color" class="color-swatch" value="${d.bgColor||'#1A1A1A'}" oninput="pageSections[${i}].data.bgColor=this.value" style="width:100%;height:38px">
+      </div>
+    </div>`;
+  if (sec.type === 'image') return `
+    <div class="img-zone"><input type="file" accept="image/*" onchange="uploadCustomSecImg(${i},this)">
+      <div class="img-zone-text">📁 Upload image · <strong>Click to browse</strong></div>
+    </div>
+    ${d.url ? `<img src="${d.url}" style="width:100%;max-height:100px;object-fit:cover;border-radius:7px;margin-top:8px">` : ''}
+    <label class="fl">Height (px)</label>
+    <input class="fi" type="number" value="${d.height||400}" onchange="pageSections[${i}].data.height=this.value">`;
+  if (sec.type === 'divider') return `
+    <label class="fl" style="margin-top:0">Style</label>
+    <select class="fi" onchange="pageSections[${i}].data.style=this.value">
+      <option value="line" ${d.style==='line'?'selected':''}>Simple Line</option>
+      <option value="deco" ${d.style==='deco'?'selected':''}>🎭 Decorative</option>
+      <option value="space" ${d.style==='space'?'selected':''}>Spacer</option>
+    </select>`;
+  if (sec.type === 'custom-cta') return `
+    <label class="fl" style="margin-top:0">Title</label><input class="fi" value="${d.title||''}" onchange="pageSections[${i}].data.title=this.value">
+    <label class="fl">Subtitle</label><input class="fi" value="${d.subtitle||''}" onchange="pageSections[${i}].data.subtitle=this.value">
+    <label class="fl">Button Text</label><input class="fi" value="${d.btnText||''}" onchange="pageSections[${i}].data.btnText=this.value">
+    <label class="fl">Button Link</label><input class="fi" value="${d.btnLink||''}" onchange="pageSections[${i}].data.btnLink=this.value">`;
+  if (sec.type === 'two-col') return `
+    <label class="fl" style="margin-top:0">Left Column Text</label><textarea class="fi" onchange="pageSections[${i}].data.left=this.value">${d.left||''}</textarea>
+    <label class="fl">Right Column Text</label><textarea class="fi" onchange="pageSections[${i}].data.right=this.value">${d.right||''}</textarea>`;
+  if (sec.type === 'quote') return `
+    <label class="fl" style="margin-top:0">Quote Text</label><textarea class="fi" onchange="pageSections[${i}].data.text=this.value">${d.text||''}</textarea>
+    <label class="fl">Author</label><input class="fi" value="${d.author||''}" onchange="pageSections[${i}].data.author=this.value">`;
+  return '';
+}
+
+function secDragStart(i) { dragSecIdx = i; }
+function secDrop(e, toIdx) {
+  e.preventDefault();
+  document.querySelectorAll('.sec-row').forEach(r => r.classList.remove('drag-over'));
+  if (dragSecIdx === null || dragSecIdx === toIdx) return;
+  let item = pageSections.splice(dragSecIdx, 1)[0];
+  pageSections.splice(toIdx, 0, item);
+  dragSecIdx = null;
+  renderSections();
+  setStatus(false);
+  toast('Section reordered — click Save to apply', 'info');
+}
+
+function toggleSecVis(i) { pageSections[i].visible = !pageSections[i].visible; renderSections(); setStatus(false); }
+function deleteSec(i) { if(!confirm('Delete this section?')) return; pageSections.splice(i,1); renderSections(); setStatus(false); }
+
+function addCustomSection(type) {
+  let icons = {text:'📝',image:'🖼️',divider:'➖','custom-cta':'🎯','two-col':'⬛','quote':'💬'};
+  let names = {text:'Text Block',image:'Full Image',divider:'Divider','custom-cta':'Custom CTA','two-col':'Two Columns','quote':'Quote'};
+  pageSections.push({ id:'s-'+Date.now(), type, name:names[type]||type, icon:icons[type]||'📦', visible:true, data:{} });
+  renderSections();
+  setStatus(false);
+  toast(names[type]+' added!', 'success');
+}
+
+async function uploadCustomSecImg(idx, input) {
+  let file = input.files[0]; if(!file) return;
+  let ref  = storage.ref(`homepage/custom/${Date.now()}_${file.name}`);
+  await ref.put(file);
+  let url  = await ref.getDownloadURL();
+  pageSections[idx].data.url = url;
+  renderSections();
+  setStatus(false);
+}
+
+async function saveCustomSec(i) { await saveSections(); }
+
+async function saveSections() {
+  let btn = document.getElementById('save-sections');
+  if(btn){ btn.dataset.label='Save Section Order & Visibility'; setSaveBtnState('save-sections','saving'); }
+  try {
+    await db.collection('homepage').doc('page-sections').set({
+      sections: pageSections,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    setSaveBtnState('save-sections','saved');
+    setStatus(true);
+    toast('Sections saved!', 'success');
+  } catch(e) {
+    toast('Save failed: '+e.message, 'error');
+    setSaveBtnState('save-sections','error');
+  }
+}
+
+// ── FONTS ──
+async function saveFonts() {
+  await saveDoc('design-fonts', {
+    display: v('font-display'),
+    body:    v('font-body'),
+  }, 'save-fonts');
+  updateFontPreview();
+}
+function updateFontPreview() {
+  let d = v('font-display');
+  let b = v('font-body');
+  let link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${d.replace(/ /g,'+')}:ital,wght@0,400;1,400&family=${b.replace(/ /g,'+')}&display=swap`;
+  document.head.appendChild(link);
+  let prev = document.getElementById('font-preview');
+  if(prev) prev.style.fontFamily = d;
+}
+document.getElementById('font-display')?.addEventListener('change', updateFontPreview);
+
+// ── CHECK RULES ──
+async function checkRules() {
+  try {
+    await db.collection('homepage').doc('_test').set({ test: true });
+    await db.collection('homepage').doc('_test').delete();
+  } catch(e) {
+    if (e.code === 'permission-denied') {
+      document.getElementById('status-text').textContent = '⚠️ Permission denied — update Firestore rules first!';
+      document.getElementById('status-dot').style.background = '#e74c3c';
+      alert('⚠️ Firestore Permission Error!\n\nYou need to update your Firestore rules.\n\nGo to:\nFirebase Console → Firestore → Rules\n\nAnd add this rule:\n\nmatch /homepage/{docId} {\n  allow read: if true;\n  allow write: if request.auth != null && request.auth.token.email == "administrator@cafemoliere.com";\n}');
+    }
+  }
+}
+
+async function loadAll() {
+  setStatus(false);
+  document.getElementById('status-text').textContent = 'Loading data...';
+  try {
+    let docs = ['hero','about','gallery','gallery-text','menu-cta','info-cards','staff','design-colors','design-fonts','navbar','footer','page-sections'];
+    let results = {};
+    for (const d of docs) {
+      let doc = await db.collection('homepage').doc(d).get();
+      if (doc.exists) results[d] = doc.data();
+    }
+
+    // HERO
+    let h = results['hero'] || {};
+    if(h.heroBg)   { const i=document.getElementById('hero-bg-cur');   i.src=h.heroBg;   i.style.display='block'; }
+    if(h.heroLogo) { const i=document.getElementById('hero-logo-cur'); i.src=h.heroLogo; i.style.display='block'; }
+    if(h.tagline)  document.getElementById('hero-tagline').value = h.tagline;
+    if(h.ctaText)  document.getElementById('hero-cta-text').value = h.ctaText;
+    if(h.ctaLink)  document.getElementById('hero-cta-link').value = h.ctaLink;
+    if(h.overlay)  document.getElementById('hero-overlay').value  = h.overlay;
+
+    // ABOUT
+    let a = results['about'] || {};
+    if(a.badge)   document.getElementById('about-badge').value = a.badge;
+    if(a.title1)  document.getElementById('about-t1').value    = a.title1;
+    if(a.title2)  document.getElementById('about-t2').value    = a.title2;
+    if(a.deco)    document.getElementById('about-deco').value  = a.deco;
+    if(a.body)    document.getElementById('about-body').value  = a.body;
+    if(a.bgColor) { document.getElementById('about-bg-c').value=a.bgColor; document.getElementById('about-bg-h').value=a.bgColor; }
+
+    // GALLERY
+    let g = results['gallery'] || {};
+    if(g.images) { galleryImages = g.images; renderGallery(); }
+    let gt = results['gallery-text'] || {};
+    if(gt.badge)   document.getElementById('gal-badge').value   = gt.badge;
+    if(gt.title)   document.getElementById('gal-title').value   = gt.title;
+    if(gt.caption) document.getElementById('gal-caption').value = gt.caption;
+
+    // MENU CTA
+    let m = results['menu-cta'] || {};
+    if(m.badge)    document.getElementById('cta-badge').value = m.badge;
+    if(m.title1)   document.getElementById('cta-t1').value    = m.title1;
+    if(m.title2)   document.getElementById('cta-t2').value    = m.title2;
+    if(m.subtitle) document.getElementById('cta-sub').value   = m.subtitle;
+    if(m.btnText)  document.getElementById('cta-btn').value   = m.btnText;
+    if(m.btnLink)  document.getElementById('cta-link').value  = m.btnLink;
+    if(m.bgColor)  { document.getElementById('cta-bg-c').value=m.bgColor; document.getElementById('cta-bg-h').value=m.bgColor; }
+
+    // INFO CARDS
+    let ic = results['info-cards'] || {};
+    if(ic.badge)  document.getElementById('info-badge').value = ic.badge;
+    if(ic.title)  document.getElementById('info-title').value = ic.title;
+    infoCards = ic.cards || [
+      {icon:'📍',title:'Adresse',text:'Lycée Montaigne\nBeit Chabab'},
+      {icon:'🕐',title:'Horaires',text:'Lundi – Vendredi\nHeures scolaires'},
+      {icon:'📱',title:'Commander',text:'Via notre menu en ligne'},
+      {icon:'📞',title:'Contact',text:'+961 71 503 555'},
+    ];
+    renderInfoCards();
+
+    // STAFF
+    let s = results['staff'] || {};
+    if(s.title)     document.getElementById('staff-title').value  = s.title;
+    if(s.prompt)    document.getElementById('staff-prompt').value  = s.prompt;
+    if(s.dashText)  document.getElementById('staff-dash').value    = s.dashText;
+    if(s.adminText) document.getElementById('staff-admin').value   = s.adminText;
+    if(s.bgColor)   { document.getElementById('staff-bg-c').value=s.bgColor; document.getElementById('staff-bg-h').value=s.bgColor; }
+
+    // DESIGN COLORS
+    let dc = results['design-colors'] || {};
+    if(dc.orange) { document.getElementById('dc-orange').value=dc.orange; document.getElementById('dh-orange').value=dc.orange; }
+    if(dc.cream)  { document.getElementById('dc-cream').value=dc.cream;   document.getElementById('dh-cream').value=dc.cream; }
+    if(dc.dark)   { document.getElementById('dc-dark').value=dc.dark;     document.getElementById('dh-dark').value=dc.dark; }
+
+    // FONTS
+    let df = results['design-fonts'] || {};
+    if(df.display) document.getElementById('font-display').value = df.display;
+    if(df.body)    document.getElementById('font-body').value    = df.body;
+    updateFontPreview();
+
+    // NAVBAR
+    let nav = results['navbar'] || {};
+    if(nav.logoText)  document.getElementById('nav-logo').value  = nav.logoText;
+    if(nav.menuText)  document.getElementById('nav-menu').value  = nav.menuText;
+    if(nav.loginText) document.getElementById('nav-login').value = nav.loginText;
+    if(nav.bgColor)   { document.getElementById('nav-bg-c').value=nav.bgColor; document.getElementById('nav-bg-h').value=nav.bgColor; }
+
+    // FOOTER
+    let ft = results['footer'] || {};
+    if(ft.logoText)  document.getElementById('footer-logo').value = ft.logoText;
+    if(ft.tagline)   document.getElementById('footer-tag').value  = ft.tagline;
+    if(ft.copyright) document.getElementById('footer-copy').value = ft.copyright;
+
+    // PAGE SECTIONS
+    let ps = results['page-sections'] || {};
+    pageSections = ps.sections || JSON.parse(JSON.stringify(DEFAULT_SECTIONS));
+    renderSections();
+
+    setStatus(true);
+    toast('All data loaded!', 'success');
+  } catch(e) {
+    document.getElementById('status-text').textContent = 'Load error: '+e.message;
+    toast('Load error: '+e.message, 'error');
+    console.error(e);
+  }
+}
+
+
+// ── PUBLISH ──
+async function publishSite() {
+  const btn = event.target;
+  btn.textContent = '⏳ Publishing...';
+  btn.disabled = true;
+  try {
+    await db.collection('homepage').doc('_published').set({
+      publishedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      publishedBy: auth.currentUser?.email || ADMIN,
+    });
+    btn.textContent = '✅ Published!';
+    btn.style.background = '#27ae60';
+    toast('🚀 Site published! Open Preview to see changes.', 'success');
+    setTimeout(() => {
+      btn.textContent = '🚀 Publish All';
+      btn.style.background = '#FCECBB';
+      btn.disabled = false;
+    }, 3000);
+  } catch(e) {
+    btn.textContent = '🚀 Publish All';
+    btn.disabled = false;
+    toast('Publish failed: ' + e.message, 'error');
+  }
+}
+
+// ── AUTH ──
+const msProvider = new firebase.auth.OAuthProvider('microsoft.com');
+msProvider.setCustomParameters({ tenant: 'cafemoliere.com' });
+
+function doLogin() {
+  let btn = document.getElementById('login-btn');
+  let err = document.getElementById('login-error');
+  if (err) err.style.display = 'none';
+  if (btn) { btn.textContent = 'Redirecting to Microsoft...'; btn.disabled = true; }
+  auth.signInWithRedirect(msProvider);
+}
+
+function doLogout() { auth.signOut(); }
+
+const MS_BTN_HTML = '<svg width="20" height="20" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg> Sign in with Microsoft';
+
+auth.getRedirectResult().then(result => {
+  if (result && result.user) console.log('Login success:', result.user.email);
+}).catch(e => {
+  if (e.code && e.code !== 'auth/no-auth-event') {
+    let err = document.getElementById('login-error');
+    let btn = document.getElementById('login-btn');
+    if (err) { err.textContent = 'Sign-in error: ' + e.message; err.style.display = 'block'; }
+    if (btn) { btn.innerHTML = MS_BTN_HTML; btn.disabled = false; }
+  }
+});
+
+auth.onAuthStateChanged(user => {
+  if (user && user.email === ADMIN) {
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('user-tag').textContent = user.email;
+    checkRules();
+    loadAll();
+  } else if (user && user.email !== ADMIN) {
+    auth.signOut();
+    let err = document.getElementById('login-error');
+    let btn = document.getElementById('login-btn');
+    if (err) { err.textContent = 'Access restricted to administrator@cafemoliere.com — you signed in as: ' + user.email; err.style.display = 'block'; }
+    if (btn) { btn.innerHTML = MS_BTN_HTML; btn.disabled = false; }
+  } else {
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('app').style.display = 'none';
+    let btn = document.getElementById('login-btn');
+    if (btn && !btn.textContent.includes('Redirecting')) {
+      btn.innerHTML = MS_BTN_HTML;
+      btn.disabled = false;
+    }
+  }
+});
+</script>
+</body>
+</html>
