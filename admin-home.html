@@ -305,6 +305,14 @@ select.fi{cursor:pointer}
         <input type="color" class="color-swatch" id="cta-bg-c" value="#FF5E00" oninput="document.getElementById('cta-bg-h').value=this.value">
         <input class="color-hex" id="cta-bg-h" value="#FF5E00" maxlength="7" oninput="document.getElementById('cta-bg-c').value=this.value">
       </div>
+      <label class="fl">QR Code Image</label>
+      <img id="qr-cur" class="img-cur" alt="Current QR Code" style="max-height:120px;object-fit:contain">
+      <div class="img-zone">
+        <input type="file" accept="image/*" onchange="uploadImg('menu-cta','qrCode',this,'qr-cur','qr-prog')">
+        <div class="img-zone-icon">📱</div>
+        <div class="img-zone-text">Upload QR Code image · <strong>click to browse</strong></div>
+      </div>
+      <div class="img-prog" id="qr-prog"><div class="img-prog-bar" id="qr-bar"></div></div>
       <button class="save-btn" id="save-cta" onclick="saveDoc('menu-cta',{badge:v('cta-badge'),title1:v('cta-t1'),title2:v('cta-t2'),subtitle:v('cta-sub'),btnText:v('cta-btn'),btnLink:v('cta-link'),bgColor:v('cta-bg-h')},'save-cta')">
         💾 Save Menu CTA Section
       </button>
@@ -451,10 +459,10 @@ select.fi{cursor:pointer}
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ── FIREBASE ──
 const firebaseConfig = {
-  apiKey:     "AIzaSyANahV1JOHQqEweg6e8i_LvltXNCTW-kIw",
-  authDomain: "cafe-moliere.firebaseapp.com",
-  projectId:  "cafe-moliere",
-  storageBucket: "cafe-moliere.firebasestorage.app",
+  apiKey:        "REPLACE_WITH_YOUR_API_KEY",
+  authDomain:    "REPLACE_WITH_YOUR_AUTH_DOMAIN",
+  projectId:     "REPLACE_WITH_YOUR_PROJECT_ID",
+  storageBucket: "REPLACE_WITH_YOUR_STORAGE_BUCKET",
 };
 firebase.initializeApp(firebaseConfig);
 const db      = firebase.firestore();
@@ -929,6 +937,7 @@ async function loadAll() {
     if(m.btnText)  document.getElementById('cta-btn').value   = m.btnText;
     if(m.btnLink)  document.getElementById('cta-link').value  = m.btnLink;
     if(m.bgColor)  { document.getElementById('cta-bg-c').value=m.bgColor; document.getElementById('cta-bg-h').value=m.bgColor; }
+    if(m.qrCode)   { var qc=document.getElementById('qr-cur'); if(qc){qc.src=m.qrCode;qc.style.display='block';} }
 
     // INFO CARDS
     let ic = results['info-cards'] || {};

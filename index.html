@@ -619,7 +619,7 @@ footer {
       🍽️ Ouvrir le Menu &amp; Commander
     </a>
     <div style="text-align:center">
-      <img src="qr-code.png" alt="QR Code Menu"
+      <img src="qr-code.png" id="qr-code-img" alt="QR Code Menu"
         style="width:160px;height:160px;object-fit:contain;border-radius:16px;display:block;margin:0 auto 8px;box-shadow:0 8px 32px rgba(0,0,0,0.25)" />
       <p style="font-size:11px;color:rgba(255,255,255,0.7);letter-spacing:0.1em;text-transform:uppercase">Scanner pour commander</p>
     </div>
@@ -632,19 +632,8 @@ footer {
     <div class="section-badge">Galerie</div>
     <h2 class="gallery-title">Notre <em>Espace</em></h2>
   </div>
-  <div class="gallery-grid">
-    <div class="gallery-item tall">
-      <img src="cafe-wall.jpg" alt="Le Café Molière — Enseigne" />
-    </div>
-    <div class="gallery-item">
-      <img src="cafe-wall.jpg" alt="Café Molière" style="object-position: center 60%"/>
-    </div>
-    <div class="gallery-item">
-      <img src="cafe-wall.jpg" alt="Café Molière" style="object-position: center 20%"/>
-    </div>
-    <!-- Placeholder slots for more photos -->
-    <div class="gallery-item" style="background:#222;display:flex;align-items:center;justify-content:center;font-size:2rem;color:#333;border-radius:12px">📸</div>
-    <div class="gallery-item" style="background:#222;display:flex;align-items:center;justify-content:center;font-size:2rem;color:#333;border-radius:12px">📸</div>
+  <div class="gallery-grid" id="gallery-grid">
+    <!-- Photos loaded from Firestore -->
   </div>
   <p style="text-align:center;font-size:11px;color:#444;margin-top:20px;letter-spacing:0.1em">
     BEIT CHABAB · LYCÉE MONTAIGNE ÉCOLE
@@ -752,9 +741,9 @@ footer {
 <script>
 // ── FIREBASE ──
 const firebaseConfig = {
-  apiKey:     "AIzaSyANahV1JOHQqEweg6e8i_LvltXNCTW-kIw",
-  authDomain: "cafe-moliere.firebaseapp.com",
-  projectId:  "cafe-moliere",
+  apiKey:     "REPLACE_WITH_YOUR_API_KEY",
+  authDomain: "REPLACE_WITH_YOUR_AUTH_DOMAIN",
+  projectId:  "REPLACE_WITH_YOUR_PROJECT_ID",
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
@@ -797,15 +786,25 @@ async function loadFromFirestore() {
     if (gt.caption) { el = document.querySelector('#gallery p'); if (el) el.textContent = gt.caption; }
 
     var gal = results['gallery'] || {};
-    if (gal.images && gal.images.length) {
-      var grid = document.querySelector('.gallery-grid');
-      if (grid) {
+    var grid = document.querySelector('.gallery-grid');
+    if (grid) {
+      if (gal.images && gal.images.length) {
         var galHtml = '';
         for (var gi = 0; gi < gal.images.length; gi++) {
           galHtml += '<div class="gallery-item ' + (gi === 0 ? 'tall' : '') + '"><img src="' + gal.images[gi].url + '" alt="Cafe Moliere" loading="lazy"/></div>';
         }
         grid.innerHTML = galHtml;
+      } else {
+        // No photos yet - show placeholder message
+        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#555;font-size:13px">Photos coming soon — upload in Admin Homepage</div>';
       }
+    }
+
+    // QR Code from Firestore
+    var menuCta = results['menu-cta'] || {};
+    if (menuCta.qrCode) {
+      var qrEl = document.getElementById('qr-code-img');
+      if (qrEl) qrEl.src = menuCta.qrCode;
     }
 
     var m = results['menu-cta'] || {};
