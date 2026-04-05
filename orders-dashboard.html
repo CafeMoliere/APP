@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' blob: data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com; frame-src 'none'; object-src 'none'">
 <title>Café Molière — Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -261,6 +262,9 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+// ── SECURITY HELPERS ──
+function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
 // ── STATE ──
 let orders = {}, historyOrders = {};
 let firstLoad = true;
@@ -406,7 +410,7 @@ function renderCard(id, o) {
     <button class="btn btn-ready" onclick="event.stopPropagation();moveOrder('${id}','ready')">→ Ready</button>
     <button class="btn btn-del" onclick="event.stopPropagation();deleteOrder('${id}')">🗑</button>
   ` : `
-    <button class="btn btn-wa" data-phone="${o.phone||''}" data-name="${o.name}" onclick="event.stopPropagation();sendWhatsApp(this.dataset.phone,this.dataset.name)">WhatsApp Client</button>
+    <button class="btn btn-wa" data-phone="${escapeHtml(o.phone||'')}" data-name="${escapeHtml(o.name||'')}" onclick="event.stopPropagation();sendWhatsApp(this.dataset.phone,this.dataset.name)">WhatsApp Client</button>
     <button class="btn btn-clear" onclick="event.stopPropagation();clearToHistory('${id}')">Clear ✓</button>
   `;
 
@@ -414,8 +418,8 @@ function renderCard(id, o) {
     <div class="order-card">
       <div class="card-header" onclick="toggleCard('${id}')">
         <div>
-          <div class="card-name">${o.name}</div>
-          <div class="card-meta">${o.time} · ${o.address}</div>
+          <div class="card-name">${escapeHtml(o.name||'')}</div>
+          <div class="card-meta">${escapeHtml(o.time||'')} · ${escapeHtml(o.address||'')}</div>
         </div>
         <div class="card-right">
           <span class="card-total-badge">${formatLL(o.total)}</span>
@@ -424,10 +428,10 @@ function renderCard(id, o) {
       </div>
       <div class="card-body ${isOpen?'open':''}">
         <div class="card-items">
-          ${(o.items||[]).map(i=>`<div class="card-item"><span>${i.name} x${i.qty}</span><span>${formatLL(i.price)}</span></div>`).join('')}
+          ${(o.items||[]).map(i=>`<div class="card-item"><span>${escapeHtml(i.name||'')} x${escapeHtml(String(i.qty||0))}</span><span>${formatLL(i.price)}</span></div>`).join('')}
         </div>
         <div class="card-total-row"><span>Total</span><span>${formatLL(o.total)}</span></div>
-        <div class="card-address">📍 ${o.address}${o.phone?' · 📞 '+o.phone:''}</div>
+        <div class="card-address">📍 ${escapeHtml(o.address||'')}${o.phone?' · 📞 '+escapeHtml(o.phone):''}</div>
         <div class="card-actions">${actions}</div>
       </div>
     </div>`;
@@ -483,13 +487,13 @@ function renderHistory() {
           <input type="checkbox" class="history-item-check" ${isSelected?'checked':''} onchange="toggleSelect('${id}')">
           <div class="history-item-content" onclick="toggleHistoryItem('${id}')">
             <div class="history-item-header">
-              <span class="history-item-name">${o.name} — ${formatLL(o.total)}</span>
-              <span class="history-item-time">${o.time} ▼</span>
+              <span class="history-item-name">${escapeHtml(o.name||'')} — ${formatLL(o.total)}</span>
+              <span class="history-item-time">${escapeHtml(o.time||'')} ▼</span>
             </div>
             <div class="history-item-body ${iOpen?'open':''}">
-              ${(o.items||[]).map(i=>`<div class="history-item-row"><span>${i.name} x${i.qty}</span><span>${formatLL(i.price)}</span></div>`).join('')}
+              ${(o.items||[]).map(i=>`<div class="history-item-row"><span>${escapeHtml(i.name||'')} x${escapeHtml(String(i.qty||0))}</span><span>${formatLL(i.price)}</span></div>`).join('')}
               <div class="history-item-total"><span>Total</span><span>${formatLL(o.total)}</span></div>
-              ${o.address?`<div style="font-size:10px;color:#555;margin-top:4px">📍 ${o.address}${o.phone?' · 📞 '+o.phone:''}</div>`:''}
+              ${o.address?`<div style="font-size:10px;color:#555;margin-top:4px">📍 ${escapeHtml(o.address)}${o.phone?' · 📞 '+escapeHtml(o.phone):''}</div>`:''}
             </div>
           </div>
         </div>`;
