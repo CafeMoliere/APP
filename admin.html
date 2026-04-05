@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' blob: data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com; frame-src 'none'; object-src 'none'">
 <title>Café Molière — Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -218,6 +219,9 @@ firebase.initializeApp(firebaseConfig);
 const db   = firebase.firestore();
 const auth = firebase.auth();
 
+// ── SECURITY HELPERS ──
+function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
 let menuItems  = {};
 let catOrder   = ['hot','cold','snacks','mains','desserts'];
 let catNames   = { hot:'Boissons Chaudes', cold:'Boissons Froides', snacks:'Snacks & Viennoiseries', mains:'Plats Principaux', desserts:'Desserts' };
@@ -260,8 +264,8 @@ function renderCategoryList() {
   list.innerHTML = catOrder.map(key => `
     <div class="cat-row" id="catrow-${key}" draggable="true" ondragstart="dragStart(event,'${key}')" ondragover="dragOver(event,'${key}')" ondragleave="dragLeave(event)" ondrop="dragDrop(event,'${key}')">
       <span class="cat-drag-handle" title="Drag to reorder">⠿</span>
-      <input class="cat-emoji-input" id="ce-${key}" value="${catEmojis[key]||''}" placeholder="☕" maxlength="4" />
-      <input class="cat-name-input"  id="cn-${key}" value="${catNames[key]||key}" placeholder="Category name" />
+      <input class="cat-emoji-input" id="ce-${key}" value="${escapeHtml(catEmojis[key]||'')}" placeholder="☕" maxlength="4" />
+      <input class="cat-name-input"  id="cn-${key}" value="${escapeHtml(catNames[key]||key)}" placeholder="Category name" />
       <button class="cat-del" onclick="deleteCategory('${key}')" title="Delete">🗑</button>
     </div>`).join('');
 }
@@ -338,7 +342,7 @@ async function saveCategories() {
 
 function populateCatSelect() {
   const sel = document.getElementById('f-cat');
-  sel.innerHTML = catOrder.map(k => `<option value="${k}">${catNames[k]||k}</option>`).join('');
+  sel.innerHTML = catOrder.map(k => `<option value="${escapeHtml(k)}">${escapeHtml(catNames[k]||k)}</option>`).join('');
 }
 
 // ── MENU ──
@@ -361,7 +365,7 @@ function renderMenu() {
 
     sec.innerHTML = `
       <div class="section-hdr">
-        <div class="section-name">${emoji} <em>${name}</em></div>
+        <div class="section-name">${escapeHtml(emoji)} <em>${escapeHtml(name)}</em></div>
         <button class="add-btn" onclick="openModal(null,'${catKey}')">+ Add</button>
       </div>
       <div class="item-list" id="list-${catKey}"
@@ -369,7 +373,7 @@ function renderMenu() {
         ondragleave="itemDragLeaveList(event)"
         ondrop="itemDrop(event,'${catKey}')">
         ${itemsHtml}
-        <div class="cat-drop-zone" id="dz-${catKey}">Drop item here to move to <b>${name}</b></div>
+        <div class="cat-drop-zone" id="dz-${catKey}">Drop item here to move to <b>${escapeHtml(name)}</b></div>
       </div>`;
     container.appendChild(sec);
   });
@@ -384,10 +388,10 @@ function renderItemRow(id, item) {
       ondragleave="itemDragLeaveRow(event)"
       ondrop="itemDropOnRow(event,'${id}','${item.category}')">
       <span class="item-drag-handle" title="Drag to reorder or move category">⠿</span>
-      <div class="item-emoji-disp">${item.emoji||'🍽️'}</div>
+      <div class="item-emoji-disp">${escapeHtml(item.emoji||'🍽️')}</div>
       <div class="item-details">
-        <div class="item-row-name">${item.name}</div>
-        <div class="item-row-desc">${item.desc||''}</div>
+        <div class="item-row-name">${escapeHtml(item.name||'')}</div>
+        <div class="item-row-desc">${escapeHtml(item.desc||'')}</div>
       </div>
       <div class="item-row-price">LL ${Number(item.price).toLocaleString()}</div>
       <div class="item-actions">
@@ -557,7 +561,7 @@ async function loadSpecial() {
     document.getElementById('sp-available').value = s.available === false ? 'false' : 'true';
     const prev = document.getElementById('special-preview');
     prev.style.display = 'block';
-    prev.innerHTML = `<b style="color:#FF5E00">Current:</b> ${s.emoji||'⭐'} ${s.name} — LL ${Number(s.price).toLocaleString()}<br><span style="color:#555">${s.desc||''}</span>`;
+    prev.innerHTML = `<b style="color:#FF5E00">Current:</b> ${escapeHtml(s.emoji||'⭐')} ${escapeHtml(s.name||'')} — LL ${Number(s.price).toLocaleString()}<br><span style="color:#555">${escapeHtml(s.desc||'')}</span>`;
   }
 }
 

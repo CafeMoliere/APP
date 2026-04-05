@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https://firebasestorage.googleapis.com https://storage.googleapis.com blob: data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com; frame-src 'none'; object-src 'none'">
 <title>Le Café Molière — Beit Chabab</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -749,6 +750,12 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db   = firebase.firestore();
 
+// ── SECURITY HELPERS ──
+function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function safeUrl(u){if(!u)return'#';if(/^https?:\/\//i.test(u))return u;if(/^\/[^/]/i.test(u))return u;return'#';}
+function safeBgUrl(u){return(u&&/^https:\/\/(firebasestorage\.googleapis\.com|storage\.googleapis\.com)\//.test(u))?u:'';}
+function safeFloat(v,mn,mx,df){var f=parseFloat(v);return isNaN(f)?df:Math.min(Math.max(f,mn),mx);}
+
 // ── LOAD CONTENT FROM FIRESTORE ──
 async function loadFromFirestore(draft) {
   var collection = draft ? 'homepage-draft' : 'homepage';
@@ -767,19 +774,19 @@ async function loadFromFirestore(draft) {
 
     var h = results['hero'] || {};
     var el;
-    if (h.heroBg)  { el = document.querySelector('.hero-bg');      if (el) el.style.backgroundImage = "url('" + h.heroBg + "')"; }
-    if (h.heroLogo){ el = document.querySelector('.hero-logo');    if (el) el.src = h.heroLogo; }
+    if (h.heroBg)  { el = document.querySelector('.hero-bg');      if (el) { var bg = safeBgUrl(h.heroBg); if (bg) el.style.backgroundImage = "url('" + bg + "')"; } }
+    if (h.heroLogo){ el = document.querySelector('.hero-logo');    if (el) { var lo = safeBgUrl(h.heroLogo); if (lo) el.src = lo; } }
     if (h.tagline) { el = document.querySelector('.hero-tagline'); if (el) el.textContent = h.tagline; }
     if (h.ctaText) { el = document.querySelector('.hero-cta');     if (el) el.textContent = h.ctaText; }
-    if (h.ctaLink) { el = document.querySelector('.hero-cta');     if (el) el.href = h.ctaLink; }
-    if (h.overlay) { el = document.querySelector('.hero-bg');      if (el) el.style.filter = 'brightness(' + h.overlay + ')'; }
+    if (h.ctaLink) { el = document.querySelector('.hero-cta');     if (el) el.href = safeUrl(h.ctaLink); }
+    if (h.overlay) { el = document.querySelector('.hero-bg');      if (el) el.style.filter = 'brightness(' + safeFloat(h.overlay, 0, 1, 0.7) + ')'; }
 
     var a = results['about'] || {};
     if (a.badge)  { el = document.querySelector('#about .section-badge'); if (el) el.textContent = a.badge; }
     if (a.title1) { el = document.querySelector('.about-title'); if (el && el.childNodes[0]) el.childNodes[0].textContent = a.title1 + ' '; }
     if (a.title2) { el = document.querySelector('.about-title em'); if (el) el.textContent = a.title2; }
     if (a.deco)   { el = document.querySelector('.about-deco-icon'); if (el) el.textContent = a.deco; }
-    if (a.body)   { el = document.querySelector('.about-text'); if (el) el.innerHTML = a.body.split(String.fromCharCode(10)).join('<br>'); }
+    if (a.body)   { el = document.querySelector('.about-text'); if (el) el.innerHTML = escapeHtml(a.body).split(String.fromCharCode(10)).join('<br>'); }
     if (a.bgColor){ el = document.querySelector('.about'); if (el) el.style.background = a.bgColor; }
 
     var gt = results['gallery-text'] || {};
@@ -792,7 +799,8 @@ async function loadFromFirestore(draft) {
       if (gal.images && gal.images.length) {
         var galHtml = '';
         for (var gi = 0; gi < gal.images.length; gi++) {
-          galHtml += '<div class="gallery-item ' + (gi === 0 ? 'tall' : '') + '"><img src="' + gal.images[gi].url + '" alt="Cafe Moliere" loading="lazy"/></div>';
+          var imgUrl = safeBgUrl(gal.images[gi].url) || '';
+          galHtml += '<div class="gallery-item ' + (gi === 0 ? 'tall' : '') + '"><img src="' + escapeHtml(imgUrl) + '" alt="Cafe Moliere" loading="lazy"/></div>';
         }
         grid.innerHTML = galHtml;
       } else {
@@ -811,7 +819,7 @@ async function loadFromFirestore(draft) {
     var m = results['menu-cta'] || {};
     if (m.subtitle){ el = document.querySelector('.menu-shortcut-sub'); if (el) el.textContent = m.subtitle; }
     if (m.btnText) { el = document.querySelector('.menu-cta'); if (el && el.childNodes[0]) el.childNodes[0].textContent = m.btnText; }
-    if (m.btnLink) { el = document.querySelector('.menu-cta'); if (el) el.href = m.btnLink; }
+    if (m.btnLink) { el = document.querySelector('.menu-cta'); if (el) el.href = safeUrl(m.btnLink); }
     if (m.bgColor) { el = document.querySelector('.menu-shortcut'); if (el) el.style.background = m.bgColor; }
 
     var ic = results['info-cards'] || {};
@@ -822,9 +830,9 @@ async function loadFromFirestore(draft) {
         for (var ci = 0; ci < ic.cards.length; ci++) {
           var card = ic.cards[ci];
           infoHtml += '<div class="info-card">';
-          infoHtml += '<div class="info-icon">' + (card.icon || '') + '</div>';
-          infoHtml += '<div class="info-card-title">' + (card.title || '') + '</div>';
-          infoHtml += '<div class="info-card-text">' + (card.text || '').split(String.fromCharCode(10)).join('<br>') + '</div>';
+          infoHtml += '<div class="info-icon">' + escapeHtml(card.icon || '') + '</div>';
+          infoHtml += '<div class="info-card-title">' + escapeHtml(card.title || '') + '</div>';
+          infoHtml += '<div class="info-card-text">' + escapeHtml(card.text || '').split(String.fromCharCode(10)).join('<br>') + '</div>';
           infoHtml += '</div>';
         }
         infoGrid.innerHTML = infoHtml;

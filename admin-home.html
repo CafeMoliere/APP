@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https://firebasestorage.googleapis.com https://storage.googleapis.com blob: data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://firebasestorage.googleapis.com; frame-src 'none'; object-src 'none'">
 <title>Café Molière — Homepage CMS</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -561,6 +562,7 @@ async function saveDoc(docId, data, btnId) {
 async function uploadImg(docId, field, input, curImgId, progId) {
   let file = input.files[0];
   if (!file) return;
+  if (file.size > 10 * 1024 * 1024) { toast('Image must be under 10 MB', 'error'); input.value = ''; return; }
   let prog = document.getElementById(progId);
   let bar  = document.getElementById(progId.replace('prog','bar'));
   if (prog) prog.style.display = 'block';
@@ -1070,7 +1072,7 @@ auth.onAuthStateChanged(user => {
     auth.signOut();
     let err = document.getElementById('login-error');
     let btn = document.getElementById('login-btn');
-    if (err) { err.textContent = 'Access restricted to administrator@cafemoliere.com — you signed in as: ' + user.email; err.style.display = 'block'; }
+    if (err) { err.textContent = 'Access restricted. Please sign in with the administrator account.'; err.style.display = 'block'; }
     if (btn) { btn.innerHTML = MS_BTN_HTML; btn.disabled = false; }
   } else {
     document.getElementById('login-screen').classList.remove('hidden');
