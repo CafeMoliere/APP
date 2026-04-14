@@ -6,8 +6,6 @@
       ".firebaserc",
       ".git/**",
       ".claude/**",
-      "*.png",
-      "*.jpg"
     ]
   }
 }
