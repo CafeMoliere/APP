@@ -807,7 +807,7 @@ async function placeOrder() {
 
   if (!name)          { document.getElementById('client-name').focus();     alert('Please enter your name.');            return; }
   if (!phoneRaw)      { document.getElementById('client-phone').focus();    alert('Please enter your phone number.');    return; }
-  if (phoneRaw.length < 7) { document.getElementById('client-phone').focus(); alert('Please enter a valid phone number.'); return; }
+  if (!/^\+?[\d\s\-]{7,15}$/.test(phoneRaw)) { document.getElementById('client-phone').focus(); alert('Please enter a valid phone number.'); return; }
   if (!location)      { document.getElementById('client-location').focus(); alert('Please enter your delivery address.'); return; }
 
   // Build confirmation screen
@@ -894,7 +894,6 @@ async function submitOrder() {
     btn.textContent = 'Place Order';
     btn.style.opacity = '1';
     btn.disabled = false;
-    console.error(e);
   }
 }
 
@@ -968,7 +967,7 @@ async function loadMenu() {
     ['hot','cold','snacks','mains','desserts'].forEach(renderSection);
     updateCart();
   } catch(e) {
-    console.error('Failed to load menu:', e);
+    // failed to load menu
     // Fallback: still render (empty)
     ['hot','cold','snacks','mains','desserts'].forEach(renderSection);
     updateCart();
@@ -1075,7 +1074,7 @@ async function loadMenu() {
     catOrder.forEach(renderSection);
     updateCart();
   } catch(e) {
-    console.error('Failed to load menu:', e);
+    // failed to load menu
   }
 }
 

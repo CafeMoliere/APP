@@ -552,7 +552,6 @@ async function saveDoc(docId, data, btnId) {
       msg = 'Permission denied — update your Firestore rules to allow homepage writes';
     }
     toast('Save failed: ' + msg, 'error');
-    console.error('saveDoc error:', e);
     alert('Save failed!\n\n' + msg + '\n\nMake sure your Firestore rules include:\nmatch /homepage/{docId} {\n  allow write: if request.auth.token.email == "administrator@cafemoliere.com";\n}');
   }
 }
@@ -995,7 +994,6 @@ async function loadAll() {
   } catch(e) {
     document.getElementById('status-text').textContent = 'Load error: '+e.message;
     toast('Load error: '+e.message, 'error');
-    console.error(e);
   }
 }
 
@@ -1050,7 +1048,7 @@ function doLogout() { auth.signOut(); }
 const MS_BTN_HTML = '<svg width="20" height="20" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg> Sign in with Microsoft';
 
 auth.getRedirectResult().then(result => {
-  if (result && result.user) console.log('Login success:', result.user.email);
+  if (result && result.user) { /* login success */ }
 }).catch(e => {
   if (e.code && e.code !== 'auth/no-auth-event') {
     let err = document.getElementById('login-error');

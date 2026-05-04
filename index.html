@@ -848,7 +848,7 @@ async function loadFromFirestore(draft) {
     if (f.copyright){ el = document.querySelector('.footer-text'); if (el) el.textContent = f.copyright; }
 
   } catch(e) {
-    console.log('Firestore load error:', e.message);
+    // Firestore load error: e.message
   }
 }
 
@@ -899,8 +899,7 @@ if ('IntersectionObserver' in window) {
 
 // ── AUTH STATE ──
 auth.getRedirectResult().then(function(r) {
-  if (r && r.user) console.log('Login OK');
-}).catch(function(e) { console.error(e); });
+}).catch(function(e) { /* login redirect error */ });
 
 auth.onAuthStateChanged(function(user) {
   var isStaff = user && user.email && user.email.endsWith('@cafemoliere.com');

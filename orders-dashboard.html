@@ -578,8 +578,7 @@ function doLogout() {
 
 // Handle redirect result (fallback from popup-blocked)
 auth.getRedirectResult().then(result => {
-  if (result && result.user) console.log('Redirect login success');
-}).catch(e => { console.error('Redirect error:', e); });
+}).catch(e => { /* redirect error */ });
 
 auth.onAuthStateChanged(user => {
   if (user) {
