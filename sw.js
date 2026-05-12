@@ -1,4 +1,4 @@
-const CACHE = 'cafe-moliere-v2';
+const CACHE = 'cafe-moliere-v3';
 const ASSETS = [
   'menu.html',
   'index.html',
