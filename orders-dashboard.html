@@ -567,7 +567,7 @@ function doLogout() {
 }
 
 auth.getRedirectResult().then(result => {
-}).catch(e => { /* redirect error */ });
+}).catch(e => { if(e && e.code) alert('Sign-in error: ' + e.code + '\n' + (e.message||'')); });
 
 auth.onAuthStateChanged(user => {
   if (user) {
