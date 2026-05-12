@@ -258,9 +258,10 @@ body{background:#1A1A1A;color:#fff;font-family:'DM Sans',sans-serif;min-height:1
 
 <script>
 // ── FIREBASE CONFIG ──
+const onFirebaseHosting = location.hostname.endsWith('.web.app');
 const firebaseConfig = {
   apiKey:     "AIzaSyANahV1JOHQqEweg6e8i_LvltXNCTW-kIw",
-  authDomain: "cafe-moliere.web.app",
+  authDomain: onFirebaseHosting ? "cafe-moliere.web.app" : "cafe-moliere.firebaseapp.com",
   projectId:  "cafe-moliere",
 };
 firebase.initializeApp(firebaseConfig);
@@ -559,7 +560,13 @@ const auth = firebase.auth();
 function doLogin() {
   const provider = new firebase.auth.OAuthProvider('microsoft.com');
   provider.setCustomParameters({ tenant: 'cafemoliere.com' });
-  auth.signInWithRedirect(provider);
+  if (onFirebaseHosting) {
+    auth.signInWithRedirect(provider);
+  } else {
+    auth.signInWithPopup(provider).catch(e => {
+      if (e.code === 'auth/popup-blocked') auth.signInWithRedirect(provider);
+    });
+  }
 }
 
 function doLogout() {

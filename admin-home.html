@@ -463,9 +463,10 @@ select.fi{cursor:pointer}
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ── FIREBASE ──
+const onFirebaseHosting = location.hostname.endsWith('.web.app');
 const firebaseConfig = {
   apiKey:     "AIzaSyANahV1JOHQqEweg6e8i_LvltXNCTW-kIw",
-  authDomain: "cafe-moliere.web.app",
+  authDomain: onFirebaseHosting ? "cafe-moliere.web.app" : "cafe-moliere.firebaseapp.com",
   projectId:  "cafe-moliere",
   storageBucket: "cafe-moliere.firebasestorage.app",
 };
@@ -1044,8 +1045,15 @@ function doLogin() {
   let btn = document.getElementById('login-btn');
   let err = document.getElementById('login-error');
   if (err) err.style.display = 'none';
-  if (btn) { btn.textContent = 'Redirecting to Microsoft...'; btn.disabled = true; }
-  auth.signInWithRedirect(msProvider);
+  if (btn) { btn.textContent = onFirebaseHosting ? 'Redirecting to Microsoft...' : 'Opening Microsoft...'; btn.disabled = true; }
+  if (onFirebaseHosting) {
+    auth.signInWithRedirect(msProvider);
+  } else {
+    auth.signInWithPopup(msProvider).catch(e => {
+      if (e.code === 'auth/popup-blocked') auth.signInWithRedirect(msProvider);
+      else if (btn) { btn.innerHTML = MS_BTN_HTML; btn.disabled = false; }
+    });
+  }
 }
 
 function doLogout() { auth.signOut(); }
