@@ -862,13 +862,7 @@ async function loadFromFirestore(draft) {
 function doLogin() {
   var provider = new firebase.auth.OAuthProvider('microsoft.com');
   provider.setCustomParameters({ tenant: 'cafemoliere.com' });
-  auth.signInWithPopup(provider).catch(function(e) {
-    if (e.code === 'auth/popup-blocked') {
-      auth.signInWithRedirect(provider);
-    } else if (e.code !== 'auth/popup-closed-by-user') {
-      alert('Connexion echouee');
-    }
-  });
+  auth.signInWithRedirect(provider);
 }
 
 function doLogout() { auth.signOut(); }

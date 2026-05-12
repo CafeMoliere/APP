@@ -596,25 +596,13 @@ function startListening() {
 
 // ── AUTH ──
 function doLogin() {
-  const btn = document.getElementById('login-btn');
-  const err = document.getElementById('login-error');
-  err.style.display = 'none';
-  btn.textContent = 'Connecting...';
-  btn.disabled = true;
   const provider = new firebase.auth.OAuthProvider('microsoft.com');
   provider.setCustomParameters({ tenant: 'cafemoliere.com' });
-  auth.signInWithPopup(provider).catch(e => {
-    if (e.code === 'auth/popup-blocked') { auth.signInWithRedirect(provider); return; }
-    err.textContent = e.code === 'auth/popup-closed-by-user' ? 'Window closed. Try again.' : 'Sign-in failed. Use @cafemoliere.com account.';
-    err.style.display = 'block';
-    btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg> Sign in with Microsoft`;
-    btn.disabled = false;
-  });
+  auth.signInWithRedirect(provider);
 }
 
 function doLogout() { auth.signOut(); }
 
-// Handle redirect result (fallback from popup-blocked)
 auth.getRedirectResult().then(result => {
 }).catch(e => { /* redirect error */ });
 
