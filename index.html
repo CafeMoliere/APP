@@ -861,17 +861,14 @@ async function loadFromFirestore(draft) {
 }
 
 function doLogin() {
-  alert('DEBUG step 1: host=' + location.hostname + ' authDomain=' + firebaseConfig.authDomain + ' method=' + (onFirebaseHosting ? 'redirect' : 'popup'));
   var provider = new firebase.auth.OAuthProvider('microsoft.com');
   provider.setCustomParameters({ tenant: 'cafemoliere.com' });
   if (onFirebaseHosting) {
     auth.signInWithRedirect(provider);
   } else {
-    auth.signInWithPopup(provider).then(function(r) {
-      if (r && r.user) alert('DEBUG step 2: popup signed in as ' + r.user.email);
-    }).catch(function(e) {
-      alert('DEBUG step 2: popup ERROR code=' + e.code + ' msg=' + (e.message||'').substring(0,200));
+    auth.signInWithPopup(provider).catch(function(e) {
       if (e.code === 'auth/popup-blocked') auth.signInWithRedirect(provider);
+      else if (e.code !== 'auth/popup-closed-by-user') alert('Sign-in error: ' + e.code);
     });
   }
 }
@@ -911,12 +908,11 @@ if ('IntersectionObserver' in window) {
 
 // ── AUTH STATE ──
 auth.getRedirectResult().then(function(r) {
-  if (r && r.user) alert('DEBUG step 3: redirect signed in as ' + r.user.email);
   if(r && r.user && !r.user.email.endsWith('@cafemoliere.com')) {
     auth.signOut();
     alert('Access restricted. Please sign in with a @cafemoliere.com account.');
   }
-}).catch(function(e) { if(e && e.code) alert('DEBUG step 3: redirect ERROR code=' + e.code); });
+}).catch(function(e) { if(e && e.code) alert('Sign-in error: ' + e.code); });
 
 auth.onAuthStateChanged(function(user) {
   var isStaff = user && user.email && user.email.endsWith('@cafemoliere.com');
