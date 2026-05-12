@@ -1,11 +1,11 @@
 const CACHE = 'cafe-moliere-v1';
 const ASSETS = [
-  '/APP/menu.html',
-  '/APP/index.html',
-  '/APP/logo-orange.png',
-  '/APP/cafe-wall.jpg',
-  '/APP/header.png',
-  '/APP/qr-code.png',
+  'menu.html',
+  'index.html',
+  'logo-orange.png',
+  'cafe-wall.jpg',
+  'header.png',
+  'qr-code.png',
 ];
 
 self.addEventListener('install', e => {
@@ -23,7 +23,8 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Let Firebase/Google API calls go through untouched
+  // Skip navigation requests (page loads, redirects) and cross-origin requests
+  if (e.request.mode === 'navigate') return;
   if (!e.request.url.startsWith(self.location.origin)) return;
 
   e.respondWith(

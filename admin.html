@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="/APP/manifest.json">
+<link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#FF5E00">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Café Molière Admin">
-<link rel="apple-touch-icon" href="/APP/logo-orange.png">
+<link rel="apple-touch-icon" href="logo-orange.png">
 <title>Café Molière — Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -216,7 +216,7 @@ body{background:#1A1A1A;color:#fff;font-family:'DM Sans',sans-serif;min-height:1
 <script>
 const firebaseConfig = {
   apiKey:     "AIzaSyANahV1JOHQqEweg6e8i_LvltXNCTW-kIw",
-  authDomain: "cafe-moliere.firebaseapp.com",
+  authDomain: "cafe-moliere.web.app",
   projectId:  "cafe-moliere",
 };
 firebase.initializeApp(firebaseConfig);
@@ -596,26 +596,19 @@ function startListening() {
 
 // ── AUTH ──
 function doLogin() {
-  const btn = document.getElementById('login-btn');
-  const err = document.getElementById('login-error');
-  err.style.display = 'none';
-  btn.textContent = 'Connecting...';
-  btn.disabled = true;
   const provider = new firebase.auth.OAuthProvider('microsoft.com');
   provider.setCustomParameters({ tenant: 'cafemoliere.com' });
-  auth.signInWithPopup(provider).catch(e => {
-    err.textContent = e.code==='auth/popup-closed-by-user' ? 'Window closed. Try again.' : 'Sign-in failed. Use @cafemoliere.com account.';
-    err.style.display = 'block';
-    btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg> Sign in with Microsoft`;
-    btn.disabled = false;
-  });
+  auth.signInWithRedirect(provider);
 }
 
 function doLogout() { auth.signOut(); }
 
-// Handle redirect result (fallback from popup-blocked)
-auth.getRedirectResult().then(result => {
-}).catch(e => { /* redirect error */ });
+auth.getRedirectResult().then(r => {
+  if(r && r.user && !r.user.email.endsWith('@cafemoliere.com')) {
+    auth.signOut();
+    alert('Access restricted. Please sign in with a @cafemoliere.com account.');
+  }
+}).catch(e => { if(e && e.code) alert('Sign-in error: ' + e.code); });
 
 auth.onAuthStateChanged(user => {
   if (user) {

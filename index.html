@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="/APP/manifest.json">
+<link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#FF5E00">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Café Molière">
-<link rel="apple-touch-icon" href="/APP/logo-orange.png">
+<link rel="apple-touch-icon" href="logo-orange.png">
 <title>Le Café Molière — Beit Chabab</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -749,7 +749,7 @@ footer {
 // ── FIREBASE ──
 const firebaseConfig = {
   apiKey:     "AIzaSyANahV1JOHQqEweg6e8i_LvltXNCTW-kIw",
-  authDomain: "cafe-moliere.firebaseapp.com",
+  authDomain: "cafe-moliere.web.app",
   projectId:  "cafe-moliere",
 };
 firebase.initializeApp(firebaseConfig);
@@ -862,13 +862,7 @@ async function loadFromFirestore(draft) {
 function doLogin() {
   var provider = new firebase.auth.OAuthProvider('microsoft.com');
   provider.setCustomParameters({ tenant: 'cafemoliere.com' });
-  auth.signInWithPopup(provider).catch(function(e) {
-    if (e.code === 'auth/popup-blocked') {
-      auth.signInWithRedirect(provider);
-    } else if (e.code !== 'auth/popup-closed-by-user') {
-      alert('Connexion echouee');
-    }
-  });
+  auth.signInWithRedirect(provider);
 }
 
 function doLogout() { auth.signOut(); }
@@ -906,7 +900,11 @@ if ('IntersectionObserver' in window) {
 
 // ── AUTH STATE ──
 auth.getRedirectResult().then(function(r) {
-}).catch(function(e) { /* login redirect error */ });
+  if(r && r.user && !r.user.email.endsWith('@cafemoliere.com')) {
+    auth.signOut();
+    alert('Access restricted. Please sign in with a @cafemoliere.com account.');
+  }
+}).catch(function(e) { if(e && e.code) alert('Sign-in error: ' + e.code); });
 
 auth.onAuthStateChanged(function(user) {
   var isStaff = user && user.email && user.email.endsWith('@cafemoliere.com');
@@ -924,6 +922,6 @@ auth.onAuthStateChanged(function(user) {
   }
 });
 </script>
-<script>if('serviceWorker'in navigator)navigator.serviceWorker.register('/APP/sw.js',{scope:'/APP/'});</script>
+<script>if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');</script>
 </body>
 </html>
