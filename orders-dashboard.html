@@ -565,7 +565,13 @@ function doLogin() {
 
   const provider = new firebase.auth.OAuthProvider('microsoft.com');
   provider.setCustomParameters({ tenant: 'cafemoliere.com' });
-  auth.signInWithRedirect(provider);
+  auth.signInWithPopup(provider).catch(e => {
+    if (e.code === 'auth/popup-blocked') { auth.signInWithRedirect(provider); return; }
+    err.textContent = e.code === 'auth/popup-closed-by-user' ? 'Sign-in window was closed. Please try again.' : 'Sign-in failed. Make sure you use your @cafemoliere.com account.';
+    err.style.display = 'block';
+    btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 21 21" style="margin-right:10px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>Sign in with Microsoft`;
+    btn.disabled = false;
+  });
 }
 
 function doLogout() {
