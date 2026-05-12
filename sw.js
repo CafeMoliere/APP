@@ -1,11 +1,11 @@
 const CACHE = 'cafe-moliere-v1';
 const ASSETS = [
-  '/APP/menu.html',
-  '/APP/index.html',
-  '/APP/logo-orange.png',
-  '/APP/cafe-wall.jpg',
-  '/APP/header.png',
-  '/APP/qr-code.png',
+  'menu.html',
+  'index.html',
+  'logo-orange.png',
+  'cafe-wall.jpg',
+  'header.png',
+  'qr-code.png',
 ];
 
 self.addEventListener('install', e => {
