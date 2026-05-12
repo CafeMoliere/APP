@@ -3,6 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/APP/manifest.json">
+<meta name="theme-color" content="#FF5E00">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Café Molière">
+<link rel="apple-touch-icon" href="/APP/logo-orange.png">
 <title>Café Molière — Menu</title>
 <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -1102,5 +1109,6 @@ loadMenu();
     </div>
   </div>
 </div>
+<script>if('serviceWorker'in navigator)navigator.serviceWorker.register('/APP/sw.js',{scope:'/APP/'});</script>
 </body>
 </html>
