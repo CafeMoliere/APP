@@ -1,7 +1,5 @@
-const CACHE = 'cafe-moliere-v1';
+const CACHE = 'cafe-moliere-v4';
 const ASSETS = [
-  'menu.html',
-  'index.html',
   'logo-orange.png',
   'cafe-wall.jpg',
   'header.png',
@@ -10,20 +8,21 @@ const ASSETS = [
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    )
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
+});
+
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('fetch', e => {
-  // Skip navigation requests (page loads, redirects) and cross-origin requests
   if (e.request.mode === 'navigate') return;
   if (!e.request.url.startsWith(self.location.origin)) return;
 
