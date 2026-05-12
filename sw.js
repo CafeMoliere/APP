@@ -1,4 +1,4 @@
-const CACHE = 'cafe-moliere-v4';
+const CACHE = 'cafe-moliere-v5';
 const ASSETS = [
   'logo-orange.png',
   'cafe-wall.jpg',
@@ -23,8 +23,15 @@ self.addEventListener('message', e => {
 });
 
 self.addEventListener('fetch', e => {
-  if (e.request.mode === 'navigate') return;
   if (!e.request.url.startsWith(self.location.origin)) return;
+
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request, { cache: 'no-store' })
+        .catch(() => caches.match(e.request))
+    );
+    return;
+  }
 
   e.respondWith(
     fetch(e.request)
