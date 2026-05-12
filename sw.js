@@ -1,7 +1,5 @@
-const CACHE = 'cafe-moliere-v3';
+const CACHE = 'cafe-moliere-v4';
 const ASSETS = [
-  'menu.html',
-  'index.html',
   'logo-orange.png',
   'cafe-wall.jpg',
   'header.png',
