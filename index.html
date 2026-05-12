@@ -11,6 +11,10 @@
 <meta name="apple-mobile-web-app-title" content="Café Molière">
 <link rel="apple-touch-icon" href="logo-orange.png">
 <title>Le Café Molière — Beit Chabab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com">
+<link rel="dns-prefetch" href="https://firestore.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -34,6 +38,12 @@ body {
   font-family: 'DM Sans', sans-serif;
   font-weight: 300;
   overflow-x: hidden;
+}
+
+a:focus-visible, button:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
 /* ── GRAIN OVERLAY ── */
@@ -115,7 +125,9 @@ nav.scrolled {
   gap: 6px;
 }
 
-.nav-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+.nav-btn:hover { opacity: 0.92; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(255,94,0,0.35); }
+.nav-btn:focus-visible,
+.hero-cta:focus-visible { outline: 2px solid var(--cream); outline-offset: 3px; }
 
 .nav-btn.secondary {
   background: rgba(255,255,255,0.1);
@@ -140,12 +152,13 @@ nav.scrolled {
   background-size: cover;
   background-position: center 20%;
   filter: brightness(0.35);
-  transform: scale(1.05);
-  animation: heroZoom 12s ease-out forwards;
+  transform: scale(1.12);
+  animation: heroZoom 18s ease-out forwards;
+  will-change: transform;
 }
 
 @keyframes heroZoom {
-  from { transform: scale(1.05); }
+  from { transform: scale(1.12); }
   to   { transform: scale(1.0); }
 }
 
@@ -439,7 +452,10 @@ nav.scrolled {
   border-radius: 16px;
   padding: 28px 24px;
   border: 1px solid #2A2A2A;
+  border-left: 4px solid var(--orange);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
+.info-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,0.4); }
 
 .info-icon { font-size: 1.8rem; margin-bottom: 12px; }
 
@@ -497,13 +513,18 @@ nav.scrolled {
   text-transform: uppercase;
   cursor: pointer;
   text-decoration: none;
-  transition: all 0.2s;
+  transition: all 0.25s ease;
   display: inline-flex;
   align-items: center;
   gap: 7px;
   border: 1px solid #333;
-  color: #666;
+  color: #aaa;
   background: none;
+}
+
+.staff-btn:hover, .staff-btn:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255,94,0,0.15);
 }
 
 .staff-btn:hover { border-color: var(--orange); color: var(--orange); }
@@ -533,7 +554,7 @@ footer {
 
 .footer-text {
   font-size: 11px;
-  color: #333;
+  color: #888;
   letter-spacing: 0.08em;
 }
 
@@ -584,8 +605,8 @@ footer {
   <div class="hero-bg"></div>
   <div class="hero-overlay"></div>
   <div class="hero-content">
-    <img class="hero-logo" src="logo-orange.png" alt="Le Café Molière" />
-    <p class="hero-tagline">Goûter la culture, savourer l'instant</p>
+    <img class="hero-logo" src="logo-orange.png" alt="Café Molière — Beit Chabab" fetchpriority="high" />
+    <p class="hero-tagline">Vivre la culture, savourer chaque instant</p>
     <a href="menu.html" class="hero-cta">
       🍽️ Voir le Menu &amp; Commander
     </a>
@@ -626,7 +647,7 @@ footer {
       🍽️ Ouvrir le Menu &amp; Commander
     </a>
     <div style="text-align:center">
-      <img src="qr-code.png" id="qr-code-img" alt="QR Code Menu"
+      <img src="qr-code.png" id="qr-code-img" alt="Scannez ce code QR pour ouvrir le menu" loading="lazy" decoding="async"
         style="width:160px;height:160px;object-fit:contain;border-radius:16px;display:block;margin:0 auto 8px;box-shadow:0 8px 32px rgba(0,0,0,0.25)" />
       <p style="font-size:11px;color:rgba(255,255,255,0.7);letter-spacing:0.1em;text-transform:uppercase">Scanner pour commander</p>
     </div>
@@ -698,7 +719,7 @@ footer {
 
     <!-- Logged OUT state -->
     <div id="portal-logged-out">
-      <p style="font-size:12px;color:#444;margin-bottom:16px;letter-spacing:0.05em">
+      <p style="font-size:clamp(12px,2.5vw,14px);color:#888;margin-bottom:16px;letter-spacing:0.05em">
         Connectez-vous avec votre compte @cafemoliere.com
       </p>
       <div class="staff-btns">
@@ -716,7 +737,7 @@ footer {
 
     <!-- Logged IN state -->
     <div id="portal-logged-in" style="display:none">
-      <p style="font-size:12px;color:#555;margin-bottom:20px">
+      <p style="font-size:clamp(12px,2.5vw,14px);color:#aaa;margin-bottom:20px">
         Connecté en tant que <span id="portal-email" style="color:var(--orange)"></span>
       </p>
       <div class="staff-btns">
@@ -727,7 +748,7 @@ footer {
           ⚙️ Administration
         </a>
         <a href="admin-home.html" class="staff-btn active-staff" id="admin-home-link" style="display:none">
-          🏠 Admin Homepage
+          🏠 Page d'accueil admin
         </a>
         <button class="staff-btn" onclick="doLogout()">
           Déconnexion

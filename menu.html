@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,6 +11,10 @@
 <meta name="apple-mobile-web-app-title" content="Café Molière">
 <link rel="apple-touch-icon" href="logo-orange.png">
 <title>Café Molière — Menu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com">
+<link rel="dns-prefetch" href="https://firestore.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -113,7 +117,7 @@
 
   .order-btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(37,211,102,0.35);
+    box-shadow: 0 4px 16px rgba(255,94,0,0.4);
   }
 
   .order-btn svg {
@@ -155,6 +159,12 @@
   .tab.active {
     color: #FF5E00;
     border-bottom-color: #FF5E00;
+    background: rgba(255,94,0,0.08);
+  }
+
+  .tab:focus-visible {
+    outline: 2px solid #FF5E00;
+    outline-offset: -2px;
   }
 
   /* ── MAIN CONTENT ── */
@@ -380,6 +390,7 @@
     max-width: 500px;
     transform: translateY(100%);
     transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 -12px 40px rgba(0,0,0,0.25);
   }
 
   .modal-overlay.visible .modal {
@@ -426,7 +437,7 @@
     margin-bottom: 16px;
   }
 
-  .name-input:focus { border-color: #FF5E00; }
+  .name-input:focus { border-color: #FF5E00; box-shadow: 0 0 0 3px rgba(255,94,0,0.15); }
   .name-input::placeholder { color: rgba(103,108,114,0.5); }
 
   .modal-confirm {
@@ -451,7 +462,7 @@
 
   .modal-confirm:hover {
     transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(37,211,102,0.4);
+    box-shadow: 0 6px 20px rgba(255,94,0,0.4);
   }
 
   .modal-confirm svg { width: 18px; height: 18px; }
@@ -499,10 +510,10 @@
 <!-- Sticky cart bar -->
 <div class="cart-bar">
   <div class="cart-info">
-    <span id="cart-count">0</span> items · <span id="cart-total">$0.00</span>
+    <span id="cart-count">0</span> articles · <span id="cart-total">$0.00</span>
   </div>
   <a id="top-order-btn" href="#" class="order-btn empty" onclick="event.preventDefault(); openModal()">
-    Order Now
+    Commander
   </a>
 </div>
 
@@ -566,20 +577,20 @@
 
 <!-- Floating WhatsApp button -->
 <button id="float-btn" class="float-btn" onclick="openModal()">
-  Order Now (<span id="float-count">0</span>)
+  Commander (<span id="float-count">0</span>)
 </button>
 
 <!-- Name Modal -->
 <div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
   <div class="modal">
     <div class="modal-handle"></div>
-    <div class="modal-title">Almost <em>there!</em></div>
-    <p class="modal-subtitle">Fill in all fields to complete your order</p>
+    <div class="modal-title">Dernière <em>étape !</em></div>
+    <p class="modal-subtitle">Remplissez tous les champs pour finaliser votre commande</p>
     <input
       class="name-input"
       id="client-name"
       type="text"
-      placeholder="Your full name"
+      placeholder="Votre nom complet"
       autocomplete="name"
       oninput="confirmOrder()"
       onkeydown="if(event.key==='Enter') document.getElementById('client-phone').focus()"
@@ -600,18 +611,18 @@
       class="name-input"
       id="client-location"
       type="text"
-      placeholder="Your delivery address"
+      placeholder="Votre adresse de livraison"
       autocomplete="street-address"
       oninput="confirmOrder()"
       onkeydown="if(event.key==='Enter') placeOrder()"
     />
     <button id="modal-confirm-btn" class="modal-confirm" onclick="placeOrder()">
-      Place Order
+      Confirmer la commande
     </button>
     <div id="order-success" style="display:none;text-align:center;padding:14px;background:rgba(76,175,80,0.15);border-radius:12px;color:#2E7D32;font-weight:500;font-size:14px;">
-      ✅ Order sent successfully!
+      ✅ Commande envoyée avec succès !
     </div>
-    <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+    <button class="modal-cancel" onclick="closeModal()">Annuler</button>
   </div>
 </div>
 
@@ -661,8 +672,8 @@ const MENU = {
     { id:'s2', emoji:'🌿', name:'Croissant Thym — Harpagon', desc:'Croissant au thym', price:150000 },
     { id:'s3', emoji:'🧀', name:'Croissant Fromage — Le Valet', desc:'Croissant au fromage', price:150000 },
     { id:'s4', emoji:'🍫', name:"Pain au Chocolat — L'Intendant", desc:'Pain au chocolat feuilleté', price:150000 },
-    { id:'s5', emoji:'🫓', name:"Mané2touché Thym — La Désargentée", desc:'Mané2touché au thym · Extra LL 150,000', price:120000 },
-    { id:'s6', emoji:'🧀', name:"Mané2touché Fromage — L'Embourgeoisée", desc:'Mané2touché au fromage · Extra LL 250,000', price:200000 },
+    { id:'s5', emoji:'🫓', name:"Manakish Thym — La Désargentée", desc:'Manakish au thym · Extra LL 150,000', price:120000 },
+    { id:'s6', emoji:'🧀', name:"Manakish Fromage — L'Embourgeoisée", desc:'Manakish au fromage · Extra LL 250,000', price:200000 },
     { id:'s7', emoji:'🫙', name:'Moelleux Labné', desc:'Moelleux garni au labné', price:100000 },
     { id:'s8', emoji:'🍫', name:'Moelleux Chocolat', desc:'Moelleux au chocolat fondant', price:100000 },
     { id:'s9', emoji:'🧀', name:'Moelleux Halloumi', desc:'Moelleux au halloumi grillé', price:100000 },
@@ -723,7 +734,14 @@ const MENU = {
 const WA_NUMBER = '96171503555';
 
 // ── CART ──
-const cart = {};
+const CART_STORAGE_KEY = 'cafe-moliere-cart-v1';
+const cart = (function(){
+  try { return JSON.parse(localStorage.getItem(CART_STORAGE_KEY)) || {}; }
+  catch(e) { return {}; }
+})();
+function saveCart() {
+  try { localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart)); } catch(e) {}
+}
 
 function getCart() {
   let count = 0, total = 0;
@@ -812,10 +830,10 @@ async function placeOrder() {
   const phoneRaw = document.getElementById('client-phone').value.replace(/\s+/g, '').replace(/\D/g, '').replace(/^0+/, '');
   const location = document.getElementById('client-location').value.trim();
 
-  if (!name)          { document.getElementById('client-name').focus();     alert('Please enter your name.');            return; }
-  if (!phoneRaw)      { document.getElementById('client-phone').focus();    alert('Please enter your phone number.');    return; }
-  if (!/^\+?[\d\s\-]{7,15}$/.test(phoneRaw)) { document.getElementById('client-phone').focus(); alert('Please enter a valid phone number.'); return; }
-  if (!location)      { document.getElementById('client-location').focus(); alert('Please enter your delivery address.'); return; }
+  if (!name)          { document.getElementById('client-name').focus();     alert('Veuillez saisir votre nom.');                return; }
+  if (!phoneRaw)      { document.getElementById('client-phone').focus();    alert('Veuillez saisir votre numéro de téléphone.'); return; }
+  if (!/^\+?[\d\s\-]{7,15}$/.test(phoneRaw)) { document.getElementById('client-phone').focus(); alert('Numéro de téléphone invalide.'); return; }
+  if (!location)      { document.getElementById('client-location').focus(); alert('Veuillez saisir votre adresse de livraison.'); return; }
 
   // Build confirmation screen
   const items = [];
@@ -859,7 +877,7 @@ async function submitOrder() {
   const { total } = getCart();
 
   const btn = document.getElementById('confirm-place-btn');
-  btn.textContent = 'Sending...';
+  btn.textContent = 'Envoi en cours...';
   btn.style.opacity = '0.7';
   btn.disabled = true;
 
@@ -882,12 +900,13 @@ async function submitOrder() {
 
     setTimeout(() => {
       for (const id in cart) cart[id] = 0;
+      saveCart();
       ['hot','cold','snacks','mains','desserts'].forEach(renderSection);
       updateCart();
       document.getElementById('client-name').value = '';
       document.getElementById('client-phone').value = '';
       document.getElementById('client-location').value = '';
-      btn.textContent = 'Place Order';
+      btn.textContent = 'Envoyer la commande';
       btn.style.opacity = '1';
       btn.disabled = false;
       document.getElementById('modal-confirm-btn').style.display = 'block';
@@ -897,8 +916,8 @@ async function submitOrder() {
     }, 2000);
 
   } catch(e) {
-    alert('Could not send order. Please check your connection and try again.');
-    btn.textContent = 'Place Order';
+    alert('Impossible d\'envoyer la commande. Vérifiez votre connexion et réessayez.');
+    btn.textContent = 'Envoyer la commande';
     btn.style.opacity = '1';
     btn.disabled = false;
   }
@@ -934,6 +953,7 @@ function renderSection(catKey) {
 function changeQty(id, delta) {
   cart[id] = Math.max(0, (cart[id] || 0) + delta);
   document.getElementById('qty-' + id).textContent = cart[id];
+  saveCart();
   updateCart();
 }
 
@@ -1095,8 +1115,8 @@ loadMenu();
 <div class="confirm-modal-overlay" id="confirm-modal-overlay">
   <div class="confirm-modal">
     <div class="confirm-modal-handle"></div>
-    <div class="confirm-modal-title">Confirm <em>your order</em></div>
-    <p class="confirm-modal-sub">Please review before confirming</p>
+    <div class="confirm-modal-title">Confirmer <em>votre commande</em></div>
+    <p class="confirm-modal-sub">Vérifiez avant de confirmer</p>
     <div class="confirm-order-list" id="confirm-order-list"></div>
     <div class="confirm-order-total">
       <span>Total</span>
@@ -1104,8 +1124,8 @@ loadMenu();
     </div>
     <div class="confirm-info-box" id="confirm-info-box"></div>
     <div class="confirm-btn-row">
-      <button class="confirm-back-btn" onclick="closeConfirmModal()">← Go Back</button>
-      <button class="confirm-place-btn" id="confirm-place-btn" onclick="submitOrder()">Place Order</button>
+      <button class="confirm-back-btn" onclick="closeConfirmModal()">← Retour</button>
+      <button class="confirm-place-btn" id="confirm-place-btn" onclick="submitOrder()">Envoyer la commande</button>
     </div>
   </div>
 </div>
