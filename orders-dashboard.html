@@ -566,8 +566,12 @@ function doLogout() {
   auth.signOut();
 }
 
-auth.getRedirectResult().then(result => {
-}).catch(e => { if(e && e.code) alert('Sign-in error: ' + e.code + '\n' + (e.message||'')); });
+auth.getRedirectResult().then(r => {
+  if(r && r.user && !r.user.email.endsWith('@cafemoliere.com')) {
+    auth.signOut();
+    alert('Access restricted. Please sign in with a @cafemoliere.com account.');
+  }
+}).catch(e => { if(e && e.code) alert('Sign-in error: ' + e.code); });
 
 auth.onAuthStateChanged(user => {
   if (user) {

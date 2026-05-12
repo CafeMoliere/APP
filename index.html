@@ -900,9 +900,11 @@ if ('IntersectionObserver' in window) {
 
 // ── AUTH STATE ──
 auth.getRedirectResult().then(function(r) {
-  if(r && r.user) { alert('DEBUG: signed in as ' + r.user.email); }
-  else { alert('DEBUG: getRedirectResult returned no user. Referrer: ' + document.referrer.substring(0,80)); }
-}).catch(function(e) { alert('Sign-in error: ' + (e.code||'unknown') + '\n' + (e.message||'')); });
+  if(r && r.user && !r.user.email.endsWith('@cafemoliere.com')) {
+    auth.signOut();
+    alert('Access restricted. Please sign in with a @cafemoliere.com account.');
+  }
+}).catch(function(e) { if(e && e.code) alert('Sign-in error: ' + e.code); });
 
 auth.onAuthStateChanged(function(user) {
   var isStaff = user && user.email && user.email.endsWith('@cafemoliere.com');
