@@ -59,15 +59,76 @@
     background: #2E3033;
   }
 
-  .hero-bg {
+  .hero-slides {
     position: absolute;
     inset: 0;
-    background-image: url('cafe-wall.jpg');
+  }
+
+  .hero-slide {
+    position: absolute;
+    inset: 0;
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
     background-color: #2E3033;
+    opacity: 0;
+    transition: opacity 1s ease;
   }
+
+  .hero-slide.active { opacity: 1; }
+
+  .hero-dots {
+    position: absolute;
+    bottom: 62px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 7px;
+    z-index: 3;
+  }
+
+  .hero-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.35);
+    cursor: pointer;
+    border: none;
+    padding: 0;
+    transition: all 0.25s;
+  }
+
+  .hero-dot.active {
+    background: #fff;
+    transform: scale(1.4);
+  }
+
+  .hero-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 3;
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.22);
+    color: #fff;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    line-height: 1;
+  }
+
+  .hero-nav.prev { left: 12px; }
+  .hero-nav.next { right: 12px; }
+  .hero-nav:hover { background: rgba(255,255,255,0.28); }
+  .hero-nav.hidden { display: none; }
 
   .hero-overlay {
     position: absolute;
@@ -643,7 +704,12 @@
 <body>
 
 <header class="hero-header">
-  <div class="hero-bg"></div>
+  <div class="hero-slides">
+    <div class="hero-slide active" style="background-image:url('cafe-wall.jpg')"></div>
+  </div>
+  <button class="hero-nav prev hidden" id="hero-prev" aria-label="Image précédente">‹</button>
+  <button class="hero-nav next hidden" id="hero-next" aria-label="Image suivante">›</button>
+  <div class="hero-dots" id="hero-dots"></div>
   <div class="hero-overlay"></div>
   <div class="hero-content">
     <div class="hero-eyebrow">Le Café Molière</div>
@@ -870,6 +936,58 @@ function clearCart() {
 }
 
 
+// ── HERO SLIDESHOW ──
+let _heroSlide = 0, _heroTimer = null, _heroCount = 0;
+
+function initHeroSlideshow(images) {
+  _heroCount = images.length;
+  const slidesEl = document.querySelector('.hero-slides');
+  slidesEl.innerHTML = '';
+  images.forEach((url, i) => {
+    const div = document.createElement('div');
+    div.className = 'hero-slide' + (i === 0 ? ' active' : '');
+    div.style.backgroundImage = `url('${url}')`;
+    slidesEl.appendChild(div);
+  });
+  if (images.length < 2) return;
+  const dotsEl  = document.getElementById('hero-dots');
+  const prevBtn = document.getElementById('hero-prev');
+  const nextBtn = document.getElementById('hero-next');
+  dotsEl.innerHTML = '';
+  images.forEach((_, i) => {
+    const dot = document.createElement('button');
+    dot.className = 'hero-dot' + (i === 0 ? ' active' : '');
+    dot.setAttribute('aria-label', `Diapositive ${i + 1}`);
+    dot.addEventListener('click', () => heroGoTo(i));
+    dotsEl.appendChild(dot);
+  });
+  prevBtn.classList.remove('hidden');
+  nextBtn.classList.remove('hidden');
+  prevBtn.addEventListener('click', () => heroGoTo((_heroSlide - 1 + _heroCount) % _heroCount));
+  nextBtn.addEventListener('click', () => heroGoTo((_heroSlide + 1) % _heroCount));
+  startHeroTimer();
+  const header = document.querySelector('.hero-header');
+  header.addEventListener('touchstart', () => clearInterval(_heroTimer), { passive: true });
+  header.addEventListener('touchend', startHeroTimer, { passive: true });
+}
+
+function heroGoTo(n) {
+  const slides = document.querySelectorAll('.hero-slide');
+  const dots   = document.querySelectorAll('.hero-dot');
+  slides[_heroSlide]?.classList.remove('active');
+  dots[_heroSlide]?.classList.remove('active');
+  _heroSlide = n;
+  slides[_heroSlide]?.classList.add('active');
+  dots[_heroSlide]?.classList.add('active');
+  clearInterval(_heroTimer);
+  startHeroTimer();
+}
+
+function startHeroTimer() {
+  clearInterval(_heroTimer);
+  if (_heroCount > 1) _heroTimer = setInterval(() => heroGoTo((_heroSlide + 1) % _heroCount), 5000);
+}
+
 function openModal() {
   const { count } = getCart();
   if (count === 0) return;
@@ -1073,12 +1191,13 @@ async function loadMenu() {
       if (cd.emojis) catEmojis = cd.emojis;
     }
 
-    // Custom hero image from settings
+    // Custom hero slideshow
     try {
       const apDoc = await db.collection('settings').doc('appearance').get();
-      if (apDoc.exists && apDoc.data().heroImage) {
-        const bg = document.querySelector('.hero-bg');
-        if (bg) bg.style.backgroundImage = `url('${apDoc.data().heroImage}')`;
+      if (apDoc.exists) {
+        const ap = apDoc.data();
+        const images = ap.heroImages || (ap.heroImage ? [ap.heroImage] : []);
+        if (images.length > 0) initHeroSlideshow(images);
       }
     } catch(e) {}
 
