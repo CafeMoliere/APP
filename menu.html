@@ -40,6 +40,7 @@
     overflow-x: hidden;
   }
 
+  /* Grain texture overlay */
   body::before {
     content: '';
     position: fixed;
@@ -50,6 +51,7 @@
     opacity: 0.4;
   }
 
+  /* ── HERO HEADER ── */
   .hero-header {
     position: relative;
     height: 300px;
@@ -57,7 +59,10 @@
     background: #2E3033;
   }
 
-  .hero-slides { position: absolute; inset: 0; }
+  .hero-slides {
+    position: absolute;
+    inset: 0;
+  }
 
   .hero-slide {
     position: absolute;
@@ -98,6 +103,7 @@
     transform: scale(1.4);
   }
 
+
   .hero-overlay {
     position: absolute;
     inset: 0;
@@ -113,9 +119,9 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 10px;
-    padding: 24px;
+    padding: 32px 24px 24px;
     text-align: center;
   }
 
@@ -156,6 +162,7 @@
     letter-spacing: 0.14em;
     text-transform: uppercase;
     animation: heroFadeIn 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.5s both;
+    margin-top: auto;
   }
 
   .status-dot {
@@ -177,6 +184,7 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
+  /* ── CART BAR ── */
   .cart-bar {
     position: sticky;
     top: 0;
@@ -198,7 +206,10 @@
     letter-spacing: 0.05em;
   }
 
-  .cart-info span { color: #FF5E00; font-weight: 700; }
+  .cart-info span {
+    color: #FF5E00;
+    font-weight: 700;
+  }
 
   .clear-btn {
     margin-left: 10px;
@@ -242,9 +253,16 @@
     box-shadow: 0 4px 14px rgba(255,94,0,0.3);
   }
 
-  .order-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(255,94,0,0.45); }
+  .order-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(255,94,0,0.45);
+  }
+
   .order-btn:active { transform: scale(0.96); }
-  .order-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+  .order-btn svg {
+    width: 14px; height: 14px; flex-shrink: 0;
+  }
 
   .order-btn.empty {
     background: rgba(103,108,114,0.3);
@@ -252,10 +270,12 @@
     pointer-events: none;
   }
 
+  /* ── NAV TABS ── */
   .tabs {
     display: flex;
     overflow-x: auto;
     gap: 6px;
+    background: #FCECBB;
     border-bottom: 1px solid rgba(103,108,114,0.15);
     padding: 10px 16px;
     scrollbar-width: none;
@@ -290,8 +310,12 @@
     box-shadow: 0 4px 14px rgba(255,94,0,0.35);
   }
 
-  .tab:focus-visible { outline: 2px solid #FF5E00; outline-offset: 2px; }
+  .tab:focus-visible {
+    outline: 2px solid #FF5E00;
+    outline-offset: 2px;
+  }
 
+  /* ── MAIN CONTENT ── */
   main {
     max-width: 680px;
     margin: 0 auto;
@@ -324,7 +348,10 @@
     letter-spacing: -0.01em;
   }
 
-  .section-title em { font-style: italic; color: #FF5E00; }
+  .section-title em {
+    font-style: italic;
+    color: #FF5E00;
+  }
 
   .section-line {
     flex: 1;
@@ -332,6 +359,7 @@
     background: linear-gradient(to right, rgba(103,108,114,0.25), transparent);
   }
 
+  /* ── MENU ITEM CARD ── */
   .item {
     display: flex;
     align-items: center;
@@ -444,6 +472,7 @@
     text-align: center;
   }
 
+  /* ── FLOATING ORDER BTN ── */
   .float-btn {
     position: fixed;
     bottom: 24px;
@@ -485,11 +514,19 @@
     100% { transform: scale(1.25); opacity: 0; }
   }
 
-  .float-btn.visible { transform: translateX(-50%) translateY(0); }
-  .float-btn:hover { box-shadow: 0 14px 40px rgba(255,94,0,0.55), 0 6px 16px rgba(255,94,0,0.3); }
+  .float-btn.visible {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .float-btn:hover {
+    box-shadow: 0 14px 40px rgba(255,94,0,0.55), 0 6px 16px rgba(255,94,0,0.3);
+  }
+
   .float-btn:active { transform: translateX(-50%) translateY(2px) scale(0.98); }
+
   .float-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
 
+  /* ── FOOTER ── */
   footer {
     text-align: center;
     padding: 24px;
@@ -498,6 +535,7 @@
     letter-spacing: 0.08em;
   }
 
+  /* ── NAME MODAL ── */
   .modal-overlay {
     position: fixed;
     inset: 0;
@@ -512,7 +550,10 @@
     transition: opacity 0.3s;
   }
 
-  .modal-overlay.visible { opacity: 1; pointer-events: auto; }
+  .modal-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
 
   .modal {
     background: #FCECBB;
@@ -525,7 +566,9 @@
     box-shadow: 0 -12px 40px rgba(0,0,0,0.25);
   }
 
-  .modal-overlay.visible .modal { transform: translateY(0); }
+  .modal-overlay.visible .modal {
+    transform: translateY(0);
+  }
 
   .modal-handle {
     width: 40px;
@@ -590,7 +633,11 @@
     text-decoration: none;
   }
 
-  .modal-confirm:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(255,94,0,0.4); }
+  .modal-confirm:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(255,94,0,0.4);
+  }
+
   .modal-confirm svg { width: 18px; height: 18px; }
 
   .modal-cancel {
@@ -606,6 +653,7 @@
     letter-spacing: 0.03em;
   }
 
+  /* ── ORDER CONFIRMATION MODAL ── */
   .confirm-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:600;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.3s}
   .confirm-modal-overlay.visible{opacity:1;pointer-events:auto}
   .confirm-modal{background:#FCECBB;border-radius:24px 24px 0 0;padding:24px 20px 36px;width:100%;max-width:500px;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.34,1.2,0.64,1);max-height:80vh;overflow-y:auto}
@@ -646,6 +694,7 @@
   </div>
 </header>
 
+<!-- Sticky cart bar -->
 <div class="cart-bar">
   <div class="cart-info">
     <span id="cart-count">0</span> articles · <span id="cart-total">$0.00</span>
@@ -656,6 +705,7 @@
   </a>
 </div>
 
+<!-- Category tabs -->
 <div class="tabs">
   <div class="tab active" onclick="showSection('hot')">☕ Boissons Chaudes</div>
   <div class="tab" onclick="showSection('cold')">🧊 Boissons Froides</div>
@@ -665,6 +715,8 @@
 </div>
 
 <main>
+
+  <!-- HOT DRINKS -->
   <div class="section active" id="sec-hot">
     <div class="section-header">
       <h2 class="section-title">Boissons <em>Chaudes</em></h2>
@@ -672,6 +724,8 @@
     </div>
     <div id="items-hot"></div>
   </div>
+
+  <!-- COLD DRINKS -->
   <div class="section" id="sec-cold">
     <div class="section-header">
       <h2 class="section-title">Boissons <em>Froides</em></h2>
@@ -679,6 +733,8 @@
     </div>
     <div id="items-cold"></div>
   </div>
+
+  <!-- SNACKS -->
   <div class="section" id="sec-snacks">
     <div class="section-header">
       <h2 class="section-title">Snacks & <em>Viennoiseries</em></h2>
@@ -686,6 +742,8 @@
     </div>
     <div id="items-snacks"></div>
   </div>
+
+  <!-- MAINS -->
   <div class="section" id="sec-mains">
     <div class="section-header">
       <h2 class="section-title">Plats <em>Principaux</em></h2>
@@ -693,6 +751,8 @@
     </div>
     <div id="items-mains"></div>
   </div>
+
+  <!-- DESSERTS -->
   <div class="section" id="sec-desserts">
     <div class="section-header">
       <h2 class="section-title">Desserts <em>Précieux</em></h2>
@@ -700,25 +760,56 @@
     </div>
     <div id="items-desserts"></div>
   </div>
+
 </main>
 
+<!-- Floating WhatsApp button -->
 <button id="float-btn" class="float-btn" onclick="openModal()">
   Commander (<span id="float-count">0</span>)
 </button>
 
+<!-- Name Modal -->
 <div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title">Dernière <em>étape !</em></div>
     <p class="modal-subtitle">Remplissez tous les champs pour finaliser votre commande</p>
-    <input class="name-input" id="client-name" type="text" placeholder="Votre nom complet" autocomplete="name" oninput="confirmOrder()" onkeydown="if(event.key==='Enter') document.getElementById('client-phone').focus()" />
+    <input
+      class="name-input"
+      id="client-name"
+      type="text"
+      placeholder="Votre nom complet"
+      autocomplete="name"
+      oninput="confirmOrder()"
+      onkeydown="if(event.key==='Enter') document.getElementById('client-phone').focus()"
+    />
     <div style="display:flex;gap:8px;margin-bottom:16px;">
       <div style="padding:14px 12px;background:rgba(103,108,114,0.15);border:1.5px solid rgba(103,108,114,0.2);border-radius:12px;font-size:15px;color:rgba(103,108,114,0.6);white-space:nowrap;user-select:none;">+961</div>
-      <input class="name-input" id="client-phone" type="tel" placeholder="70 123 456" autocomplete="tel" style="margin-bottom:0;flex:1;" onkeydown="if(event.key==='Enter') document.getElementById('client-location').focus()" />
+      <input
+        class="name-input"
+        id="client-phone"
+        type="tel"
+        placeholder="70 123 456"
+        autocomplete="tel"
+        style="margin-bottom:0;flex:1;"
+        onkeydown="if(event.key==='Enter') document.getElementById('client-location').focus()"
+      />
     </div>
-    <input class="name-input" id="client-location" type="text" placeholder="Votre adresse de livraison" autocomplete="street-address" oninput="confirmOrder()" onkeydown="if(event.key==='Enter') placeOrder()" />
-    <button id="modal-confirm-btn" class="modal-confirm" onclick="placeOrder()">Confirmer la commande</button>
-    <div id="order-success" style="display:none;text-align:center;padding:14px;background:rgba(76,175,80,0.15);border-radius:12px;color:#2E7D32;font-weight:500;font-size:14px;">✅ Commande envoyée avec succès !</div>
+    <input
+      class="name-input"
+      id="client-location"
+      type="text"
+      placeholder="Votre adresse de livraison"
+      autocomplete="street-address"
+      oninput="confirmOrder()"
+      onkeydown="if(event.key==='Enter') placeOrder()"
+    />
+    <button id="modal-confirm-btn" class="modal-confirm" onclick="placeOrder()">
+      Confirmer la commande
+    </button>
+    <div id="order-success" style="display:none;text-align:center;padding:14px;background:rgba(76,175,80,0.15);border-radius:12px;color:#2E7D32;font-weight:500;font-size:14px;">
+      ✅ Commande envoyée avec succès !
+    </div>
     <button class="modal-cancel" onclick="closeModal()">Annuler</button>
   </div>
 </div>
@@ -729,20 +820,31 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script>
+// ── FIREBASE CONFIG ── (must be before menu script)
 const firebaseConfig = {
   apiKey:     "AIzaSyANahV1JOHQqEweg6e8i_LvltXNCTW-kIw",
   authDomain: "cafe-moliere.firebaseapp.com",
   projectId:  "cafe-moliere",
 };
 firebase.initializeApp(firebaseConfig);
+
+
+
 const db = firebase.firestore();
+
+// ── SECURITY HELPERS ──
 function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 </script>
 
 <script>
+// ── MENU DATA ──
 const MENU = {};
 let _catOrder = [];
+
+// CHANGE THIS to your real WhatsApp number (961 + number without leading 0)
 const WA_NUMBER = '96171503555';
+
+// ── CART ──
 const CART_STORAGE_KEY = 'cafe-moliere-cart-v1';
 const cart = (function(){
   try { return JSON.parse(localStorage.getItem(CART_STORAGE_KEY)) || {}; }
@@ -751,6 +853,7 @@ const cart = (function(){
 function saveCart() {
   try { localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart)); } catch(e) {}
 }
+
 function getCart() {
   let count = 0, total = 0;
   for (const id in cart) {
@@ -762,22 +865,31 @@ function getCart() {
   }
   return { count, total };
 }
-function formatPrice(p) { return 'LL ' + p.toLocaleString(); }
+
+function formatPrice(p) {
+  return 'LL ' + p.toLocaleString();
+}
+
 function findItem(id) {
+  // Check special item first
   if (id === 'special-item' && window._specialItem) return window._specialItem;
+  // Then search menu
   for (const cat of Object.values(MENU)) {
     const f = cat.find(i => i.id === id);
     if (f) return f;
   }
 }
+
 function updateCart() {
   const { count, total } = getCart();
   document.getElementById('cart-count').textContent = count;
   document.getElementById('cart-total').textContent = formatPrice(total);
   document.getElementById('float-count').textContent = count;
+
   const topBtn  = document.getElementById('top-order-btn');
   const floatBtn = document.getElementById('float-btn');
   const clearBtn = document.getElementById('clear-cart-btn');
+
   if (count > 0) {
     topBtn.classList.remove('empty');
     floatBtn.classList.add('visible');
@@ -788,6 +900,7 @@ function updateCart() {
     clearBtn.classList.remove('visible');
   }
 }
+
 function clearCart() {
   for (const id in cart) cart[id] = 0;
   saveCart();
@@ -795,7 +908,10 @@ function clearCart() {
   updateCart();
 }
 
+
+// ── HERO SLIDESHOW ──
 let _heroSlide = 0, _heroTimer = null, _heroCount = 0;
+
 function initHeroSlideshow(images) {
   _heroCount = images.length;
   const slidesEl = document.querySelector('.hero-slides');
@@ -834,6 +950,7 @@ function initHeroSlideshow(images) {
     }
   }, { passive: true });
 }
+
 function heroGoTo(n) {
   const slides = document.querySelectorAll('.hero-slide');
   const dots   = document.querySelectorAll('.hero-dot');
@@ -845,28 +962,44 @@ function heroGoTo(n) {
   clearInterval(_heroTimer);
   startHeroTimer();
 }
+
 function startHeroTimer() {
   clearInterval(_heroTimer);
   if (_heroCount > 1) _heroTimer = setInterval(() => heroGoTo((_heroSlide + 1) % _heroCount), 5000);
 }
+
 function openModal() {
   const { count } = getCart();
   if (count === 0) return;
   document.getElementById('modal-overlay').classList.add('visible');
   setTimeout(() => document.getElementById('client-name').focus(), 400);
 }
-function closeModal() { document.getElementById('modal-overlay').classList.remove('visible'); }
-function handleOverlayClick(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
-function confirmOrder() {}
-function closeConfirmModal() { document.getElementById('confirm-modal-overlay').classList.remove('visible'); }
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('visible');
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+function confirmOrder() { /* kept for input listeners */ }
+
+function closeConfirmModal() {
+  document.getElementById('confirm-modal-overlay').classList.remove('visible');
+}
+
 async function placeOrder() {
   const name     = document.getElementById('client-name').value.trim();
   const phoneRaw = document.getElementById('client-phone').value.replace(/\s+/g, '').replace(/\D/g, '').replace(/^0+/, '');
   const location = document.getElementById('client-location').value.trim();
-  if (!name)     { document.getElementById('client-name').focus();     alert('Veuillez saisir votre nom.');                 return; }
-  if (!phoneRaw) { document.getElementById('client-phone').focus();    alert('Veuillez saisir votre numéro de téléphone.'); return; }
+
+  if (!name)          { document.getElementById('client-name').focus();     alert('Veuillez saisir votre nom.');                return; }
+  if (!phoneRaw)      { document.getElementById('client-phone').focus();    alert('Veuillez saisir votre numéro de téléphone.'); return; }
   if (!/^\+?[\d\s\-]{7,15}$/.test(phoneRaw)) { document.getElementById('client-phone').focus(); alert('Numéro de téléphone invalide.'); return; }
-  if (!location) { document.getElementById('client-location').focus(); alert('Veuillez saisir votre adresse de livraison.'); return; }
+  if (!location)      { document.getElementById('client-location').focus(); alert('Veuillez saisir votre adresse de livraison.'); return; }
+
+  // Build confirmation screen
   const items = [];
   for (const id in cart) {
     if (cart[id] > 0) {
@@ -875,6 +1008,8 @@ async function placeOrder() {
     }
   }
   const { total } = getCart();
+
+  // Fill confirmation modal
   document.getElementById('confirm-order-list').innerHTML = items.map(i =>
     `<div class="confirm-order-item"><span>${i.name} x${i.qty}</span><span>${formatPrice(i.price)}</span></div>`
   ).join('');
@@ -884,14 +1019,18 @@ async function placeOrder() {
     <div class="confirm-info-row"><span class="confirm-info-label">Phone</span><span>+961${escapeHtml(phoneRaw)}</span></div>
     <div class="confirm-info-row"><span class="confirm-info-label">Address</span><span>${escapeHtml(location)}</span></div>
   `;
+
+  // Close first modal, open confirm modal
   closeModal();
   document.getElementById('confirm-modal-overlay').classList.add('visible');
 }
+
 async function submitOrder() {
   const name     = document.getElementById('client-name').value.trim();
   const phoneRaw = document.getElementById('client-phone').value.replace(/\s+/g, '').replace(/\D/g, '').replace(/^0+/, '');
   const phone    = '961' + phoneRaw;
   const location = document.getElementById('client-location').value.trim();
+
   const items = [];
   for (const id in cart) {
     if (cart[id] > 0) {
@@ -900,10 +1039,12 @@ async function submitOrder() {
     }
   }
   const { total } = getCart();
+
   const btn = document.getElementById('confirm-place-btn');
   btn.textContent = 'Envoi en cours...';
   btn.style.opacity = '0.7';
   btn.disabled = true;
+
   try {
     await db.collection('orders').add({
       name, phone, address: location, items, total,
@@ -912,11 +1053,15 @@ async function submitOrder() {
       date: new Date().toLocaleDateString('fr-LB'),
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
+
     closeConfirmModal();
+
+    // Show success on original modal
     document.getElementById('modal-overlay').classList.add('visible');
     document.getElementById('modal-confirm-btn').style.display = 'none';
     document.getElementById('order-success').style.display = 'block';
     document.querySelector('.modal-cancel').style.display = 'none';
+
     setTimeout(() => {
       for (const id in cart) cart[id] = 0;
       saveCart();
@@ -933,6 +1078,7 @@ async function submitOrder() {
       document.querySelector('.modal-cancel').style.display = 'block';
       closeModal();
     }, 2000);
+
   } catch(e) {
     alert('Impossible d\'envoyer la commande. Vérifiez votre connexion et réessayez.');
     btn.textContent = 'Envoyer la commande';
@@ -940,6 +1086,8 @@ async function submitOrder() {
     btn.disabled = false;
   }
 }
+
+// ── RENDER ──
 function renderSection(catKey) {
   const container = document.getElementById('items-' + catKey);
   container.innerHTML = '';
@@ -965,16 +1113,21 @@ function renderSection(catKey) {
     container.appendChild(div);
   });
 }
+
 function changeQty(id, delta) {
   cart[id] = Math.max(0, (cart[id] || 0) + delta);
   document.getElementById('qty-' + id).textContent = cart[id];
   saveCart();
   updateCart();
 }
+
+
 function showSpecial(s) {
   const specialId = 'special-item';
   cart[specialId] = cart[specialId] || 0;
+  // Store special so findItem can find it
   window._specialItem = { id: specialId, name: s.name, price: s.price, emoji: s.emoji||'⭐', desc: s.desc||'' };
+
   const main = document.querySelector('main');
   const specialDiv = document.createElement('div');
   specialDiv.id = 'special-section';
@@ -996,6 +1149,7 @@ function showSpecial(s) {
     </div>`;
   main.prepend(specialDiv);
 }
+
 function showSection(key) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -1004,9 +1158,11 @@ function showSection(key) {
 }
 async function loadMenu() {
   try {
+    // Load categories config from Firestore
     let catOrder = ['hot','cold','snacks','mains','desserts'];
     let catNames = { hot:'Boissons Chaudes', cold:'Boissons Froides', snacks:'Snacks & Viennoiseries', mains:'Plats Principaux', desserts:'Desserts' };
     let catEmojis = { hot:'☕', cold:'🧊', snacks:'🥐', mains:'🍽️', desserts:'🍰' };
+
     const catDoc = await db.collection('settings').doc('categories').get();
     if (catDoc.exists) {
       const cd = catDoc.data();
@@ -1014,6 +1170,8 @@ async function loadMenu() {
       if (cd.names)  catNames  = cd.names;
       if (cd.emojis) catEmojis = cd.emojis;
     }
+
+    // Custom hero slideshow
     try {
       const apDoc = await db.collection('settings').doc('appearance').get();
       if (apDoc.exists) {
@@ -1022,12 +1180,16 @@ async function loadMenu() {
         if (images.length > 0) initHeroSlideshow(images);
       }
     } catch(e) {}
-    const tabsEl = document.querySelector('.tabs');
-    const mainEl = document.querySelector('main');
-    tabsEl.innerHTML = '';
-    mainEl.innerHTML = '';
+
+    // Build tabs and sections dynamically
+    const tabsEl  = document.querySelector('.tabs');
+    const mainEl  = document.querySelector('main');
+    tabsEl.innerHTML  = '';
+    mainEl.innerHTML  = '';
+
     catOrder.forEach((key, i) => {
       MENU[key] = [];
+      // Tab
       const tab = document.createElement('div');
       tab.className = 'tab' + (i === 0 ? ' active' : '');
       tab.textContent = (catEmojis[key]||'') + ' ' + (catNames[key]||key);
@@ -1038,6 +1200,7 @@ async function loadMenu() {
         this.classList.add('active');
       });
       tabsEl.appendChild(tab);
+      // Section
       const sec = document.createElement('div');
       sec.className = 'section' + (i === 0 ? ' active' : '');
       sec.id = 'sec-' + key;
@@ -1050,6 +1213,8 @@ async function loadMenu() {
         <div id="items-${key}"></div>`;
       mainEl.appendChild(sec);
     });
+
+    // Load items
     const snapshot = await db.collection('menu').get();
     snapshot.forEach(doc => {
       const item = { id: doc.id, ...doc.data() };
@@ -1057,14 +1222,21 @@ async function loadMenu() {
       if (!MENU[item.category]) MENU[item.category] = [];
       MENU[item.category].push(item);
     });
+
     Object.keys(MENU).forEach(cat => MENU[cat].sort((a,b) => (a.order||0) - (b.order||0)));
+
+    // Load plat du jour
     const special = await db.collection('settings').doc('special').get();
     if (special.exists && special.data().available !== false) showSpecial(special.data());
+
     _catOrder = catOrder;
     catOrder.forEach(renderSection);
     updateCart();
-  } catch(e) {}
+  } catch(e) {
+    // failed to load menu
+  }
 }
+
 function switchTab(dir) {
   const idx = _catOrder.findIndex(k => document.getElementById('sec-' + k).classList.contains('active'));
   const next = _catOrder[idx + dir];
@@ -1077,6 +1249,7 @@ function switchTab(dir) {
   tabs[idx + dir].scrollIntoView({ inline: 'center', behavior: 'smooth' });
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
 (function() {
   let x0 = 0, y0 = 0;
   document.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
@@ -1086,9 +1259,12 @@ function switchTab(dir) {
     if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) switchTab(dx < 0 ? 1 : -1);
   }, { passive: true });
 })();
+
 loadMenu();
 </script>
 
+
+<!-- Order Confirmation Modal -->
 <div class="confirm-modal-overlay" id="confirm-modal-overlay">
   <div class="confirm-modal">
     <div class="confirm-modal-handle"></div>
