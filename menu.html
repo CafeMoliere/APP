@@ -61,14 +61,12 @@
 
   .hero-bg {
     position: absolute;
-    top: -10%;
-    left: 0;
-    right: 0;
-    bottom: -10%;
+    inset: 0;
     background-image: url('cafe-wall.jpg');
-    background-size: cover;
-    background-position: center 35%;
-    will-change: transform;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #2E3033;
   }
 
   .hero-overlay {
@@ -1151,21 +1149,6 @@ function switchTab(dir) {
     const dx = e.changedTouches[0].clientX - x0;
     const dy = e.changedTouches[0].clientY - y0;
     if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) switchTab(dx < 0 ? 1 : -1);
-  }, { passive: true });
-})();
-
-(function() {
-  const bg = document.querySelector('.hero-bg');
-  if (!bg) return;
-  let ticking = false;
-  window.addEventListener('scroll', () => {
-    if (ticking) return;
-    requestAnimationFrame(() => {
-      const y = window.scrollY;
-      if (y < 600) bg.style.transform = `translateY(${y * 0.3}px)`;
-      ticking = false;
-    });
-    ticking = true;
   }, { passive: true });
 })();
 
