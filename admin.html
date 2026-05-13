@@ -189,18 +189,14 @@ a:focus-visible,button:focus-visible{outline:2px solid #FF5E00;outline-offset:2p
 <!-- APPEARANCE TAB -->
 <div id="tab-appearance" class="content" style="display:none">
   <div class="card" style="border-color:#FF5E00">
-    <div class="card-title">🎨 Image de <em>la page menu</em></div>
-    <div class="card-sub">Téléversez une image pour la bannière en haut du menu. Format recommandé : paysage large, min. 1600px.</div>
-    <div id="hero-preview-wrap" style="margin:16px 0;display:none">
-      <img id="hero-preview" style="width:100%;max-height:240px;object-fit:cover;border-radius:12px;background:#1A1A1A" />
-    </div>
-    <label class="field-label">Choisir une image</label>
-    <input class="fi" id="hero-file" type="file" accept="image/*" onchange="onHeroFileChange(event)" />
+    <div class="card-title">🎨 Bannière <em>Diaporama</em></div>
+    <div class="card-sub">Ajoutez plusieurs images — elles défileront automatiquement en haut du menu (5 sec par image). Cliquez × pour supprimer.</div>
+    <div id="hero-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:16px 0;min-height:50px"></div>
+    <label for="hero-file" id="hero-upload-label" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:16px;background:#1A1A1A;border:2px dashed #444;border-radius:10px;cursor:pointer;color:#888;font-size:13px;transition:border-color 0.2s,color 0.2s">
+      <span style="font-size:22px;line-height:1">+</span> Ajouter des images
+    </label>
+    <input id="hero-file" type="file" accept="image/*" multiple style="display:none" onchange="onHeroFilesChange(event)" />
     <div id="hero-status" style="margin-top:10px;font-size:12px;color:#888"></div>
-    <div style="display:flex;gap:8px;margin-top:14px">
-      <button class="save-btn" id="hero-save-btn" onclick="uploadHero()" disabled style="flex:1">Enregistrer l'image</button>
-      <button class="save-btn" id="hero-reset-btn" onclick="resetHero()" style="flex:0 0 auto;background:#444">Réinitialiser</button>
-    </div>
   </div>
 </div>
 </div>
@@ -652,62 +648,78 @@ auth.onAuthStateChanged(user => {
   }
 });
 
-// ── HERO IMAGE ──
-let _heroFile = null;
+// ── HERO IMAGES (SLIDESHOW) ──
+let _heroImages = [];
 
 async function loadHeroPreview() {
   try {
     const doc = await db.collection('settings').doc('appearance').get();
-    const url = doc.exists ? doc.data().heroImage : null;
-    const wrap = document.getElementById('hero-preview-wrap');
-    const img = document.getElementById('hero-preview');
-    if (url) { img.src = url; wrap.style.display = 'block'; }
-    else { wrap.style.display = 'none'; }
+    const ap = doc.exists ? doc.data() : {};
+    _heroImages = ap.heroImages || (ap.heroImage ? [ap.heroImage] : []);
+    renderHeroGrid();
   } catch(e) {}
 }
 
-function onHeroFileChange(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  if (file.size > 8 * 1024 * 1024) { toast('Image trop grande (max 8 Mo)'); return; }
-  _heroFile = file;
-  const img = document.getElementById('hero-preview');
-  const wrap = document.getElementById('hero-preview-wrap');
-  img.src = URL.createObjectURL(file);
-  wrap.style.display = 'block';
-  document.getElementById('hero-save-btn').disabled = false;
-  document.getElementById('hero-status').textContent = 'Prêt à téléverser : ' + file.name;
-}
-
-async function uploadHero() {
-  if (!_heroFile) return;
-  const btn = document.getElementById('hero-save-btn');
-  const status = document.getElementById('hero-status');
-  btn.disabled = true; btn.textContent = 'Téléversement...';
-  try {
-    const storage = firebase.app().storage('gs://cafe-moliere.firebasestorage.app').ref();
-    const fileRef = storage.child('hero-' + Date.now() + '-' + _heroFile.name.replace(/[^a-zA-Z0-9.]/g,'_'));
-    const snap = await fileRef.put(_heroFile);
-    const url = await snap.ref.getDownloadURL();
-    await db.collection('settings').doc('appearance').set({ heroImage: url, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
-    status.textContent = '✓ Image enregistrée';
-    btn.textContent = 'Enregistrer l\'image';
-    toast('Image du menu mise à jour');
-    _heroFile = null;
-    document.getElementById('hero-file').value = '';
-  } catch(e) {
-    status.textContent = '✗ Erreur : ' + (e.message || e.code);
-    btn.disabled = false;
-    btn.textContent = 'Enregistrer l\'image';
+function renderHeroGrid() {
+  const grid = document.getElementById('hero-grid');
+  if (!_heroImages.length) {
+    grid.innerHTML = '<div style="font-size:12px;color:#555;padding:8px 0">Aucune image. Ajoutez-en une ci-dessous.</div>';
+    return;
   }
+  grid.innerHTML = _heroImages.map((url, i) => `
+    <div style="position:relative;border-radius:10px;overflow:hidden;aspect-ratio:16/9;background:#111">
+      <img src="${escapeHtml(url)}" style="width:100%;height:100%;object-fit:cover;display:block" loading="lazy" />
+      <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.45) 0%,transparent 55%);pointer-events:none"></div>
+      <div style="position:absolute;bottom:5px;left:7px;font-size:10px;color:rgba(255,255,255,0.75);font-weight:700">${i + 1}</div>
+      <button onclick="deleteHeroImage(${i})" style="position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.6);color:#fff;border:none;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;line-height:1" title="Supprimer">×</button>
+    </div>`).join('');
 }
 
-async function resetHero() {
-  if (!confirm('Réinitialiser à l\'image par défaut ?')) return;
-  await db.collection('settings').doc('appearance').set({ heroImage: null, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
-  document.getElementById('hero-preview-wrap').style.display = 'none';
-  document.getElementById('hero-status').textContent = '✓ Réinitialisé';
-  toast('Image réinitialisée');
+async function onHeroFilesChange(e) {
+  const files = Array.from(e.target.files).filter(Boolean);
+  if (!files.length) return;
+  const tooBig = files.filter(f => f.size > 8 * 1024 * 1024);
+  if (tooBig.length) toast(`${tooBig.length} fichier(s) ignoré(s) : trop grand (max 8 Mo)`);
+  const valid = files.filter(f => f.size <= 8 * 1024 * 1024);
+  if (!valid.length) return;
+  const label  = document.getElementById('hero-upload-label');
+  const status = document.getElementById('hero-status');
+  label.style.pointerEvents = 'none';
+  label.style.opacity = '0.5';
+  for (let i = 0; i < valid.length; i++) {
+    const file = valid[i];
+    status.textContent = `Téléversement ${i + 1}/${valid.length} : ${file.name}`;
+    try {
+      const storage = firebase.app().storage('gs://cafe-moliere.firebasestorage.app').ref();
+      const ref = storage.child('hero/' + Date.now() + '-' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_'));
+      const snap = await ref.put(file);
+      const url  = await snap.ref.getDownloadURL();
+      _heroImages.push(url);
+      await saveHeroImages();
+      renderHeroGrid();
+    } catch(err) {
+      toast('Erreur : ' + (err.message || err.code));
+    }
+  }
+  status.textContent = `✓ ${valid.length} image(s) ajoutée(s)`;
+  label.style.pointerEvents = '';
+  label.style.opacity = '1';
+  document.getElementById('hero-file').value = '';
+}
+
+async function deleteHeroImage(idx) {
+  if (!confirm('Supprimer cette image du diaporama ?')) return;
+  _heroImages.splice(idx, 1);
+  await saveHeroImages();
+  renderHeroGrid();
+  toast('Image supprimée');
+}
+
+async function saveHeroImages() {
+  await db.collection('settings').doc('appearance').set(
+    { heroImages: _heroImages, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
+    { merge: true }
+  );
 }
 </script>
 </body>
