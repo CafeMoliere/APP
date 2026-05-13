@@ -98,6 +98,29 @@
     font-weight: 700;
   }
 
+  .clear-btn {
+    margin-left: 10px;
+    width: 22px;
+    height: 22px;
+    border: none;
+    background: rgba(103,108,114,0.12);
+    color: #676C72;
+    border-radius: 50%;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    padding: 0;
+    transition: transform 0.15s cubic-bezier(0.34, 1.4, 0.64, 1), background 0.15s, color 0.15s;
+    vertical-align: middle;
+  }
+  .clear-btn.visible { display: inline-flex; }
+  .clear-btn:hover { background: #FF5E00; color: #fff; transform: rotate(90deg); }
+  .clear-btn:active { transform: scale(0.85); }
+
   .order-btn {
     display: inline-flex;
     align-items: center;
@@ -548,6 +571,7 @@
 <div class="cart-bar">
   <div class="cart-info">
     <span id="cart-count">0</span> articles · <span id="cart-total">$0.00</span>
+    <button id="clear-cart-btn" class="clear-btn" onclick="clearCart()" aria-label="Vider le panier" title="Vider le panier">×</button>
   </div>
   <a id="top-order-btn" href="#" class="order-btn empty" onclick="event.preventDefault(); openModal()">
     Commander
@@ -737,14 +761,24 @@ function updateCart() {
 
   const topBtn  = document.getElementById('top-order-btn');
   const floatBtn = document.getElementById('float-btn');
+  const clearBtn = document.getElementById('clear-cart-btn');
 
   if (count > 0) {
     topBtn.classList.remove('empty');
     floatBtn.classList.add('visible');
+    clearBtn.classList.add('visible');
   } else {
     topBtn.classList.add('empty');
     floatBtn.classList.remove('visible');
+    clearBtn.classList.remove('visible');
   }
+}
+
+function clearCart() {
+  for (const id in cart) cart[id] = 0;
+  saveCart();
+  document.querySelectorAll('[id^="qty-"]').forEach(el => { el.textContent = '0'; });
+  updateCart();
 }
 
 
