@@ -1073,6 +1073,15 @@ async function loadMenu() {
       if (cd.emojis) catEmojis = cd.emojis;
     }
 
+    // Custom hero image from settings
+    try {
+      const apDoc = await db.collection('settings').doc('appearance').get();
+      if (apDoc.exists && apDoc.data().heroImage) {
+        const bg = document.querySelector('.hero-bg');
+        if (bg) bg.style.backgroundImage = `url('${apDoc.data().heroImage}')`;
+      }
+    } catch(e) {}
+
     // Build tabs and sections dynamically
     const tabsEl  = document.querySelector('.tabs');
     const mainEl  = document.querySelector('main');

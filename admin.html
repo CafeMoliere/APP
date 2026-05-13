@@ -13,6 +13,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#1A1A1A;color:#fff;font-family:'DM Sans',sans-serif;min-height:100vh}
@@ -131,6 +132,7 @@ a:focus-visible,button:focus-visible{outline:2px solid #FF5E00;outline-offset:2p
   <button class="tab active" onclick="switchTab('menu',this)">🍽️ Menu Items</button>
   <button class="tab" onclick="switchTab('categories',this)">📂 Categories</button>
   <button class="tab" onclick="switchTab('special',this)">⭐ Plat du Jour</button>
+  <button class="tab" onclick="switchTab('appearance',this)">🎨 Apparence</button>
 </div>
 
 <!-- MENU TAB -->
@@ -181,6 +183,24 @@ a:focus-visible,button:focus-visible{outline:2px solid #FF5E00;outline-offset:2p
     </div>
     <button class="save-btn" onclick="saveSpecial()">Save Plat du Jour</button>
     <div id="special-preview" style="margin-top:16px;padding:12px;background:#1A1A1A;border-radius:8px;font-size:12px;color:#888;display:none"></div>
+  </div>
+</div>
+
+<!-- APPEARANCE TAB -->
+<div id="tab-appearance" class="content" style="display:none">
+  <div class="card" style="border-color:#FF5E00">
+    <div class="card-title">🎨 Image de <em>la page menu</em></div>
+    <div class="card-sub">Téléversez une image pour la bannière en haut du menu. Format recommandé : paysage large, min. 1600px.</div>
+    <div id="hero-preview-wrap" style="margin:16px 0;display:none">
+      <img id="hero-preview" style="width:100%;max-height:240px;object-fit:cover;border-radius:12px;background:#1A1A1A" />
+    </div>
+    <label class="field-label">Choisir une image</label>
+    <input class="fi" id="hero-file" type="file" accept="image/*" onchange="onHeroFileChange(event)" />
+    <div id="hero-status" style="margin-top:10px;font-size:12px;color:#888"></div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="save-btn" id="hero-save-btn" onclick="uploadHero()" disabled style="flex:1">Enregistrer l'image</button>
+      <button class="save-btn" id="hero-reset-btn" onclick="resetHero()" style="flex:0 0 auto;background:#444">Réinitialiser</button>
+    </div>
   </div>
 </div>
 </div>
@@ -237,9 +257,10 @@ let catEmojis  = { hot:'☕', cold:'🧊', snacks:'🥐', mains:'🍽️', desse
 function switchTab(name, btn) {
   document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  ['menu','categories','special'].forEach(t => {
+  ['menu','categories','special','appearance'].forEach(t => {
     document.getElementById('tab-'+t).style.display = t === name ? 'block' : 'none';
   });
+  if (name === 'appearance') loadHeroPreview();
 }
 
 // ── TOAST ──
@@ -630,6 +651,64 @@ auth.onAuthStateChanged(user => {
     document.getElementById('admin-content').style.display = 'none';
   }
 });
+
+// ── HERO IMAGE ──
+let _heroFile = null;
+
+async function loadHeroPreview() {
+  try {
+    const doc = await db.collection('settings').doc('appearance').get();
+    const url = doc.exists ? doc.data().heroImage : null;
+    const wrap = document.getElementById('hero-preview-wrap');
+    const img = document.getElementById('hero-preview');
+    if (url) { img.src = url; wrap.style.display = 'block'; }
+    else { wrap.style.display = 'none'; }
+  } catch(e) {}
+}
+
+function onHeroFileChange(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 8 * 1024 * 1024) { toast('Image trop grande (max 8 Mo)'); return; }
+  _heroFile = file;
+  const img = document.getElementById('hero-preview');
+  const wrap = document.getElementById('hero-preview-wrap');
+  img.src = URL.createObjectURL(file);
+  wrap.style.display = 'block';
+  document.getElementById('hero-save-btn').disabled = false;
+  document.getElementById('hero-status').textContent = 'Prêt à téléverser : ' + file.name;
+}
+
+async function uploadHero() {
+  if (!_heroFile) return;
+  const btn = document.getElementById('hero-save-btn');
+  const status = document.getElementById('hero-status');
+  btn.disabled = true; btn.textContent = 'Téléversement...';
+  try {
+    const storage = firebase.app().storage('gs://cafe-moliere.firebasestorage.app').ref();
+    const fileRef = storage.child('hero-' + Date.now() + '-' + _heroFile.name.replace(/[^a-zA-Z0-9.]/g,'_'));
+    const snap = await fileRef.put(_heroFile);
+    const url = await snap.ref.getDownloadURL();
+    await db.collection('settings').doc('appearance').set({ heroImage: url, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+    status.textContent = '✓ Image enregistrée';
+    btn.textContent = 'Enregistrer l\'image';
+    toast('Image du menu mise à jour');
+    _heroFile = null;
+    document.getElementById('hero-file').value = '';
+  } catch(e) {
+    status.textContent = '✗ Erreur : ' + (e.message || e.code);
+    btn.disabled = false;
+    btn.textContent = 'Enregistrer l\'image';
+  }
+}
+
+async function resetHero() {
+  if (!confirm('Réinitialiser à l\'image par défaut ?')) return;
+  await db.collection('settings').doc('appearance').set({ heroImage: null, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  document.getElementById('hero-preview-wrap').style.display = 'none';
+  document.getElementById('hero-status').textContent = '✓ Réinitialisé';
+  toast('Image réinitialisée');
+}
 </script>
 </body>
 </html>
