@@ -54,16 +54,19 @@
   /* ── HERO HEADER ── */
   .hero-header {
     position: relative;
+    height: 300px;
     overflow: hidden;
     background: #2E3033;
   }
 
-  .hero-img {
-    display: block;
-    width: 100%;
-    height: auto;
-    user-select: none;
-    -webkit-user-drag: none;
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background-image: url('cafe-wall.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #2E3033;
   }
 
   .hero-overlay {
@@ -640,7 +643,7 @@
 <body>
 
 <header class="hero-header">
-  <img class="hero-img" src="cafe-wall.jpg" alt="" />
+  <div class="hero-bg"></div>
   <div class="hero-overlay"></div>
   <div class="hero-content">
     <div class="hero-eyebrow">Le Café Molière</div>
@@ -1074,8 +1077,8 @@ async function loadMenu() {
     try {
       const apDoc = await db.collection('settings').doc('appearance').get();
       if (apDoc.exists && apDoc.data().heroImage) {
-        const img = document.querySelector('.hero-img');
-        if (img) img.src = apDoc.data().heroImage;
+        const bg = document.querySelector('.hero-bg');
+        if (bg) bg.style.backgroundImage = `url('${apDoc.data().heroImage}')`;
       }
     } catch(e) {}
 
