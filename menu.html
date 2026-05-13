@@ -51,24 +51,99 @@
     opacity: 0.4;
   }
 
-  /* ── HEADER ── */
-  header {
-    background-color: #FF5E00;
-    padding: 0;
-    margin: 0;
-    display: block;
-    line-height: 0;
+  /* ── HERO HEADER ── */
+  .hero-header {
+    position: relative;
+    height: 380px;
+    overflow: hidden;
+    background: #2E3033;
   }
 
-  header img {
-    width: 100%;
+  .hero-bg {
+    position: absolute;
+    top: -15%;
+    left: 0;
+    right: 0;
+    bottom: -15%;
+    background-image: url('cafe-wall.jpg');
+    background-size: cover;
+    background-position: center;
+    will-change: transform;
+    transform: scale(1.05);
+  }
+
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at center, rgba(46,48,51,0.15) 0%, rgba(46,48,51,0.55) 70%, rgba(46,48,51,0.85) 100%),
+      linear-gradient(180deg, rgba(46,48,51,0.45) 0%, rgba(46,48,51,0.1) 35%, rgba(46,48,51,0.6) 75%, rgba(46,48,51,0.92) 100%);
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 24px;
+    text-align: center;
+  }
+
+  .hero-logo {
+    width: clamp(120px, 36vw, 160px);
     height: auto;
-    max-height: 420px;
-    object-fit: contain;
-    object-position: center center;
-    display: block;
-    margin: 0;
-    background-color: #FF5E00;
+    filter: drop-shadow(0 6px 24px rgba(0,0,0,0.45));
+    animation: heroFadeIn 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+  }
+
+  .hero-tagline {
+    font-family: 'Great Vibes', cursive;
+    font-size: clamp(2rem, 7vw, 2.6rem);
+    color: #FCECBB;
+    line-height: 1;
+    text-shadow: 0 2px 16px rgba(0,0,0,0.35);
+    animation: heroFadeIn 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+  }
+
+  .hero-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 16px;
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 50px;
+    color: #fff;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    animation: heroFadeIn 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.5s both;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    background: #4ade80;
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(74,222,128,0.7);
+    animation: statusPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes statusPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.55; transform: scale(0.85); }
+  }
+
+  @keyframes heroFadeIn {
+    from { opacity: 0; transform: translateY(22px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 
   /* ── CART BAR ── */
@@ -565,7 +640,18 @@
 </head>
 <body>
 
-<header><img src="header.png" alt="Le Café Molière" /></header>
+<header class="hero-header">
+  <div class="hero-bg"></div>
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    <img class="hero-logo" src="logo-orange.png" alt="Le Café Molière" />
+    <div class="hero-tagline">Notre Carte</div>
+    <div class="hero-status">
+      <span class="status-dot"></span>
+      Ouvert · Beit Chabab
+    </div>
+  </div>
+</header>
 
 <!-- Sticky cart bar -->
 <div class="cart-bar">
@@ -1061,6 +1147,21 @@ function switchTab(dir) {
     const dx = e.changedTouches[0].clientX - x0;
     const dy = e.changedTouches[0].clientY - y0;
     if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) switchTab(dx < 0 ? 1 : -1);
+  }, { passive: true });
+})();
+
+(function() {
+  const bg = document.querySelector('.hero-bg');
+  if (!bg) return;
+  let ticking = false;
+  window.addEventListener('scroll', () => {
+    if (ticking) return;
+    requestAnimationFrame(() => {
+      const y = window.scrollY;
+      if (y < 600) bg.style.transform = `scale(1.05) translateY(${y * 0.3}px)`;
+      ticking = false;
+    });
+    ticking = true;
   }, { passive: true });
 })();
 
