@@ -688,6 +688,7 @@ function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;
 <script>
 // ── MENU DATA ──
 const MENU = {};
+let _catOrder = [];
 
 // CHANGE THIS to your real WhatsApp number (961 + number without leading 0)
 const WA_NUMBER = '96171503555';
@@ -998,12 +999,36 @@ async function loadMenu() {
     const special = await db.collection('settings').doc('special').get();
     if (special.exists && special.data().available !== false) showSpecial(special.data());
 
+    _catOrder = catOrder;
     catOrder.forEach(renderSection);
     updateCart();
   } catch(e) {
     // failed to load menu
   }
 }
+
+function switchTab(dir) {
+  const idx = _catOrder.findIndex(k => document.getElementById('sec-' + k).classList.contains('active'));
+  const next = _catOrder[idx + dir];
+  if (!next) return;
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('sec-' + next).classList.add('active');
+  const tabs = document.querySelectorAll('.tab');
+  tabs[idx + dir].classList.add('active');
+  tabs[idx + dir].scrollIntoView({ inline: 'center', behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+(function() {
+  let x0 = 0, y0 = 0;
+  document.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - x0;
+    const dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) switchTab(dx < 0 ? 1 : -1);
+  }, { passive: true });
+})();
 
 loadMenu();
 </script>
