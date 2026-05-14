@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0B2A4A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="EduLM Admin">
+<title>EduLM — Administration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+:root {
+  --navy: #0B2A4A;
+  --navy-deep: #061B33;
+  --gold: #C9A961;
+  --cream: #F5EFE0;
+  --muted: #8A95A5;
+  --card: #102B4D;
+  --line: rgba(255,255,255,0.08);
+  --good: #5EB07B;
+  --bad: #DC6B6B;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: var(--navy-deep);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  min-height: 100vh;
+}
+nav {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(6,27,51,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+  padding: 14px 22px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.brand {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.05rem;
+  color: var(--cream);
+}
+.brand em { font-style: italic; color: var(--gold); }
+.nav-right { display: flex; align-items: center; gap: 10px; }
+.user-chip {
+  font-size: 12px; color: var(--muted);
+  padding: 6px 12px; border: 1px solid var(--line); border-radius: 50px;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.user-chip strong { color: #fff; font-weight: 500; }
+.logout-btn {
+  padding: 7px 12px; background: transparent;
+  border: 1px solid var(--line); border-radius: 50px;
+  color: var(--muted); font-size: 11px; letter-spacing: 0.08em;
+  text-transform: uppercase; cursor: pointer; font-family: inherit;
+}
+.logout-btn:hover { color: #fff; border-color: var(--gold); }
+.container { max-width: 1200px; margin: 0 auto; padding: 32px 22px 80px; }
+.hello { margin-bottom: 24px; }
+.eyebrow {
+  font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 8px;
+}
+.hello h1 {
+  font-family: 'Playfair Display', serif;
+  font-weight: 400;
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  color: var(--cream);
+}
+.hello h1 em { font-style: italic; color: var(--gold); }
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+@media (max-width: 720px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+.kpi {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px 16px;
+}
+.kpi .label {
+  font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--muted);
+}
+.kpi .value {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.8rem;
+  color: var(--cream);
+  margin-top: 6px;
+}
+.kpi .value em { color: var(--gold); font-style: normal; }
+.tabs {
+  display: flex; gap: 4px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+}
+.tab {
+  background: transparent; border: none; color: var(--muted);
+  font-family: inherit; font-size: 12px;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 14px 18px; cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+.tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+.tab:hover { color: #fff; }
+.panel { display: none; }
+.panel.active { display: block; }
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px;
+  margin-bottom: 18px;
+}
+.card h2 {
+  font-family: 'Playfair Display', serif;
+  font-weight: 400;
+  font-size: 1.1rem;
+  color: var(--cream);
+  margin-bottom: 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.card h2 .icon { color: var(--gold); }
+.card h2 small {
+  margin-left: auto; font-family: 'DM Sans'; font-size: 10px;
+  font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--muted);
+}
+table { width: 100%; border-collapse: collapse; }
+th, td {
+  padding: 11px 10px;
+  text-align: left;
+  font-size: 13px;
+  border-bottom: 1px solid var(--line);
+}
+th {
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--muted); font-weight: 500;
+}
+.role-tag {
+  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 50px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+.role-tag.student { color: #9DD4FF; border-color: rgba(157,212,255,0.3); }
+.role-tag.teacher { color: var(--gold); border-color: rgba(201,169,97,0.3); }
+.role-tag.admin   { color: var(--bad);  border-color: rgba(220,107,107,0.3); }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 18px;
+  background: var(--gold); color: var(--navy-deep);
+  border: none; border-radius: 10px;
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+}
+.btn.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+.btn.ghost:hover { color: #fff; border-color: var(--gold); }
+.btn-mini {
+  padding: 5px 10px; font-size: 10px;
+  background: transparent; border: 1px solid var(--line);
+  color: var(--muted); border-radius: 6px;
+  cursor: pointer; font-family: inherit;
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.btn-mini:hover { color: var(--bad); border-color: var(--bad); }
+.field { display: block; margin-bottom: 14px; }
+.field label {
+  display: block; font-size: 11px; letter-spacing: 0.15em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+}
+input[type="text"], input[type="email"], select, textarea {
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid var(--line);
+  color: #fff;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--gold); }
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+@media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+.empty {
+  font-size: 13px; color: var(--muted);
+  text-align: center; padding: 24px 0;
+}
+.flash {
+  font-size: 12px; color: var(--good);
+  margin-left: 10px; opacity: 0; transition: opacity 0.3s;
+}
+.flash.show { opacity: 1; }
+.toolbar {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 14px; align-items: center;
+}
+.search {
+  flex: 1; min-width: 200px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid var(--line);
+  color: #fff;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-family: inherit; font-size: 13px;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand">EduLM — <em>Administration</em></div>
+  <div class="nav-right">
+    <span class="user-chip">👤 <strong id="user-name">Admin</strong></span>
+    <button class="logout-btn" onclick="doLogout()">Déconnexion</button>
+  </div>
+</nav>
+
+<div class="container">
+
+  <div class="hello">
+    <div class="eyebrow">Administration de l'école</div>
+    <h1>Tableau de <em>bord</em></h1>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="label">Élèves</div><div class="value" id="kpi-students"><em>—</em></div></div>
+    <div class="kpi"><div class="label">Enseignants</div><div class="value" id="kpi-teachers"><em>—</em></div></div>
+    <div class="kpi"><div class="label">Classes</div><div class="value" id="kpi-classes"><em>—</em></div></div>
+    <div class="kpi"><div class="label">Présence (sem.)</div><div class="value" id="kpi-attendance"><em>—</em></div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-panel="users">Utilisateurs</button>
+    <button class="tab" data-panel="classes">Classes</button>
+    <button class="tab" data-panel="announcements">Annonces</button>
+    <button class="tab" data-panel="settings">Paramètres</button>
+  </div>
+
+  <!-- USERS -->
+  <div class="panel active" id="panel-users">
+    <div class="card">
+      <h2><span class="icon">👥</span> Gérer les utilisateurs <small id="users-count"></small></h2>
+      <div class="toolbar">
+        <input class="search" id="users-search" placeholder="Rechercher par nom ou email…" />
+        <select id="users-filter" style="max-width:180px">
+          <option value="">Tous les rôles</option>
+          <option value="student">Élèves</option>
+          <option value="teacher">Enseignants</option>
+          <option value="admin">Admins</option>
+        </select>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Nom</th><th>Email</th><th>Rôle</th><th>Classe</th><th></th></tr>
+        </thead>
+        <tbody id="users-tbody"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2><span class="icon">➕</span> Ajouter un utilisateur
+        <span class="flash" id="user-flash">Ajouté</span>
+      </h2>
+      <div class="form-row">
+        <div class="field"><label>Prénom Nom</label><input type="text" id="nu-name" /></div>
+        <div class="field"><label>Email</label><input type="email" id="nu-email" placeholder="prenom@lyceemontaigne.com" /></div>
+        <div class="field"><label>Rôle</label>
+          <select id="nu-role">
+            <option value="student">Élève</option>
+            <option value="teacher">Enseignant</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Classe (élève) / Matière (prof)</label><input type="text" id="nu-extra" placeholder="2nde A / Mathématiques" /></div>
+        <div class="field" style="grid-column:span 2;align-self:end">
+          <button class="btn" onclick="addUser()">➕ Ajouter</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLASSES -->
+  <div class="panel" id="panel-classes">
+    <div class="card">
+      <h2><span class="icon">🏫</span> Classes</h2>
+      <table>
+        <thead><tr><th>Classe</th><th>Niveau</th><th>Prof. principal</th><th class="num">Effectif</th><th></th></tr></thead>
+        <tbody id="classes-tbody"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2><span class="icon">➕</span> Nouvelle classe
+        <span class="flash" id="class-flash">Créée</span>
+      </h2>
+      <div class="form-row">
+        <div class="field"><label>Nom (ex. 2nde A)</label><input type="text" id="nc-name" /></div>
+        <div class="field"><label>Niveau</label>
+          <select id="nc-level">
+            <option>6e</option><option>5e</option><option>4e</option><option>3e</option>
+            <option>2nde</option><option>1ère</option><option>Terminale</option>
+          </select>
+        </div>
+        <div class="field"><label>Professeur principal</label><input type="text" id="nc-teacher" /></div>
+      </div>
+      <button class="btn" onclick="addClass()">➕ Créer la classe</button>
+    </div>
+  </div>
+
+  <!-- ANNOUNCEMENTS -->
+  <div class="panel" id="panel-announcements">
+    <div class="card">
+      <h2><span class="icon">📢</span> Nouvelle annonce
+        <span class="flash" id="ann-flash">Publié</span>
+      </h2>
+      <div class="field"><label>Titre</label><input type="text" id="ann-title" /></div>
+      <div class="form-row">
+        <div class="field"><label>Public</label>
+          <select id="ann-audience">
+            <option value="all">Tout le monde</option>
+            <option value="students">Élèves &amp; parents</option>
+            <option value="teachers">Enseignants</option>
+            <option value="class">Une classe</option>
+          </select>
+        </div>
+        <div class="field"><label>Classe (si applicable)</label><input type="text" id="ann-class" placeholder="2nde A" /></div>
+        <div class="field" style="align-self:end"><button class="btn" onclick="publishAnnouncement()">📤 Publier</button></div>
+      </div>
+      <div class="field"><label>Message</label><textarea id="ann-body" rows="4"></textarea></div>
+    </div>
+    <div class="card">
+      <h2><span class="icon">🗂️</span> Annonces publiées</h2>
+      <div id="ann-list"><div class="empty">Aucune annonce publiée.</div></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="panel" id="panel-settings">
+    <div class="card">
+      <h2><span class="icon">⚙️</span> Paramètres généraux</h2>
+      <div class="form-row">
+        <div class="field"><label>Nom de l'école</label><input type="text" id="set-school" value="Lycée Montaigne" /></div>
+        <div class="field"><label>Ville</label><input type="text" id="set-city" value="Beit Chabab" /></div>
+        <div class="field"><label>Année scolaire</label><input type="text" id="set-year" value="2025–2026" /></div>
+      </div>
+      <button class="btn" onclick="saveSettings()">💾 Enregistrer</button>
+      <span class="flash" id="set-flash">Enregistré</span>
+    </div>
+    <div class="card">
+      <h2><span class="icon">🔗</span> Configuration Firebase</h2>
+      <p style="color:var(--muted);font-size:13px;line-height:1.7">
+        Cette application utilise Firebase pour l'authentification et le stockage des données.
+        Pour activer la connexion réelle, éditez chacun des fichiers
+        <strong style="color:var(--cream)">index.html</strong>,
+        <strong style="color:var(--cream)">student.html</strong>,
+        <strong style="color:var(--cream)">teacher.html</strong> et
+        <strong style="color:var(--cream)">admin.html</strong>
+        et remplacez le bloc <code style="background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px">firebaseConfig</code>
+        par les valeurs de votre projet Firebase (console.firebase.google.com → Paramètres du projet).
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── FIREBASE CONFIG ──
+const firebaseConfig = {
+  apiKey:     "REPLACE_ME",
+  authDomain: "REPLACE_ME",
+  projectId:  "REPLACE_ME",
+};
+
+let auth = null, db = null;
+try {
+  if (firebaseConfig.apiKey !== "REPLACE_ME") {
+    firebase.initializeApp(firebaseConfig);
+    auth = firebase.auth();
+    db   = firebase.firestore();
+  }
+} catch(e) {}
+
+function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function setText(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
+function setHtml(id,v){const el=document.getElementById(id);if(el)el.innerHTML=v;}
+function flash(id){const el=document.getElementById(id);if(!el)return;el.classList.add('show');setTimeout(function(){el.classList.remove('show');},1600);}
+
+function doLogout(){
+  if (auth) auth.signOut().then(function(){ window.location.href='index.html'; });
+  else window.location.href='index.html';
+}
+
+// ── TABS ──
+document.querySelectorAll('.tab').forEach(function(t){
+  t.addEventListener('click', function(){
+    document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('active');});
+    document.querySelectorAll('.panel').forEach(function(x){x.classList.remove('active');});
+    t.classList.add('active');
+    document.getElementById('panel-' + t.dataset.panel).classList.add('active');
+  });
+});
+
+// ── DEMO STATE ──
+let USERS = [
+  { id:'u1', name:'Aïcha Saad',       email:'aicha.saad@lyceemontaigne.com',     role:'student', extra:'2nde A' },
+  { id:'u2', name:'Charbel Khoury',   email:'charbel.k@lyceemontaigne.com',      role:'student', extra:'2nde A' },
+  { id:'u3', name:'M. Pierre Dupont', email:'pierre.dupont@lyceemontaigne.com',  role:'teacher', extra:'Mathématiques' },
+  { id:'u4', name:'Mme Léa Leroy',    email:'lea.leroy@lyceemontaigne.com',      role:'teacher', extra:'Français' },
+  { id:'u5', name:'Mme Habib',        email:'admin@lyceemontaigne.com',          role:'admin',   extra:'—' },
+];
+let CLASSES = [
+  { id:'c1', name:'2nde A',  level:'2nde',     teacher:'M. Dupont', size:24 },
+  { id:'c2', name:'2nde B',  level:'2nde',     teacher:'Mme Leroy', size:22 },
+  { id:'c3', name:'1ère S',  level:'1ère',     teacher:'M. Habib',  size:18 },
+];
+let ANNOUNCEMENTS = [];
+
+// ── USERS ──
+function renderUsers(){
+  const q = (document.getElementById('users-search').value || '').toLowerCase();
+  const filter = document.getElementById('users-filter').value;
+  const list = USERS.filter(function(u){
+    if (filter && u.role !== filter) return false;
+    if (q && !((u.name+' '+u.email).toLowerCase().includes(q))) return false;
+    return true;
+  });
+  setText('users-count', list.length + ' utilisateurs');
+  const tbody = document.getElementById('users-tbody');
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Aucun utilisateur.</td></tr>'; return; }
+  tbody.innerHTML = list.map(function(u){
+    return '<tr>'
+      + '<td>' + escapeHtml(u.name) + '</td>'
+      + '<td style="color:var(--muted)">' + escapeHtml(u.email) + '</td>'
+      + '<td><span class="role-tag ' + u.role + '">' + escapeHtml(u.role) + '</span></td>'
+      + '<td style="color:var(--muted)">' + escapeHtml(u.extra||'') + '</td>'
+      + '<td style="text-align:right"><button class="btn-mini" onclick="removeUser(\'' + u.id + '\')">Supprimer</button></td>'
+      + '</tr>';
+  }).join('');
+}
+
+function addUser(){
+  const name = document.getElementById('nu-name').value.trim();
+  const email = document.getElementById('nu-email').value.trim();
+  const role = document.getElementById('nu-role').value;
+  const extra = document.getElementById('nu-extra').value.trim();
+  if (!name || !email) { alert('Nom et email requis.'); return; }
+  const u = { id: 'u' + Date.now(), name:name, email:email, role:role, extra:extra };
+  USERS.unshift(u);
+  if (db) {
+    db.collection('users').add({ name:name, email:email, role:role, extra:extra,
+      at: firebase.firestore.FieldValue.serverTimestamp() }).catch(function(){});
+  }
+  document.getElementById('nu-name').value = '';
+  document.getElementById('nu-email').value = '';
+  document.getElementById('nu-extra').value = '';
+  renderUsers(); updateKpis(); flash('user-flash');
+}
+
+function removeUser(id){
+  if (!confirm('Supprimer cet utilisateur ?')) return;
+  USERS = USERS.filter(function(u){ return u.id !== id; });
+  renderUsers(); updateKpis();
+}
+
+document.getElementById('users-search').addEventListener('input', renderUsers);
+document.getElementById('users-filter').addEventListener('change', renderUsers);
+
+// ── CLASSES ──
+function renderClasses(){
+  const tbody = document.getElementById('classes-tbody');
+  if (!CLASSES.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Aucune classe.</td></tr>'; return; }
+  tbody.innerHTML = CLASSES.map(function(c){
+    return '<tr>'
+      + '<td><strong style="color:var(--cream)">' + escapeHtml(c.name) + '</strong></td>'
+      + '<td style="color:var(--muted)">' + escapeHtml(c.level) + '</td>'
+      + '<td>' + escapeHtml(c.teacher||'') + '</td>'
+      + '<td class="num">' + c.size + '</td>'
+      + '<td style="text-align:right"><button class="btn-mini" onclick="removeClass(\'' + c.id + '\')">Supprimer</button></td>'
+      + '</tr>';
+  }).join('');
+}
+
+function addClass(){
+  const name = document.getElementById('nc-name').value.trim();
+  const level = document.getElementById('nc-level').value;
+  const teacher = document.getElementById('nc-teacher').value.trim();
+  if (!name) { alert('Indiquez un nom de classe.'); return; }
+  CLASSES.unshift({ id:'c'+Date.now(), name:name, level:level, teacher:teacher, size:0 });
+  if (db) {
+    db.collection('classes').add({ name:name, level:level, teacher:teacher, size:0,
+      at: firebase.firestore.FieldValue.serverTimestamp() }).catch(function(){});
+  }
+  document.getElementById('nc-name').value = '';
+  document.getElementById('nc-teacher').value = '';
+  renderClasses(); updateKpis(); flash('class-flash');
+}
+
+function removeClass(id){
+  if (!confirm('Supprimer cette classe ?')) return;
+  CLASSES = CLASSES.filter(function(c){ return c.id !== id; });
+  renderClasses(); updateKpis();
+}
+
+// ── ANNOUNCEMENTS ──
+function publishAnnouncement(){
+  const title = document.getElementById('ann-title').value.trim();
+  const body = document.getElementById('ann-body').value.trim();
+  const aud = document.getElementById('ann-audience').value;
+  const cls = document.getElementById('ann-class').value.trim();
+  if (!title || !body) { alert('Titre et message requis.'); return; }
+  const a = { id:'a'+Date.now(), title:title, body:body, audience:aud, classId:cls, when:new Date().toLocaleDateString('fr-FR') };
+  ANNOUNCEMENTS.unshift(a);
+  if (db) {
+    db.collection('announcements').add({ title:title, body:body, audience:aud, classId:cls,
+      at: firebase.firestore.FieldValue.serverTimestamp() }).catch(function(){});
+  }
+  document.getElementById('ann-title').value = '';
+  document.getElementById('ann-body').value = '';
+  document.getElementById('ann-class').value = '';
+  renderAnnouncements(); flash('ann-flash');
+}
+
+function renderAnnouncements(){
+  const el = document.getElementById('ann-list');
+  if (!ANNOUNCEMENTS.length) { el.innerHTML = '<div class="empty">Aucune annonce publiée.</div>'; return; }
+  el.innerHTML = ANNOUNCEMENTS.map(function(a){
+    const audLabel = a.audience === 'class' ? ('Classe ' + (a.classId||'?')) : a.audience;
+    return '<div style="padding:14px 0;border-bottom:1px solid var(--line)">'
+      + '<div style="font-size:14px;color:var(--cream)">' + escapeHtml(a.title) + '</div>'
+      + '<div style="font-size:11px;color:var(--muted);letter-spacing:0.05em;margin-top:3px">'
+      +   escapeHtml(audLabel) + ' · ' + escapeHtml(a.when) + '</div>'
+      + '<div style="font-size:13px;color:rgba(255,255,255,0.75);margin-top:6px;line-height:1.6">'
+      +   escapeHtml(a.body) + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+// ── SETTINGS ──
+function saveSettings(){
+  if (db) {
+    db.collection('settings').doc('school').set({
+      name: document.getElementById('set-school').value,
+      city: document.getElementById('set-city').value,
+      year: document.getElementById('set-year').value,
+    }, { merge:true }).then(function(){ flash('set-flash'); }).catch(function(){});
+  } else {
+    flash('set-flash');
+  }
+}
+
+// ── KPIs ──
+function updateKpis(){
+  const students = USERS.filter(function(u){ return u.role === 'student'; }).length;
+  const teachers = USERS.filter(function(u){ return u.role === 'teacher'; }).length;
+  setHtml('kpi-students', '<em>' + students + '</em>');
+  setHtml('kpi-teachers', '<em>' + teachers + '</em>');
+  setHtml('kpi-classes',  '<em>' + CLASSES.length + '</em>');
+  setHtml('kpi-attendance', '<em>96%</em>');
+}
+
+// ── BOOT ──
+function boot(user){
+  const first = (user && (user.displayName || user.email) || 'Admin').split(/[@ ]/)[0];
+  setText('user-name', first);
+  renderUsers(); renderClasses(); renderAnnouncements(); updateKpis();
+}
+
+if (auth) {
+  auth.onAuthStateChanged(function(user){
+    if (!user) { window.location.href='index.html'; return; }
+    boot(user);
+  });
+} else {
+  boot(null);
+}
+</script>
+</body>
+</html>

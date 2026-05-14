@@ -1,0 +1,25 @@
+{
+  "name": "EduLM — Lycée Montaigne",
+  "short_name": "EduLM",
+  "description": "Espace scolaire numérique du Lycée Montaigne, Beit Chabab.",
+  "start_url": "index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#061B33",
+  "theme_color": "#0B2A4A",
+  "icons": [
+    {
+      "src": "../logo-orange.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "../logo-orange.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

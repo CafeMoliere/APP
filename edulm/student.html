@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0B2A4A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="EduLM">
+<title>EduLM — Espace Élève</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+:root {
+  --navy: #0B2A4A;
+  --navy-deep: #061B33;
+  --gold: #C9A961;
+  --cream: #F5EFE0;
+  --muted: #8A95A5;
+  --card: #102B4D;
+  --line: rgba(255,255,255,0.08);
+  --good: #5EB07B;
+  --warn: #E0B14A;
+  --bad: #DC6B6B;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: var(--navy-deep);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  min-height: 100vh;
+}
+nav {
+  position: sticky;
+  top: 0; z-index: 50;
+  background: rgba(6,27,51,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+  padding: 14px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.brand {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.05rem;
+  color: var(--cream);
+}
+.brand em { font-style: italic; color: var(--gold); }
+.nav-right {
+  display: flex; align-items: center; gap: 10px;
+}
+.user-chip {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 50px;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.user-chip strong { color: #fff; font-weight: 500; }
+.logout-btn {
+  padding: 7px 12px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 50px;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  font-family: inherit;
+}
+.logout-btn:hover { color: #fff; border-color: var(--gold); }
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 22px 80px;
+}
+.hello {
+  margin-bottom: 28px;
+}
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+.hello h1 {
+  font-family: 'Playfair Display', serif;
+  font-weight: 400;
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  color: var(--cream);
+}
+.hello h1 em { font-style: italic; color: var(--gold); }
+.hello p {
+  color: rgba(255,255,255,0.65);
+  font-size: 14px;
+  margin-top: 6px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 20px;
+}
+@media (max-width: 880px) { .grid { grid-template-columns: 1fr; } }
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px 22px;
+}
+.card h2 {
+  font-family: 'Playfair Display', serif;
+  font-weight: 400;
+  font-size: 1.1rem;
+  color: var(--cream);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.card h2 .icon { color: var(--gold); }
+.card h2 small {
+  margin-left: auto;
+  font-family: 'DM Sans';
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+.row:last-child { border-bottom: none; }
+.row .left { display: flex; align-items: center; gap: 12px; }
+.dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--gold);
+  flex-shrink: 0;
+}
+.time {
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  min-width: 80px;
+}
+.subject { color: #fff; font-weight: 400; }
+.teacher { color: var(--muted); font-size: 12px; }
+.pill {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 50px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+.grade {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.2rem;
+  color: var(--cream);
+}
+.grade.good { color: var(--good); }
+.grade.warn { color: var(--warn); }
+.grade.bad  { color: var(--bad); }
+.empty {
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+  padding: 24px 0;
+}
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.stat {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 14px;
+  text-align: center;
+}
+.stat .value {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.6rem;
+  color: var(--gold);
+}
+.stat .label {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.announcement {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.announcement:last-child { border-bottom: none; }
+.announcement .title {
+  font-size: 14px;
+  color: var(--cream);
+  margin-bottom: 4px;
+}
+.announcement .meta {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+}
+.announcement .body {
+  font-size: 13px;
+  color: rgba(255,255,255,0.75);
+  margin-top: 6px;
+  line-height: 1.6;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand">EduLM — <em>Lycée Montaigne</em></div>
+  <div class="nav-right">
+    <span class="user-chip">👤 <strong id="user-name">Élève</strong></span>
+    <button class="logout-btn" onclick="doLogout()">Déconnexion</button>
+  </div>
+</nav>
+
+<div class="container">
+
+  <div class="hello">
+    <div class="eyebrow">Espace Élève / Parent</div>
+    <h1>Bonjour <em id="firstname">!</em></h1>
+    <p id="today-line">Voici votre journée d'aujourd'hui.</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="value" id="stat-grade">—</div><div class="label">Moyenne</div></div>
+    <div class="stat"><div class="value" id="stat-presence">—</div><div class="label">Présence</div></div>
+    <div class="stat"><div class="value" id="stat-homework">—</div><div class="label">À rendre</div></div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2><span class="icon">📅</span> Emploi du temps <small id="schedule-date"></small></h2>
+      <div id="schedule">
+        <div class="empty">Aucun cours configuré.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="icon">📊</span> Dernières notes</h2>
+      <div id="grades">
+        <div class="empty">Aucune note pour le moment.</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:20px"></div>
+
+  <div class="grid">
+    <div class="card">
+      <h2><span class="icon">📚</span> Devoirs à rendre</h2>
+      <div id="homework">
+        <div class="empty">Aucun devoir à rendre.</div>
+      </div>
+    </div>
+    <div class="card">
+      <h2><span class="icon">📢</span> Annonces</h2>
+      <div id="announcements">
+        <div class="empty">Aucune annonce.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── FIREBASE CONFIG ──
+const firebaseConfig = {
+  apiKey:     "REPLACE_ME",
+  authDomain: "REPLACE_ME",
+  projectId:  "REPLACE_ME",
+};
+
+let auth = null, db = null;
+try {
+  if (firebaseConfig.apiKey !== "REPLACE_ME") {
+    firebase.initializeApp(firebaseConfig);
+    auth = firebase.auth();
+    db   = firebase.firestore();
+  }
+} catch(e) {}
+
+function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
+function setText(id, val){ const el = document.getElementById(id); if (el) el.textContent = val; }
+
+function doLogout(){
+  if (auth) auth.signOut().then(function(){ window.location.href='index.html'; });
+  else window.location.href='index.html';
+}
+
+// ── DATE ──
+const today = new Date();
+const fmtDate = today.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' });
+setText('schedule-date', fmtDate);
+
+// ── DEMO DATA (used when no Firebase or no data found) ──
+const DEMO = {
+  schedule: [
+    { time: '08:00 – 09:00', subject: 'Mathématiques', teacher: 'M. Dupont', room: 'B-104' },
+    { time: '09:15 – 10:15', subject: 'Français', teacher: 'Mme Leroy', room: 'A-202' },
+    { time: '10:30 – 11:30', subject: 'Histoire', teacher: 'M. Habib', room: 'A-110' },
+    { time: '11:45 – 12:45', subject: 'Sciences', teacher: 'Mme Karam', room: 'Labo 1' },
+    { time: '13:30 – 14:30', subject: 'Anglais', teacher: 'Ms. Smith', room: 'B-201' },
+  ],
+  grades: [
+    { subject: 'Mathématiques', grade: 16, max: 20, label: 'Contrôle ch.5' },
+    { subject: 'Français', grade: 14, max: 20, label: 'Dissertation' },
+    { subject: 'Histoire', grade: 18, max: 20, label: 'Exposé' },
+    { subject: 'Sciences', grade: 12, max: 20, label: 'TP labo' },
+  ],
+  homework: [
+    { subject: 'Mathématiques', due: 'Demain', label: 'Ex. 12 à 18 p.45' },
+    { subject: 'Français', due: 'Vendredi', label: 'Lecture chapitre 4' },
+    { subject: 'Histoire', due: 'Lundi', label: 'Fiche révision' },
+  ],
+  announcements: [
+    { title: 'Réunion parents-professeurs', meta: 'Direction · il y a 2h', body: 'La réunion aura lieu samedi 25 mai à 10h dans la grande salle.' },
+    { title: 'Sortie pédagogique annulée', meta: 'M. Habib · hier', body: 'La sortie de jeudi est reportée à la semaine prochaine.' },
+  ],
+  stats: { grade: '14.2', presence: '96%', homework: 3 },
+};
+
+function gradeClass(n, max) {
+  const pct = n / max;
+  if (pct >= 0.75) return 'good';
+  if (pct >= 0.5)  return 'warn';
+  return 'bad';
+}
+
+function renderSchedule(items) {
+  const el = document.getElementById('schedule');
+  if (!items || !items.length) { el.innerHTML = '<div class="empty">Aucun cours aujourd\'hui.</div>'; return; }
+  el.innerHTML = items.map(function(c){
+    return '<div class="row">'
+      + '<div class="left"><span class="dot"></span>'
+      + '<span class="time">' + escapeHtml(c.time||'') + '</span>'
+      + '<span><span class="subject">' + escapeHtml(c.subject||'') + '</span>'
+      + ' &nbsp;<span class="teacher">' + escapeHtml(c.teacher||'') + '</span></span></div>'
+      + '<span class="pill">' + escapeHtml(c.room||'') + '</span>'
+      + '</div>';
+  }).join('');
+}
+
+function renderGrades(items) {
+  const el = document.getElementById('grades');
+  if (!items || !items.length) { el.innerHTML = '<div class="empty">Aucune note.</div>'; return; }
+  el.innerHTML = items.map(function(g){
+    const cls = gradeClass(g.grade, g.max);
+    return '<div class="row">'
+      + '<div class="left"><span class="dot"></span>'
+      + '<span><span class="subject">' + escapeHtml(g.subject||'') + '</span><br>'
+      + '<span class="teacher">' + escapeHtml(g.label||'') + '</span></span></div>'
+      + '<span class="grade ' + cls + '">' + g.grade + '<span style="font-size:11px;color:var(--muted)"> /' + g.max + '</span></span>'
+      + '</div>';
+  }).join('');
+}
+
+function renderHomework(items) {
+  const el = document.getElementById('homework');
+  if (!items || !items.length) { el.innerHTML = '<div class="empty">Aucun devoir à rendre.</div>'; return; }
+  el.innerHTML = items.map(function(h){
+    return '<div class="row">'
+      + '<div class="left"><span class="dot"></span>'
+      + '<span><span class="subject">' + escapeHtml(h.subject||'') + '</span><br>'
+      + '<span class="teacher">' + escapeHtml(h.label||'') + '</span></span></div>'
+      + '<span class="pill">' + escapeHtml(h.due||'') + '</span>'
+      + '</div>';
+  }).join('');
+}
+
+function renderAnnouncements(items) {
+  const el = document.getElementById('announcements');
+  if (!items || !items.length) { el.innerHTML = '<div class="empty">Aucune annonce.</div>'; return; }
+  el.innerHTML = items.map(function(a){
+    return '<div class="announcement">'
+      + '<div class="title">' + escapeHtml(a.title||'') + '</div>'
+      + '<div class="meta">' + escapeHtml(a.meta||'') + '</div>'
+      + '<div class="body">' + escapeHtml(a.body||'') + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function renderStats(s) {
+  setText('stat-grade', s.grade || '—');
+  setText('stat-presence', s.presence || '—');
+  setText('stat-homework', s.homework != null ? s.homework : '—');
+}
+
+function renderAll(data) {
+  renderSchedule(data.schedule);
+  renderGrades(data.grades);
+  renderHomework(data.homework);
+  renderAnnouncements(data.announcements);
+  renderStats(data.stats || {});
+}
+
+async function loadStudent(user) {
+  // Try Firestore: students/{uid} with subcollections schedule, grades, homework
+  // Falls back to DEMO on any error or empty result.
+  if (!db) { renderAll(DEMO); return; }
+  try {
+    const doc = await db.collection('students').doc(user.uid).get();
+    if (!doc.exists) { renderAll(DEMO); return; }
+    const data = doc.data() || {};
+    if (data.firstName) setText('firstname', data.firstName + ' !');
+    renderAll({
+      schedule: data.scheduleToday || DEMO.schedule,
+      grades: data.recentGrades || DEMO.grades,
+      homework: data.homework || DEMO.homework,
+      announcements: data.announcements || DEMO.announcements,
+      stats: data.stats || DEMO.stats,
+    });
+  } catch (e) {
+    renderAll(DEMO);
+  }
+}
+
+// ── BOOT ──
+if (auth) {
+  auth.onAuthStateChanged(function(user){
+    if (!user) { window.location.href = 'index.html'; return; }
+    const first = (user.displayName || user.email || '').split(/[@ ]/)[0];
+    setText('user-name', first);
+    setText('firstname', first + ' !');
+    loadStudent(user);
+  });
+} else {
+  // No Firebase configured yet — show demo data so the page is visible.
+  setText('firstname', 'Élève !');
+  setText('user-name', 'Démo');
+  renderAll(DEMO);
+}
+</script>
+</body>
+</html>
