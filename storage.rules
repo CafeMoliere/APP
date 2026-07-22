@@ -1,0 +1,35 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isStaff() {
+      return request.auth != null
+        && request.auth.token.email is string
+        && request.auth.token.email.matches('.*@cafemoliere[.]com');
+    }
+
+    function isValidImage() {
+      return request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Hero slideshow uploads from admin.html
+    match /hero/{file} {
+      allow read: if true;
+      allow create, update: if isStaff() && isValidImage();
+      allow delete: if isStaff();
+    }
+
+    // Homepage editor uploads from admin-home.html
+    // (homepage/, homepage/gallery/, homepage/custom/)
+    match /homepage/{allPaths=**} {
+      allow read: if true;
+      allow create, update: if isStaff() && isValidImage();
+      allow delete: if isStaff();
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

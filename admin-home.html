@@ -486,6 +486,8 @@ let dragSecIdx    = null;
 // ── HELPERS ──
 function v(id) { return document.getElementById(id)?.value || ''; }
 
+function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
 function toast(msg, type='info') {
   document.querySelector('.toast')?.remove();
   let el = document.createElement('div');
@@ -548,7 +550,7 @@ async function saveDoc(docId, data, btnId) {
     await db.collection('homepage-draft').doc(docId).set({
       ...data,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    }, { merge: true });
     if (btnId) setSaveBtnState(btnId,'saved');
     setStatus(true);
     toast('Draft saved! Click 🚀 Publish to go live.', 'success');
@@ -559,7 +561,7 @@ async function saveDoc(docId, data, btnId) {
       msg = 'Permission denied — update your Firestore rules to allow homepage writes';
     }
     toast('Save failed: ' + msg, 'error');
-    alert('Save failed!\n\n' + msg + '\n\nMake sure your Firestore rules include:\nmatch /homepage/{docId} {\n  allow write: if request.auth.token.email == "administrator@cafemoliere.com";\n}');
+    alert('Save failed!\n\n' + msg + '\n\nIf this is a permission error, deploy the firestore.rules file from the repo (Firebase Console → Firestore → Rules).');
   }
 }
 
@@ -612,7 +614,7 @@ function renderGallery() {
       ondragstart="galDragStart(${i})"
       ondragover="event.preventDefault()"
       ondrop="galDrop(${i})">
-      <img src="${img.url}" style="width:100%;height:100%;object-fit:cover">
+      <img src="${escapeHtml(img.url||'')}" style="width:100%;height:100%;object-fit:cover">
       <button onclick="deleteGalImg(${i})" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.75);color:#fff;border:none;border-radius:5px;padding:3px 7px;font-size:11px;cursor:pointer;font-weight:600">✕</button>
     </div>`).join('');
 }
@@ -681,21 +683,21 @@ function renderInfoCards() {
   list.innerHTML = infoCards.map((c, i) => `
     <div class="card-item">
       <div class="card-item-head">
-        <span class="card-item-label">${c.icon||'📍'} Card ${i+1}</span>
+        <span class="card-item-label">${escapeHtml(c.icon||'📍')} Card ${i+1}</span>
         <button class="card-item-del" onclick="deleteInfoCard(${i})">✕ Delete</button>
       </div>
       <div class="fi-row">
         <div>
           <label class="fl" style="margin-top:0">Icon</label>
-          <input class="fi" value="${c.icon||''}" maxlength="4" onchange="infoCards[${i}].icon=this.value">
+          <input class="fi" value="${escapeHtml(c.icon||'')}" maxlength="4" onchange="infoCards[${i}].icon=this.value">
         </div>
         <div>
           <label class="fl" style="margin-top:0">Title</label>
-          <input class="fi" value="${c.title||''}" onchange="infoCards[${i}].title=this.value">
+          <input class="fi" value="${escapeHtml(c.title||'')}" onchange="infoCards[${i}].title=this.value">
         </div>
       </div>
       <label class="fl">Content</label>
-      <textarea class="fi" style="min-height:60px" onchange="infoCards[${i}].text=this.value">${c.text||''}</textarea>
+      <textarea class="fi" style="min-height:60px" onchange="infoCards[${i}].text=this.value">${escapeHtml(c.text||'')}</textarea>
     </div>`).join('');
 }
 
@@ -738,7 +740,12 @@ const DEFAULT_SECTIONS = [
   { id:'s-staff',   type:'staff',    name:'Staff Portal',     icon:'👤', visible:true },
 ];
 
+function toggleSecBody(i) {
+  document.getElementById('secbody-' + i)?.classList.toggle('open');
+}
+
 function renderSections() {
+  pageSections.forEach(sec => { sec.data = sec.data || {}; });
   let list = document.getElementById('sec-list');
   list.innerHTML = pageSections.map((sec, i) => `
     <div class="sec-row ${sec.visible?'':'opacity-50'}" id="secrow-${i}"
@@ -747,18 +754,18 @@ function renderSections() {
       ondragover="event.preventDefault();document.getElementById('secrow-${i}').classList.add('drag-over')"
       ondragleave="document.getElementById('secrow-${i}').classList.remove('drag-over')"
       ondrop="secDrop(event,${i})">
-      <div class="sec-row-head">
+      <div class="sec-row-head" onclick="toggleSecBody(${i})">
         <span class="sec-drag">⠿</span>
-        <span class="sec-row-icon">${sec.icon||'📦'}</span>
-        <span class="sec-row-name">${sec.name}</span>
-        <span class="sec-row-type">${sec.type}</span>
+        <span class="sec-row-icon">${escapeHtml(sec.icon||'📦')}</span>
+        <span class="sec-row-name">${escapeHtml(sec.name||'')}</span>
+        <span class="sec-row-type">${escapeHtml(sec.type||'')}</span>
         <div class="sec-row-btns" onclick="event.stopPropagation()">
           <button class="srb srb-vis ${sec.visible?'':'hidden-s'}" onclick="toggleSecVis(${i})" title="${sec.visible?'Hide':'Show'}">${sec.visible?'👁':'🚫'}</button>
           <button class="srb srb-del" onclick="deleteSec(${i})" title="Delete">🗑</button>
         </div>
       </div>
       ${sec.type==='text'||sec.type==='image'||sec.type==='divider'||sec.type==='custom-cta'||sec.type==='two-col'||sec.type==='quote' ? `
-      <div class="sec-row-body" id="secbody-${i}">
+      <div class="sec-row-body" id="secbody-${i}" onclick="event.stopPropagation()">
         ${renderSecBody(sec, i)}
         <button class="save-btn" style="margin-top:10px" onclick="saveCustomSec(${i})">💾 Save This Section</button>
       </div>` : ''}
@@ -769,7 +776,7 @@ function renderSecBody(sec, i) {
   let d = sec.data || {};
   if (sec.type === 'text') return `
     <label class="fl" style="margin-top:0">Text Content</label>
-    <textarea class="fi" onchange="pageSections[${i}].data.text=this.value">${d.text||''}</textarea>
+    <textarea class="fi" onchange="pageSections[${i}].data.text=this.value">${escapeHtml(d.text||'')}</textarea>
     <div class="fi-row" style="margin-top:8px">
       <div><label class="fl">Alignment</label>
         <select class="fi" onchange="pageSections[${i}].data.align=this.value">
@@ -779,16 +786,16 @@ function renderSecBody(sec, i) {
         </select>
       </div>
       <div><label class="fl">Background</label>
-        <input type="color" class="color-swatch" value="${d.bgColor||'#1A1A1A'}" oninput="pageSections[${i}].data.bgColor=this.value" style="width:100%;height:38px">
+        <input type="color" class="color-swatch" value="${escapeHtml(d.bgColor||'#1A1A1A')}" oninput="pageSections[${i}].data.bgColor=this.value" style="width:100%;height:38px">
       </div>
     </div>`;
   if (sec.type === 'image') return `
     <div class="img-zone"><input type="file" accept="image/*" onchange="uploadCustomSecImg(${i},this)">
       <div class="img-zone-text">📁 Upload image · <strong>Click to browse</strong></div>
     </div>
-    ${d.url ? `<img src="${d.url}" style="width:100%;max-height:100px;object-fit:cover;border-radius:7px;margin-top:8px">` : ''}
+    ${d.url ? `<img src="${escapeHtml(d.url)}" style="width:100%;max-height:100px;object-fit:cover;border-radius:7px;margin-top:8px">` : ''}
     <label class="fl">Height (px)</label>
-    <input class="fi" type="number" value="${d.height||400}" onchange="pageSections[${i}].data.height=this.value">`;
+    <input class="fi" type="number" value="${escapeHtml(String(d.height||400))}" onchange="pageSections[${i}].data.height=this.value">`;
   if (sec.type === 'divider') return `
     <label class="fl" style="margin-top:0">Style</label>
     <select class="fi" onchange="pageSections[${i}].data.style=this.value">
@@ -797,16 +804,16 @@ function renderSecBody(sec, i) {
       <option value="space" ${d.style==='space'?'selected':''}>Spacer</option>
     </select>`;
   if (sec.type === 'custom-cta') return `
-    <label class="fl" style="margin-top:0">Title</label><input class="fi" value="${d.title||''}" onchange="pageSections[${i}].data.title=this.value">
-    <label class="fl">Subtitle</label><input class="fi" value="${d.subtitle||''}" onchange="pageSections[${i}].data.subtitle=this.value">
-    <label class="fl">Button Text</label><input class="fi" value="${d.btnText||''}" onchange="pageSections[${i}].data.btnText=this.value">
-    <label class="fl">Button Link</label><input class="fi" value="${d.btnLink||''}" onchange="pageSections[${i}].data.btnLink=this.value">`;
+    <label class="fl" style="margin-top:0">Title</label><input class="fi" value="${escapeHtml(d.title||'')}" onchange="pageSections[${i}].data.title=this.value">
+    <label class="fl">Subtitle</label><input class="fi" value="${escapeHtml(d.subtitle||'')}" onchange="pageSections[${i}].data.subtitle=this.value">
+    <label class="fl">Button Text</label><input class="fi" value="${escapeHtml(d.btnText||'')}" onchange="pageSections[${i}].data.btnText=this.value">
+    <label class="fl">Button Link</label><input class="fi" value="${escapeHtml(d.btnLink||'')}" onchange="pageSections[${i}].data.btnLink=this.value">`;
   if (sec.type === 'two-col') return `
-    <label class="fl" style="margin-top:0">Left Column Text</label><textarea class="fi" onchange="pageSections[${i}].data.left=this.value">${d.left||''}</textarea>
-    <label class="fl">Right Column Text</label><textarea class="fi" onchange="pageSections[${i}].data.right=this.value">${d.right||''}</textarea>`;
+    <label class="fl" style="margin-top:0">Left Column Text</label><textarea class="fi" onchange="pageSections[${i}].data.left=this.value">${escapeHtml(d.left||'')}</textarea>
+    <label class="fl">Right Column Text</label><textarea class="fi" onchange="pageSections[${i}].data.right=this.value">${escapeHtml(d.right||'')}</textarea>`;
   if (sec.type === 'quote') return `
-    <label class="fl" style="margin-top:0">Quote Text</label><textarea class="fi" onchange="pageSections[${i}].data.text=this.value">${d.text||''}</textarea>
-    <label class="fl">Author</label><input class="fi" value="${d.author||''}" onchange="pageSections[${i}].data.author=this.value">`;
+    <label class="fl" style="margin-top:0">Quote Text</label><textarea class="fi" onchange="pageSections[${i}].data.text=this.value">${escapeHtml(d.text||'')}</textarea>
+    <label class="fl">Author</label><input class="fi" value="${escapeHtml(d.author||'')}" onchange="pageSections[${i}].data.author=this.value">`;
   return '';
 }
 
@@ -851,13 +858,13 @@ async function saveSections() {
   let btn = document.getElementById('save-sections');
   if(btn){ btn.dataset.label='Save Section Order & Visibility'; setSaveBtnState('save-sections','saving'); }
   try {
-    await db.collection('homepage').doc('page-sections').set({
+    await db.collection('homepage-draft').doc('page-sections').set({
       sections: pageSections,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    }, { merge: true });
     setSaveBtnState('save-sections','saved');
     setStatus(true);
-    toast('Sections saved!', 'success');
+    toast('Sections saved to draft! Click 🚀 Publish to go live.', 'success');
   } catch(e) {
     toast('Save failed: '+e.message, 'error');
     setSaveBtnState('save-sections','error');
@@ -893,7 +900,7 @@ async function checkRules() {
     if (e.code === 'permission-denied') {
       document.getElementById('status-text').textContent = '⚠️ Permission denied — update Firestore rules first!';
       document.getElementById('status-dot').style.background = '#e74c3c';
-      alert('⚠️ Firestore Permission Error!\n\nYou need to update your Firestore rules.\n\nGo to:\nFirebase Console → Firestore → Rules\n\nAnd add this rule:\n\nmatch /homepage/{docId} {\n  allow read: if true;\n  allow write: if request.auth != null && request.auth.token.email == "administrator@cafemoliere.com";\n}');
+      alert('⚠️ Firestore Permission Error!\n\nDeploy the firestore.rules file from the repo:\nFirebase Console → Firestore → Rules (paste the file contents), or run "firebase deploy --only firestore:rules".');
     }
   }
 }
@@ -904,8 +911,11 @@ async function loadAll() {
   try {
     let docs = ['hero','about','gallery','gallery-text','menu-cta','info-cards','staff','design-colors','design-fonts','navbar','footer','page-sections'];
     let results = {};
+    // Load the draft (what the editor works on); fall back to the live doc
+    // for anything never saved as a draft.
     for (const d of docs) {
-      let doc = await db.collection('homepage').doc(d).get();
+      let doc = await db.collection('homepage-draft').doc(d).get();
+      if (!doc.exists) doc = await db.collection('homepage').doc(d).get();
       if (doc.exists) results[d] = doc.data();
     }
 
@@ -1012,7 +1022,7 @@ async function publishSite() {
   btn.disabled = true;
   try {
     // Copy all draft docs to live homepage collection
-    const draftDocs = ['hero','about','gallery','gallery-text','menu-cta','info-cards','staff','design-colors','navbar','footer','design-fonts'];
+    const draftDocs = ['hero','about','gallery','gallery-text','menu-cta','info-cards','staff','design-colors','navbar','footer','design-fonts','page-sections'];
     for (var i = 0; i < draftDocs.length; i++) {
       var draftSnap = await db.collection('homepage-draft').doc(draftDocs[i]).get();
       if (draftSnap.exists) {
