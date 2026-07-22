@@ -674,6 +674,19 @@
   .confirm-place-btn{flex:1;padding:14px;background:#FF5E00;color:#fff;border:none;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:opacity 0.2s}
   .confirm-place-btn:hover{opacity:0.9}
   .confirm-back-btn{padding:14px 20px;background:rgba(103,108,114,0.15);color:#676C72;border:none;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer}
+
+  /* ── CUSTOMER ACCOUNT ── */
+  .account-btn{width:34px;height:34px;border-radius:50%;border:1.5px solid rgba(103,108,114,0.25);background:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:border-color 0.2s}
+  .account-btn.logged{border-color:#FF5E00;box-shadow:0 0 0 2px rgba(255,94,0,0.15)}
+  .my-order{background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:10px;font-size:12px;color:#676C72}
+  .my-order-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:11px}
+  .my-order-status{color:#fff;font-size:10px;font-weight:700;padding:3px 10px;border-radius:50px;letter-spacing:0.05em;text-transform:uppercase}
+  .my-order-items{font-size:11.5px;line-height:1.5;margin-bottom:8px}
+  .my-order-bottom{display:flex;justify-content:space-between;align-items:center}
+  .my-order-bottom strong{color:#FF5E00;font-size:13px}
+  .my-order-again{border:none;background:rgba(255,94,0,0.12);color:#FF5E00;font-weight:600;font-size:11px;padding:7px 12px;border-radius:50px;cursor:pointer;font-family:'DM Sans',sans-serif}
+  .my-order-again:active{transform:scale(0.96)}
+  .acct-msg{display:none;font-size:12px;margin-bottom:12px;font-weight:500}
 </style>
 </head>
 <body>
@@ -700,9 +713,12 @@
     <span id="cart-count">0</span> articles · <span id="cart-total">$0.00</span>
     <button id="clear-cart-btn" class="clear-btn" onclick="clearCart()" aria-label="Vider le panier" title="Vider le panier">×</button>
   </div>
-  <a id="top-order-btn" href="#" class="order-btn empty" onclick="event.preventDefault(); openModal()">
-    Commander
-  </a>
+  <div style="display:flex;align-items:center;gap:8px">
+    <button id="account-btn" class="account-btn" onclick="openAccountModal()" aria-label="Mes commandes" title="Mes commandes">👤</button>
+    <a id="top-order-btn" href="#" class="order-btn empty" onclick="event.preventDefault(); openModal()">
+      Commander
+    </a>
+  </div>
 </div>
 
 <!-- Category tabs -->
@@ -818,6 +834,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
 // ── FIREBASE CONFIG ── (must be before menu script)
@@ -834,6 +851,22 @@ const db = firebase.firestore();
 
 // ── SECURITY HELPERS ──
 function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+// For values inside onclick="fn('...')" — hex escapes survive both HTML
+// attribute decoding and JS string parsing.
+function escJs(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,'\\x27').replace(/"/g,'\\x22').replace(/</g,'\\x3c').replace(/>/g,'\\x3e').replace(/&/g,'\\x26');}
+
+// ── CUSTOMER ACCOUNT (silent guest auth) ──
+const auth = firebase.auth();
+let _profile = null;
+auth.onAuthStateChanged(async u => {
+  if (!u) { auth.signInAnonymously().catch(()=>{}); _profile = null; return; }
+  const btn = document.getElementById('account-btn');
+  if (btn) btn.classList.toggle('logged', !u.isAnonymous);
+  try {
+    const doc = await db.collection('users').doc(u.uid).get();
+    _profile = doc.exists ? doc.data() : null;
+  } catch(e) { _profile = null; }
+});
 </script>
 
 <script>
@@ -971,6 +1004,14 @@ function startHeroTimer() {
 function openModal() {
   const { count } = getCart();
   if (count === 0) return;
+  if (_profile) {
+    const n = document.getElementById('client-name');
+    const p = document.getElementById('client-phone');
+    const a = document.getElementById('client-location');
+    if (!n.value && _profile.name)    n.value = _profile.name;
+    if (!p.value && _profile.phone)   p.value = String(_profile.phone).replace(/^961/, '');
+    if (!a.value && _profile.address) a.value = _profile.address;
+  }
   document.getElementById('modal-overlay').classList.add('visible');
   setTimeout(() => document.getElementById('client-name').focus(), 400);
 }
@@ -1046,13 +1087,23 @@ async function submitOrder() {
   btn.disabled = true;
 
   try {
-    await db.collection('orders').add({
+    const user = auth.currentUser;
+    const orderData = {
       name, phone, address: location, items, total,
       status: 'new',
       time: new Date().toLocaleTimeString('fr-LB', { hour: '2-digit', minute: '2-digit' }),
       date: new Date().toLocaleDateString('fr-LB'),
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    };
+    if (user) orderData.uid = user.uid;
+    await db.collection('orders').add(orderData);
+    if (user) {
+      db.collection('users').doc(user.uid).set(
+        { name, phone, address: location, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
+        { merge: true }
+      ).catch(()=>{});
+      _profile = { ...(_profile || {}), name, phone, address: location };
+    }
 
     closeConfirmModal();
 
@@ -1077,6 +1128,10 @@ async function submitOrder() {
       document.getElementById('order-success').style.display = 'none';
       document.querySelector('.modal-cancel').style.display = 'block';
       closeModal();
+      const u = auth.currentUser;
+      if (u && u.isAnonymous && !localStorage.getItem('cm-offer-done')) {
+        setTimeout(openAccountOffer, 400);
+      }
     }, 2000);
 
   } catch(e) {
@@ -1282,6 +1337,236 @@ loadMenu();
     </div>
   </div>
 </div>
+
+<!-- Mes Commandes / Account Modal -->
+<div class="modal-overlay" id="account-overlay" onclick="if(event.target===this)closeAccountModal()">
+  <div class="modal" style="max-height:85vh;overflow-y:auto">
+    <div class="modal-handle"></div>
+    <div id="account-head"></div>
+    <div id="account-orders"></div>
+    <div id="account-auth"></div>
+    <button class="modal-cancel" onclick="closeAccountModal()">Fermer</button>
+  </div>
+</div>
+
+<!-- Post-order account offer -->
+<div class="modal-overlay" id="offer-overlay" onclick="if(event.target===this)closeAccountOffer(true)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Suivez vos <em>commandes</em></div>
+    <p class="modal-subtitle">Créez un compte pour retrouver votre historique sur tous vos appareils et recommander en un clic.</p>
+    <input class="name-input" id="offer-email" type="email" placeholder="Votre email" autocomplete="email">
+    <input class="name-input" id="offer-pass" type="password" placeholder="Mot de passe (6 caractères min.)" autocomplete="new-password">
+    <div id="offer-msg" class="acct-msg"></div>
+    <button class="modal-confirm" onclick="createAccount('offer')">Créer mon compte</button>
+    <button class="modal-cancel" onclick="closeAccountOffer(true)">Plus tard</button>
+  </div>
+</div>
+
+<script>
+// ── MES COMMANDES / ACCOUNT ──
+let _myOrders = {};
+let _accountUnsub = null;
+
+const STATUS_FR = {
+  new:       ['Reçue',          '#3498db'],
+  preparing: ['En préparation', '#e67e22'],
+  ready:     ['Prête',          '#27ae60'],
+  history:   ['Livrée',         '#95a5a6'],
+};
+
+function openAccountModal() {
+  document.getElementById('account-overlay').classList.add('visible');
+  renderAccountModal();
+}
+
+function closeAccountModal() {
+  document.getElementById('account-overlay').classList.remove('visible');
+  if (_accountUnsub) { _accountUnsub(); _accountUnsub = null; }
+}
+
+function renderAccountModal() {
+  const u = auth.currentUser;
+  const head = document.getElementById('account-head');
+  const authBox = document.getElementById('account-auth');
+  if (u && !u.isAnonymous) {
+    head.innerHTML = `
+      <div class="modal-title">Mes <em>commandes</em></div>
+      <p class="modal-subtitle">Connecté : ${escapeHtml(u.email||'')} ·
+        <a href="#" onclick="doCustomerLogout();return false" style="color:#FF5E00">Déconnexion</a></p>`;
+    authBox.innerHTML = '';
+  } else {
+    head.innerHTML = `
+      <div class="modal-title">Mes <em>commandes</em></div>
+      <p class="modal-subtitle">Historique sur cet appareil. Créez un compte pour le retrouver partout.</p>`;
+    authBox.innerHTML = `
+      <div style="border-top:1px solid rgba(103,108,114,0.2);margin-top:16px;padding-top:16px">
+        <input class="name-input" id="acct-email" type="email" placeholder="Votre email" autocomplete="email">
+        <input class="name-input" id="acct-pass" type="password" placeholder="Mot de passe" autocomplete="current-password">
+        <div id="acct-msg" class="acct-msg"></div>
+        <div style="display:flex;gap:8px">
+          <button class="modal-confirm" style="flex:1" onclick="doCustomerLogin()">Se connecter</button>
+          <button class="modal-confirm" style="flex:1;background:#676C72" onclick="createAccount('acct')">Créer un compte</button>
+        </div>
+        <button class="modal-cancel" onclick="forgotPassword()">Mot de passe oublié ?</button>
+      </div>`;
+  }
+  loadMyOrders();
+}
+
+function loadMyOrders() {
+  const box = document.getElementById('account-orders');
+  const u = auth.currentUser;
+  if (!u) { box.innerHTML = '<p class="modal-subtitle">Aucune commande pour le moment.</p>'; return; }
+  if (_accountUnsub) _accountUnsub();
+  _accountUnsub = db.collection('orders').where('uid','==',u.uid).onSnapshot(snap => {
+    const arr = [];
+    _myOrders = {};
+    snap.forEach(d => { const o = { id: d.id, ...d.data() }; arr.push(o); _myOrders[o.id] = o; });
+    arr.sort((a,b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
+    box.innerHTML = arr.length
+      ? arr.slice(0,15).map(renderMyOrder).join('')
+      : '<p class="modal-subtitle">Aucune commande pour le moment.</p>';
+  }, () => {
+    box.innerHTML = '<p class="modal-subtitle">Impossible de charger l\'historique.</p>';
+  });
+}
+
+function renderMyOrder(o) {
+  const st = STATUS_FR[o.status] || ['—','#95a5a6'];
+  const items = (o.items||[]).map(i => `${escapeHtml(i.name||'')} ×${Number(i.qty)||0}`).join(', ');
+  return `
+    <div class="my-order">
+      <div class="my-order-top">
+        <span>${escapeHtml(o.date||'')} · ${escapeHtml(o.time||'')}</span>
+        <span class="my-order-status" style="background:${st[1]}">${st[0]}</span>
+      </div>
+      <div class="my-order-items">${items}</div>
+      <div class="my-order-bottom">
+        <strong>${formatPrice(o.total||0)}</strong>
+        <button class="my-order-again" onclick="reorder('${escJs(o.id)}')">🔄 Commander à nouveau</button>
+      </div>
+    </div>`;
+}
+
+function reorder(id) {
+  const o = _myOrders[id];
+  if (!o) return;
+  const missed = [];
+  (o.items||[]).forEach(it => {
+    let found = null;
+    for (const cat of Object.values(MENU)) {
+      const f = cat.find(m => m.name === it.name);
+      if (f) { found = f; break; }
+    }
+    if (!found && window._specialItem && window._specialItem.name === it.name) found = window._specialItem;
+    if (found) cart[found.id] = (cart[found.id]||0) + (Number(it.qty)||1);
+    else missed.push(it.name);
+  });
+  saveCart();
+  _catOrder.forEach(renderSection);
+  const sp = document.getElementById('qty-special-item');
+  if (sp) sp.textContent = cart['special-item'] || 0;
+  updateCart();
+  closeAccountModal();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (missed.length) alert('Non disponibles actuellement : ' + missed.join(', '));
+}
+
+// ── AUTH ACTIONS ──
+function _msg(id, text, ok) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = text;
+  el.style.color = ok ? '#27ae60' : '#c0392b';
+  el.style.display = 'block';
+}
+
+function frAuthError(e) {
+  const m = {
+    'auth/email-already-in-use': 'Cet email a déjà un compte — connectez-vous.',
+    'auth/invalid-email': 'Email invalide.',
+    'auth/weak-password': 'Mot de passe trop court (6 caractères minimum).',
+    'auth/user-not-found': 'Aucun compte avec cet email.',
+    'auth/wrong-password': 'Mot de passe incorrect.',
+    'auth/invalid-credential': 'Email ou mot de passe incorrect.',
+    'auth/too-many-requests': 'Trop de tentatives — réessayez plus tard.',
+    'auth/network-request-failed': 'Problème de connexion internet.',
+    'auth/operation-not-allowed': 'Connexion par email non activée — contactez le café.',
+  };
+  return m[e.code] || 'Erreur : ' + (e.message || e.code);
+}
+
+async function createAccount(src) {
+  const email = document.getElementById(src + '-email').value.trim();
+  const pass  = document.getElementById(src + '-pass').value;
+  const msgId = src + '-msg';
+  if (!email || !pass) { _msg(msgId, 'Email et mot de passe requis.'); return; }
+  try {
+    const u = auth.currentUser;
+    if (u && u.isAnonymous) {
+      const cred = firebase.auth.EmailAuthProvider.credential(email, pass);
+      await u.linkWithCredential(cred);
+    } else if (!u) {
+      await auth.createUserWithEmailAndPassword(email, pass);
+    }
+    const cu = auth.currentUser;
+    if (cu) {
+      db.collection('users').doc(cu.uid).set(
+        { email, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
+        { merge: true }
+      ).catch(()=>{});
+      const btn = document.getElementById('account-btn');
+      if (btn) btn.classList.add('logged');
+    }
+    localStorage.setItem('cm-offer-done', '1');
+    _msg(msgId, 'Compte créé ! ✅', true);
+    setTimeout(() => {
+      if (src === 'offer') closeAccountOffer();
+      else renderAccountModal();
+    }, 1200);
+  } catch(e) { _msg(msgId, frAuthError(e)); }
+}
+
+async function doCustomerLogin() {
+  const email = document.getElementById('acct-email').value.trim();
+  const pass  = document.getElementById('acct-pass').value;
+  if (!email || !pass) { _msg('acct-msg', 'Email et mot de passe requis.'); return; }
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+    localStorage.setItem('cm-offer-done', '1');
+    renderAccountModal();
+  } catch(e) { _msg('acct-msg', frAuthError(e)); }
+}
+
+function doCustomerLogout() {
+  if (_accountUnsub) { _accountUnsub(); _accountUnsub = null; }
+  auth.signOut().then(() => {
+    _profile = null;
+    const btn = document.getElementById('account-btn');
+    if (btn) btn.classList.remove('logged');
+    setTimeout(renderAccountModal, 600);
+  });
+}
+
+async function forgotPassword() {
+  const email = document.getElementById('acct-email').value.trim();
+  if (!email) { _msg('acct-msg', 'Entrez votre email d\'abord.'); return; }
+  try {
+    await auth.sendPasswordResetEmail(email);
+    _msg('acct-msg', 'Email de réinitialisation envoyé ! Vérifiez votre boîte mail.', true);
+  } catch(e) { _msg('acct-msg', frAuthError(e)); }
+}
+
+function openAccountOffer() {
+  document.getElementById('offer-overlay').classList.add('visible');
+}
+function closeAccountOffer(dismissed) {
+  document.getElementById('offer-overlay').classList.remove('visible');
+  if (dismissed) localStorage.setItem('cm-offer-done', '1');
+}
+</script>
+
 <script>
 if ('serviceWorker' in navigator) {
   let refreshing = false;
