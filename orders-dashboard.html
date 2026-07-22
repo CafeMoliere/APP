@@ -270,6 +270,9 @@ const db = firebase.firestore();
 
 // ── SECURITY HELPERS ──
 function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+// For values inside onclick="fn('...')" — hex escapes survive both HTML attribute
+// decoding and JS string parsing, unlike HTML entities alone.
+function escJs(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,'\\x27').replace(/"/g,'\\x22').replace(/</g,'\\x3c').replace(/>/g,'\\x3e').replace(/&/g,'\\x26');}
 
 // ── STATE ──
 let orders = {}, historyOrders = {};
@@ -409,20 +412,21 @@ function renderCard(id, o) {
   const isNew  = o.status === 'new';
   const isPrep = o.status === 'preparing';
 
+  const jid = escJs(id);
   const actions = isNew ? `
-    <button class="btn btn-prep" onclick="event.stopPropagation();moveOrder('${id}','preparing')">→ Preparing</button>
-    <button class="btn btn-del" onclick="event.stopPropagation();deleteOrder('${id}')">🗑</button>
+    <button class="btn btn-prep" onclick="event.stopPropagation();moveOrder('${jid}','preparing')">→ Preparing</button>
+    <button class="btn btn-del" onclick="event.stopPropagation();deleteOrder('${jid}')">🗑</button>
   ` : isPrep ? `
-    <button class="btn btn-ready" onclick="event.stopPropagation();moveOrder('${id}','ready')">→ Ready</button>
-    <button class="btn btn-del" onclick="event.stopPropagation();deleteOrder('${id}')">🗑</button>
+    <button class="btn btn-ready" onclick="event.stopPropagation();moveOrder('${jid}','ready')">→ Ready</button>
+    <button class="btn btn-del" onclick="event.stopPropagation();deleteOrder('${jid}')">🗑</button>
   ` : `
     <button class="btn btn-wa" data-phone="${escapeHtml(o.phone||'')}" data-name="${escapeHtml(o.name||'')}" onclick="event.stopPropagation();sendWhatsApp(this.dataset.phone,this.dataset.name)">WhatsApp Client</button>
-    <button class="btn btn-clear" onclick="event.stopPropagation();clearToHistory('${id}')">Clear ✓</button>
+    <button class="btn btn-clear" onclick="event.stopPropagation();clearToHistory('${jid}')">Clear ✓</button>
   `;
 
   return `
     <div class="order-card">
-      <div class="card-header" onclick="toggleCard('${id}')">
+      <div class="card-header" onclick="toggleCard('${jid}')">
         <div>
           <div class="card-name">${escapeHtml(o.name||'')}</div>
           <div class="card-meta">${escapeHtml(o.time||'')} · ${escapeHtml(o.address||'')}</div>
@@ -488,10 +492,11 @@ function renderHistory() {
     const items = entries.map(([id,o]) => {
       const iOpen      = openHistoryItems.has(id);
       const isSelected = selectedItems.has(id);
+      const jid        = escJs(id);
       return `
         <div class="history-item">
-          <input type="checkbox" class="history-item-check" ${isSelected?'checked':''} onchange="toggleSelect('${id}')">
-          <div class="history-item-content" onclick="toggleHistoryItem('${id}')">
+          <input type="checkbox" class="history-item-check" ${isSelected?'checked':''} onchange="toggleSelect('${jid}')">
+          <div class="history-item-content" onclick="toggleHistoryItem('${jid}')">
             <div class="history-item-header">
               <span class="history-item-name">${escapeHtml(o.name||'')} — ${formatLL(o.total)}</span>
               <span class="history-item-time">${escapeHtml(o.time||'')} ▼</span>
@@ -505,15 +510,16 @@ function renderHistory() {
         </div>`;
     }).join('');
 
+    const jdate = escJs(date);
     return `
       <div class="history-day">
         <div class="history-day-header">
-          <div style="display:flex;align-items:center;gap:10px;flex:1" onclick="toggleDay('${date}')">
+          <div style="display:flex;align-items:center;gap:10px;flex:1" onclick="toggleDay('${jdate}')">
             <input type="checkbox" style="width:15px;height:15px;accent-color:#FF5E00;flex-shrink:0;cursor:pointer"
-              ${allDaySelected?'checked':''} onclick="event.stopPropagation();selectDay('${date}',this.checked)">
-            <span class="history-day-title">📅 ${date}</span>
+              ${allDaySelected?'checked':''} onclick="event.stopPropagation();selectDay('${jdate}',this.checked)">
+            <span class="history-day-title">📅 ${escapeHtml(date)}</span>
           </div>
-          <div class="history-day-meta" onclick="toggleDay('${date}')">
+          <div class="history-day-meta" onclick="toggleDay('${jdate}')">
             <span class="history-day-count">${entries.length} order${entries.length>1?'s':''}</span>
             <span style="color:#FF5E00;font-weight:700;font-size:12px;margin-left:6px">${formatLL(dayTotal)}</span>
             <span class="history-day-chevron ${isOpen?'open':''}">▼</span>
@@ -599,6 +605,7 @@ auth.onAuthStateChanged(user => {
     document.getElementById('dash-content').style.display = 'none';
     if (unsubscribe) { unsubscribe(); unsubscribe = null; }
     orders = {}; historyOrders = {};
+    firstLoad = true;
     const btn = document.getElementById('login-btn');
     btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 21 21" style="margin-right:10px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>Sign in with Microsoft`;
     btn.disabled = false;
