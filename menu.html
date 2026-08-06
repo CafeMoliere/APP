@@ -1017,8 +1017,9 @@ function renderSection(catKey) {
     const qty = cart[item.id] || 0;
     const div = document.createElement('div');
     div.className = 'item';
-    const visual = item.photo
-      ? `<img class="item-photo" src="${escapeHtml(item.photo)}" alt="${escapeHtml(item.name||'')}" loading="lazy">`
+    const photoUrl = item.photo || (_bundledPhotos.has(item.id) ? 'img/menu/' + item.id + '.jpg' : '');
+    const visual = photoUrl
+      ? `<img class="item-photo" src="${escapeHtml(photoUrl)}" alt="${escapeHtml(item.name||'')}" loading="lazy">`
       : `<div class="item-emoji-tile">${escapeHtml(item.emoji||'🍽️')}</div>`;
     div.innerHTML = `
       <div class="item-info">
@@ -1085,6 +1086,7 @@ function showSection(key) {
 // (settings/meta.v, bumped by the admin on every change). A repeat visit
 // with an unchanged menu costs 1 Firestore read instead of ~40.
 const MENU_CACHE_KEY = 'cm-menu-cache-v2';
+let _bundledPhotos = new Set();
 
 async function fetchMenuData() {
   const [catDoc, menuSnap, spDoc] = await Promise.all([
@@ -1176,6 +1178,12 @@ async function loadMenu() {
       data = await fetchMenuData();
       try { localStorage.setItem(MENU_CACHE_KEY, JSON.stringify({ v: version, data })); } catch(e) {}
     }
+    // Bundled stock photos (img/menu/<id>.jpg) — used for items whose photo
+    // hasn't been set in the admin; an admin-uploaded photo always wins.
+    try {
+      const mf = await fetch('img/menu/manifest.json');
+      if (mf.ok) _bundledPhotos = new Set(await mf.json());
+    } catch(e) {}
     buildMenu(data);
   } catch(e) {
     // failed to load menu
