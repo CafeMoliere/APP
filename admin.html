@@ -86,7 +86,7 @@ a:focus-visible,button:focus-visible{outline:2px solid #FF5E00;outline-offset:2p
 /* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.3s}
 .modal-overlay.visible{opacity:1;pointer-events:auto}
-.modal{background:#222;border-radius:20px 20px 0 0;padding:26px 22px 34px;width:100%;max-width:500px;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.34,1.2,0.64,1)}
+.modal{background:#222;border-radius:20px 20px 0 0;padding:26px 22px 34px;width:100%;max-width:500px;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.34,1.2,0.64,1);max-height:88vh;overflow-y:auto}
 .modal-overlay.visible .modal{transform:translateY(0)}
 .modal-handle{width:36px;height:3px;background:#444;border-radius:2px;margin:0 auto 18px}
 .modal-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:#FCECBB;margin-bottom:14px}
@@ -223,12 +223,21 @@ a:focus-visible,button:focus-visible{outline:2px solid #FF5E00;outline-offset:2p
     <label class="field-label">Price (LL)</label>
     <input class="fi" id="f-price" type="number" placeholder="150000" style="margin-bottom:14px" />
     <label class="field-label">Photo (recommended — shown instead of the emoji)</label>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
       <img id="f-photo-preview" style="width:54px;height:54px;border-radius:9px;object-fit:cover;display:none;border:1px solid #333;flex-shrink:0" alt="">
       <label for="f-photo-file" style="padding:9px 14px;background:#333;color:#FCECBB;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">📷 Choose photo</label>
       <input id="f-photo-file" type="file" accept="image/*" style="display:none" onchange="onItemPhotoChange(event)" />
+      <button onclick="togglePhotoSuggestions()" style="padding:9px 14px;background:#333;color:#FCECBB;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif">🔍 Trouver une photo</button>
       <button id="f-photo-del" onclick="removeItemPhoto()" style="display:none;width:28px;height:28px;background:rgba(192,57,43,0.2);color:#e74c3c;border:none;border-radius:7px;cursor:pointer;font-size:13px;flex-shrink:0">✕</button>
       <span id="f-photo-status" style="font-size:11px;color:#666"></span>
+    </div>
+    <div id="sugg-wrap" style="display:none;margin-bottom:14px;background:#1A1A1A;border:1px solid #333;border-radius:10px;padding:10px">
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input class="fi" id="sugg-q" placeholder="Mots-clés (anglais de préférence)" style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();searchPhotoSuggestions();}">
+        <button onclick="searchPhotoSuggestions()" style="padding:0 14px;background:#FF5E00;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">🔍</button>
+      </div>
+      <div id="sugg-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
+      <div id="sugg-status" style="font-size:11px;color:#666;margin-top:8px">Photos libres de droits (CC0 / domaine public) via Openverse.</div>
     </div>
     <input type="hidden" id="f-photo" />
     <input type="hidden" id="f-id" />
@@ -556,6 +565,7 @@ function openModal(id, catKey) {
     setItemPhotoUI('');
   }
   document.getElementById('f-photo-status').textContent = '';
+  resetPhotoSuggestions();
   document.getElementById('item-modal').classList.add('visible');
   setTimeout(() => document.getElementById('f-name').focus(), 350);
 }
@@ -590,6 +600,103 @@ async function onItemPhotoChange(e) {
 function removeItemPhoto() {
   setItemPhotoUI('');
   document.getElementById('f-photo-status').textContent = '';
+}
+
+// ── PHOTO SUGGESTIONS (Openverse, CC0/public domain, no API key) ──
+const FR2EN = {
+  'café':'coffee','thé':'tea','tisanes':'herbal tea','chocolat':'chocolate','chaud':'hot','chaude':'hot',
+  'poulet':'chicken','viande':'beef','fromage':'cheese','frites':'french fries','pâtes':'pasta','salade':'salad',
+  'jus':'juice','orange':'orange','citron':'lemon','banane':'banana','eau':'water','plate':'still',
+  'pétillante':'sparkling','gâteau':'cake','crêpe':'crepe','glacé':'iced','frais':'fresh','fraîche':'fresh',
+  'thym':'zaatar','noix':'nuts','crues':'raw','moelleux':'soft cake','fruits':'fruits','fruit':'fruit',
+  'saison':'seasonal','yaourts':'yogurt','yaourt':'yogurt','nature':'plain','dinde':'turkey','rôti':'roast beef',
+  'soupe':'soup','végétarien':'vegetarian','protéiné':'protein','crème':'cream','tomate':'tomato','tomates':'tomato',
+  'rosée':'pink sauce','beurre':'butter','libanais':'lebanese','libanaise':'lebanese','grecque':'greek',
+  'crabe':'crab','thon':'tuna','crudités':'vegetable platter','limonade':'lemonade','pressée':'fresh',
+  'maison':'','du':'','de':'','la':'','le':'','les':'','aux':'','au':'','à':'','et':'','un':'','une':'','jour':'',
+};
+
+function suggestQueryFromName() {
+  const name = (document.getElementById('f-name').value || '').split('—')[0].trim().toLowerCase();
+  const words = name.split(/[^a-zà-ÿ']+/i).map(w => (w in FR2EN) ? FR2EN[w] : w).filter(Boolean);
+  return words.join(' ').replace(/\s+/g, ' ').trim();
+}
+
+function togglePhotoSuggestions() {
+  const w = document.getElementById('sugg-wrap');
+  const show = w.style.display === 'none';
+  w.style.display = show ? 'block' : 'none';
+  if (show) {
+    const qi = document.getElementById('sugg-q');
+    if (!qi.value) qi.value = suggestQueryFromName();
+    if (qi.value) searchPhotoSuggestions();
+    else qi.focus();
+  }
+}
+
+function resetPhotoSuggestions() {
+  document.getElementById('sugg-wrap').style.display = 'none';
+  document.getElementById('sugg-q').value = '';
+  document.getElementById('sugg-grid').innerHTML = '';
+  document.getElementById('sugg-status').textContent = 'Photos libres de droits (CC0 / domaine public) via Openverse.';
+}
+
+async function searchPhotoSuggestions() {
+  const q    = document.getElementById('sugg-q').value.trim();
+  const grid = document.getElementById('sugg-grid');
+  const st   = document.getElementById('sugg-status');
+  if (!q) return;
+  st.textContent = 'Recherche...';
+  grid.innerHTML = '';
+  try {
+    const r = await fetch('https://api.openverse.org/v1/images/?q=' + encodeURIComponent(q) + '&license=cc0,pdm&per_page=9');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    const results = (d.results || []).filter(x => x.thumbnail);
+    if (!results.length) { st.textContent = 'Aucun résultat — essayez d\'autres mots-clés (en anglais).'; return; }
+    results.forEach(res => {
+      const img = document.createElement('img');
+      img.src = res.thumbnail;
+      img.loading = 'lazy';
+      img.alt = res.title || '';
+      img.title = res.title || '';
+      img.style.cssText = 'width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid transparent;background:#222';
+      img.onclick = () => pickSuggestion(res, img);
+      grid.appendChild(img);
+    });
+    st.textContent = 'Cliquez une photo pour l\'utiliser.';
+  } catch(e) {
+    st.textContent = 'Recherche impossible (' + e.message + ') — vérifiez la connexion.';
+  }
+}
+
+async function pickSuggestion(res, imgEl) {
+  const st = document.getElementById('sugg-status');
+  document.querySelectorAll('#sugg-grid img').forEach(i => i.style.borderColor = 'transparent');
+  imgEl.style.borderColor = '#FF5E00';
+  st.textContent = 'Téléchargement...';
+  try {
+    let blob = null;
+    for (const u of [res.url, res.thumbnail]) {
+      if (!u) continue;
+      try {
+        const rr = await fetch(u);
+        if (rr.ok) { blob = await rr.blob(); break; }
+      } catch(e) {}
+    }
+    if (!blob || !blob.size) throw new Error('image non téléchargeable');
+    const file = new File([blob], 'openverse.jpg', { type: blob.type || 'image/jpeg' });
+    st.textContent = 'Envoi...';
+    const storage = firebase.app().storage('gs://cafe-moliere.firebasestorage.app').ref();
+    const ref = storage.child('menu/' + Date.now() + '-openverse.jpg');
+    const upload = await compressImage(file, 800, 0.8);
+    const snap = await ref.put(upload, { cacheControl: 'public, max-age=604800' });
+    const url  = await snap.ref.getDownloadURL();
+    setItemPhotoUI(url);
+    st.textContent = '✓ Photo prête — cliquez "Save Item" pour l\'appliquer.';
+  } catch(e) {
+    st.textContent = 'Échec : ' + e.message;
+  }
 }
 
 function closeModal() { document.getElementById('item-modal').classList.remove('visible'); }
