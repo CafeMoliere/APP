@@ -267,6 +267,9 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+// Offline persistence: re-opening the dashboard only fetches changed orders
+// instead of re-reading the whole collection (big Firestore read savings).
+db.enablePersistence().catch(()=>{});
 
 // ── SECURITY HELPERS ──
 function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
@@ -484,7 +487,11 @@ function renderHistory() {
   const container = document.getElementById('history-content');
   if (!hCount) { container.innerHTML = '<div class="history-empty">No history yet</div>'; return; }
 
-  container.innerHTML = Object.entries(byDate).sort((a,b) => b[0].localeCompare(a[0])).map(([date, entries]) => {
+  const capNote = hCount >= 300
+    ? '<div style="font-size:11px;color:#e67e22;padding:8px 4px">⚠ Only the 400 most recent orders are loaded — export to Excel and clear old history to keep this list complete.</div>'
+    : '';
+
+  container.innerHTML = capNote + Object.entries(byDate).sort((a,b) => b[0].localeCompare(a[0])).map(([date, entries]) => {
     const isOpen   = openDays.has(date);
     const dayTotal = entries.reduce((s,[,o]) => s + (o.total||0), 0);
     const allDaySelected = entries.every(([id]) => selectedItems.has(id));
@@ -543,7 +550,9 @@ let unsubscribe = null;
 
 function startListening() {
   if (unsubscribe) unsubscribe();
-  unsubscribe = db.collection('orders').orderBy('createdAt','desc').onSnapshot(snapshot => {
+  // Cap at the 400 most recent orders so Firestore reads stay bounded as
+  // history grows — export & clear old history to keep everything visible.
+  unsubscribe = db.collection('orders').orderBy('createdAt','desc').limit(400).onSnapshot(snapshot => {
     document.getElementById('conn-badge').textContent='● Live';
     document.getElementById('conn-badge').className='conn-badge on';
     snapshot.docChanges().forEach(change => {

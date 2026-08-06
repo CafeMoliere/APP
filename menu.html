@@ -848,6 +848,9 @@ firebase.initializeApp(firebaseConfig);
 
 
 const db = firebase.firestore();
+// Offline persistence: repeat visits and the "Mes commandes" listener fetch
+// only changed documents instead of everything (Firestore read savings).
+db.enablePersistence().catch(()=>{});
 
 // ── SECURITY HELPERS ──
 function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
@@ -857,15 +860,22 @@ function escJs(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,'\\x27').r
 
 // ── CUSTOMER ACCOUNT (silent guest auth) ──
 const auth = firebase.auth();
+// null = not fetched yet, false = fetched and none — profile is loaded
+// lazily (on checkout / account open) so browsing costs no Firestore reads.
 let _profile = null;
-auth.onAuthStateChanged(async u => {
-  if (!u) { auth.signInAnonymously().catch(()=>{}); _profile = null; return; }
+async function loadProfileOnce() {
+  if (_profile !== null || !auth.currentUser) return;
+  try {
+    const doc = await db.collection('users').doc(auth.currentUser.uid).get();
+    _profile = doc.exists ? doc.data() : false;
+  } catch(e) {}
+}
+auth.onAuthStateChanged(u => {
+  _profile = null;
+  if (!u) { auth.signInAnonymously().catch(()=>{}); return; }
   const btn = document.getElementById('account-btn');
   if (btn) btn.classList.toggle('logged', !u.isAnonymous);
-  try {
-    const doc = await db.collection('users').doc(u.uid).get();
-    _profile = doc.exists ? doc.data() : null;
-  } catch(e) { _profile = null; }
+  if (!u.isAnonymous) loadProfileOnce();
 });
 </script>
 
@@ -1001,17 +1011,21 @@ function startHeroTimer() {
   if (_heroCount > 1) _heroTimer = setInterval(() => heroGoTo((_heroSlide + 1) % _heroCount), 5000);
 }
 
+function prefillFromProfile() {
+  if (!_profile) return;
+  const n = document.getElementById('client-name');
+  const p = document.getElementById('client-phone');
+  const a = document.getElementById('client-location');
+  if (!n.value && _profile.name)    n.value = _profile.name;
+  if (!p.value && _profile.phone)   p.value = String(_profile.phone).replace(/^961/, '');
+  if (!a.value && _profile.address) a.value = _profile.address;
+}
+
 function openModal() {
   const { count } = getCart();
   if (count === 0) return;
-  if (_profile) {
-    const n = document.getElementById('client-name');
-    const p = document.getElementById('client-phone');
-    const a = document.getElementById('client-location');
-    if (!n.value && _profile.name)    n.value = _profile.name;
-    if (!p.value && _profile.phone)   p.value = String(_profile.phone).replace(/^961/, '');
-    if (!a.value && _profile.address) a.value = _profile.address;
-  }
+  prefillFromProfile();
+  loadProfileOnce().then(prefillFromProfile);
   document.getElementById('modal-overlay').classList.add('visible');
   setTimeout(() => document.getElementById('client-name').focus(), 400);
 }
@@ -1211,82 +1225,109 @@ function showSection(key) {
   document.getElementById('sec-' + key).classList.add('active');
   event.currentTarget.classList.add('active');
 }
+// The full menu is cached in localStorage keyed on a version stamp
+// (settings/meta.v, bumped by the admin on every change). A repeat visit
+// with an unchanged menu costs 1 Firestore read instead of ~40.
+const MENU_CACHE_KEY = 'cm-menu-cache-v1';
+
+async function fetchMenuData() {
+  const [catDoc, apDoc, menuSnap, spDoc] = await Promise.all([
+    db.collection('settings').doc('categories').get(),
+    db.collection('settings').doc('appearance').get(),
+    db.collection('menu').get(),
+    db.collection('settings').doc('special').get(),
+  ]);
+  const data = { cats: catDoc.exists ? catDoc.data() : null, heroImages: [], items: [], special: null };
+  if (apDoc.exists) {
+    const ap = apDoc.data();
+    data.heroImages = ap.heroImages || (ap.heroImage ? [ap.heroImage] : []);
+  }
+  menuSnap.forEach(doc => {
+    const it = doc.data();
+    data.items.push({ id: doc.id, name: it.name, price: it.price, emoji: it.emoji, desc: it.desc, category: it.category, available: it.available, order: it.order });
+  });
+  if (spDoc.exists) {
+    const s = spDoc.data();
+    data.special = { name: s.name, price: s.price, desc: s.desc, emoji: s.emoji, available: s.available };
+  }
+  return data;
+}
+
+function buildMenu(data) {
+  let catOrder = ['hot','cold','snacks','mains','desserts'];
+  let catNames = { hot:'Boissons Chaudes', cold:'Boissons Froides', snacks:'Snacks & Viennoiseries', mains:'Plats Principaux', desserts:'Desserts' };
+  let catEmojis = { hot:'☕', cold:'🧊', snacks:'🥐', mains:'🍽️', desserts:'🍰' };
+  if (data.cats) {
+    if (data.cats.order)  catOrder  = data.cats.order;
+    if (data.cats.names)  catNames  = data.cats.names;
+    if (data.cats.emojis) catEmojis = data.cats.emojis;
+  }
+
+  if (data.heroImages.length > 0) initHeroSlideshow(data.heroImages);
+
+  const tabsEl = document.querySelector('.tabs');
+  const mainEl = document.querySelector('main');
+  tabsEl.innerHTML = '';
+  mainEl.innerHTML = '';
+
+  catOrder.forEach((key, i) => {
+    MENU[key] = [];
+    const tab = document.createElement('div');
+    tab.className = 'tab' + (i === 0 ? ' active' : '');
+    tab.textContent = (catEmojis[key]||'') + ' ' + (catNames[key]||key);
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('sec-' + key).classList.add('active');
+      this.classList.add('active');
+    });
+    tabsEl.appendChild(tab);
+    const sec = document.createElement('div');
+    sec.className = 'section' + (i === 0 ? ' active' : '');
+    sec.id = 'sec-' + key;
+    const [first, ...rest] = (catNames[key]||key).split(' ');
+    sec.innerHTML = `
+      <div class="section-header">
+        <h2 class="section-title">${escapeHtml(first)} <em>${escapeHtml(rest.join(' '))}</em></h2>
+        <div class="section-line"></div>
+      </div>
+      <div id="items-${key}"></div>`;
+    mainEl.appendChild(sec);
+  });
+
+  data.items.forEach(item => {
+    if (item.available === false) return;
+    if (!MENU[item.category]) MENU[item.category] = [];
+    MENU[item.category].push(item);
+  });
+  Object.keys(MENU).forEach(cat => MENU[cat].sort((a,b) => (a.order||0) - (b.order||0)));
+
+  if (data.special && data.special.available !== false) showSpecial(data.special);
+
+  _catOrder = catOrder;
+  catOrder.forEach(renderSection);
+  updateCart();
+}
+
 async function loadMenu() {
   try {
-    // Load categories config from Firestore
-    let catOrder = ['hot','cold','snacks','mains','desserts'];
-    let catNames = { hot:'Boissons Chaudes', cold:'Boissons Froides', snacks:'Snacks & Viennoiseries', mains:'Plats Principaux', desserts:'Desserts' };
-    let catEmojis = { hot:'☕', cold:'🧊', snacks:'🥐', mains:'🍽️', desserts:'🍰' };
+    let cached = null;
+    try { cached = JSON.parse(localStorage.getItem(MENU_CACHE_KEY)); } catch(e) {}
 
-    const catDoc = await db.collection('settings').doc('categories').get();
-    if (catDoc.exists) {
-      const cd = catDoc.data();
-      if (cd.order)  catOrder  = cd.order;
-      if (cd.names)  catNames  = cd.names;
-      if (cd.emojis) catEmojis = cd.emojis;
-    }
-
-    // Custom hero slideshow
+    let version = null;
     try {
-      const apDoc = await db.collection('settings').doc('appearance').get();
-      if (apDoc.exists) {
-        const ap = apDoc.data();
-        const images = ap.heroImages || (ap.heroImage ? [ap.heroImage] : []);
-        if (images.length > 0) initHeroSlideshow(images);
-      }
+      const md = await db.collection('settings').doc('meta').get();
+      if (md.exists) version = md.data().v || null;
     } catch(e) {}
 
-    // Build tabs and sections dynamically
-    const tabsEl  = document.querySelector('.tabs');
-    const mainEl  = document.querySelector('main');
-    tabsEl.innerHTML  = '';
-    mainEl.innerHTML  = '';
-
-    catOrder.forEach((key, i) => {
-      MENU[key] = [];
-      // Tab
-      const tab = document.createElement('div');
-      tab.className = 'tab' + (i === 0 ? ' active' : '');
-      tab.textContent = (catEmojis[key]||'') + ' ' + (catNames[key]||key);
-      tab.addEventListener('click', function() {
-        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.getElementById('sec-' + key).classList.add('active');
-        this.classList.add('active');
-      });
-      tabsEl.appendChild(tab);
-      // Section
-      const sec = document.createElement('div');
-      sec.className = 'section' + (i === 0 ? ' active' : '');
-      sec.id = 'sec-' + key;
-      const [first, ...rest] = (catNames[key]||key).split(' ');
-      sec.innerHTML = `
-        <div class="section-header">
-          <h2 class="section-title">${escapeHtml(first)} <em>${escapeHtml(rest.join(' '))}</em></h2>
-          <div class="section-line"></div>
-        </div>
-        <div id="items-${key}"></div>`;
-      mainEl.appendChild(sec);
-    });
-
-    // Load items
-    const snapshot = await db.collection('menu').get();
-    snapshot.forEach(doc => {
-      const item = { id: doc.id, ...doc.data() };
-      if (item.available === false) return;
-      if (!MENU[item.category]) MENU[item.category] = [];
-      MENU[item.category].push(item);
-    });
-
-    Object.keys(MENU).forEach(cat => MENU[cat].sort((a,b) => (a.order||0) - (b.order||0)));
-
-    // Load plat du jour
-    const special = await db.collection('settings').doc('special').get();
-    if (special.exists && special.data().available !== false) showSpecial(special.data());
-
-    _catOrder = catOrder;
-    catOrder.forEach(renderSection);
-    updateCart();
+    let data;
+    if (cached && cached.data && version && cached.v === version) {
+      data = cached.data;
+    } else {
+      data = await fetchMenuData();
+      try { localStorage.setItem(MENU_CACHE_KEY, JSON.stringify({ v: version, data })); } catch(e) {}
+    }
+    buildMenu(data);
   } catch(e) {
     // failed to load menu
   }
@@ -1419,7 +1460,8 @@ function loadMyOrders() {
   const u = auth.currentUser;
   if (!u) { box.innerHTML = '<p class="modal-subtitle">Aucune commande pour le moment.</p>'; return; }
   if (_accountUnsub) _accountUnsub();
-  _accountUnsub = db.collection('orders').where('uid','==',u.uid).onSnapshot(snap => {
+
+  const renderSnap = snap => {
     const arr = [];
     _myOrders = {};
     snap.forEach(d => { const o = { id: d.id, ...d.data() }; arr.push(o); _myOrders[o.id] = o; });
@@ -1427,9 +1469,17 @@ function loadMyOrders() {
     box.innerHTML = arr.length
       ? arr.slice(0,15).map(renderMyOrder).join('')
       : '<p class="modal-subtitle">Aucune commande pour le moment.</p>';
-  }, () => {
-    box.innerHTML = '<p class="modal-subtitle">Impossible de charger l\'historique.</p>';
-  });
+  };
+
+  // Ordered + capped query (needs the uid+createdAt composite index); falls
+  // back to a plain capped query if the index doesn't exist yet.
+  _accountUnsub = db.collection('orders').where('uid','==',u.uid).orderBy('createdAt','desc').limit(25)
+    .onSnapshot(renderSnap, () => {
+      _accountUnsub = db.collection('orders').where('uid','==',u.uid).limit(50)
+        .onSnapshot(renderSnap, () => {
+          box.innerHTML = '<p class="modal-subtitle">Impossible de charger l\'historique.</p>';
+        });
+    });
 }
 
 function renderMyOrder(o) {

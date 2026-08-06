@@ -358,6 +358,7 @@ async function saveCategories() {
     if (emojiEl) catEmojis[key] = emojiEl.value.trim() || '';
   });
   await db.collection('settings').doc('categories').set({ order: catOrder, names: catNames, emojis: catEmojis });
+  bumpMenuVersion();
   populateCatSelect();
   renderMenu();
   toast('Categories saved!');
@@ -491,6 +492,7 @@ async function itemDropOnRow(e, targetId, targetCat) {
   });
 
   await batch.commit();
+  bumpMenuVersion();
   dragItemId = null;
   toast('Item moved!');
 }
@@ -520,6 +522,7 @@ async function itemDrop(e, catKey) {
     order: newOrder
   });
 
+  bumpMenuVersion();
   dragItemId = null;
   toast(`Moved to ${catNames[catKey]||catKey}!`);
 }
@@ -546,6 +549,35 @@ function openModal(id, catKey) {
 function closeModal() { document.getElementById('item-modal').classList.remove('visible'); }
 function handleModalClick(e) { if (e.target === document.getElementById('item-modal')) closeModal(); }
 
+// Bump the menu version stamp so customer browsers refresh their cached
+// menu (menu.html only does a full Firestore load when this changes).
+function bumpMenuVersion() {
+  db.collection('settings').doc('meta').set({ v: Date.now() }, { merge: true }).catch(()=>{});
+}
+
+// Downscale/compress images client-side before upload: smaller Storage
+// bills and much faster loading for customers.
+async function compressImage(file, maxW, quality) {
+  if (!/^image\//.test(file.type) || file.type === 'image/gif') return file;
+  try {
+    const img = await new Promise((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = rej;
+      i.src = URL.createObjectURL(file);
+    });
+    const scale = Math.min(1, maxW / img.width);
+    if (scale === 1 && file.size < 500 * 1024) { URL.revokeObjectURL(img.src); return file; }
+    const canvas = document.createElement('canvas');
+    canvas.width  = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', quality));
+    URL.revokeObjectURL(img.src);
+    return (blob && blob.size < file.size) ? blob : file;
+  } catch(e) { return file; }
+}
+
 async function saveItem() {
   const id    = document.getElementById('f-id').value;
   const name  = document.getElementById('f-name').value.trim();
@@ -558,17 +590,20 @@ async function saveItem() {
   const data = { name, price, emoji, desc, category: cat, available: true };
   if (id) { await db.collection('menu').doc(id).update(data); toast('Item updated!'); }
   else    { await db.collection('menu').add({ ...data, order: Date.now() }); toast('Item added!'); }
+  bumpMenuVersion();
   closeModal();
 }
 
 async function toggleAvail(id, current) {
   await db.collection('menu').doc(id).update({ available: !current });
+  bumpMenuVersion();
   toast(current ? 'Marked unavailable' : 'Marked available');
 }
 
 async function deleteItem(id) {
   if (!confirm('Delete this item permanently?')) return;
   await db.collection('menu').doc(id).delete();
+  bumpMenuVersion();
   toast('Deleted');
 }
 
@@ -596,6 +631,7 @@ async function saveSpecial() {
   const avail = document.getElementById('sp-available').value === 'true';
   if (!name||!price) { alert('Please fill name and price.'); return; }
   await db.collection('settings').doc('special').set({ name, price, desc, emoji, available: avail, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+  bumpMenuVersion();
   toast('Plat du Jour saved!');
   loadSpecial();
 }
@@ -692,7 +728,8 @@ async function onHeroFilesChange(e) {
     try {
       const storage = firebase.app().storage('gs://cafe-moliere.firebasestorage.app').ref();
       const ref = storage.child('hero/' + Date.now() + '-' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_'));
-      const snap = await ref.put(file);
+      const upload = await compressImage(file, 1600, 0.82);
+      const snap = await ref.put(upload, { cacheControl: 'public, max-age=604800' });
       const url  = await snap.ref.getDownloadURL();
       _heroImages.push(url);
       await saveHeroImages();
@@ -720,6 +757,7 @@ async function saveHeroImages() {
     { heroImages: _heroImages, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
     { merge: true }
   );
+  bumpMenuVersion();
 }
 </script>
 </body>

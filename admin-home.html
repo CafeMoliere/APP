@@ -488,6 +488,30 @@ function v(id) { return document.getElementById(id)?.value || ''; }
 
 function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 
+// Downscale/compress images client-side before upload: smaller Storage
+// bills and much faster loading for visitors.
+async function compressImage(file, maxW, quality) {
+  if (!/^image\//.test(file.type) || file.type === 'image/gif') return file;
+  try {
+    const img = await new Promise((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = rej;
+      i.src = URL.createObjectURL(file);
+    });
+    const scale = Math.min(1, maxW / img.width);
+    if (scale === 1 && file.size < 500 * 1024) { URL.revokeObjectURL(img.src); return file; }
+    const canvas = document.createElement('canvas');
+    canvas.width  = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', quality));
+    URL.revokeObjectURL(img.src);
+    return (blob && blob.size < file.size) ? blob : file;
+  } catch(e) { return file; }
+}
+const IMG_CACHE = { cacheControl: 'public, max-age=604800' };
+
 function toast(msg, type='info') {
   document.querySelector('.toast')?.remove();
   let el = document.createElement('div');
@@ -577,7 +601,7 @@ async function uploadImg(docId, field, input, curImgId, progId) {
 
   try {
     let ref  = storage.ref(`homepage/${docId}_${field}_${Date.now()}_${file.name}`);
-    let task = ref.put(file);
+    let task = ref.put(await compressImage(file, 1920, 0.82), IMG_CACHE);
     await new Promise((res, rej) => {
       task.on('state_changed',
         snap => { if(bar) bar.style.width = (snap.bytesTransferred/snap.totalBytes*100)+'%'; },
@@ -657,7 +681,7 @@ async function uploadGallery(input) {
   let done = 0;
   for (const file of files) {
     let ref  = storage.ref(`homepage/gallery/${Date.now()}_${file.name}`);
-    let task = ref.put(file);
+    let task = ref.put(await compressImage(file, 1600, 0.8), IMG_CACHE);
     await new Promise((res, rej) => {
       task.on('state_changed',
         snap => { bar.style.width = ((done + snap.bytesTransferred/snap.totalBytes)/files.length*100)+'%'; },
@@ -845,7 +869,7 @@ function addCustomSection(type) {
 async function uploadCustomSecImg(idx, input) {
   let file = input.files[0]; if(!file) return;
   let ref  = storage.ref(`homepage/custom/${Date.now()}_${file.name}`);
-  await ref.put(file);
+  await ref.put(await compressImage(file, 1920, 0.82), IMG_CACHE);
   let url  = await ref.getDownloadURL();
   pageSections[idx].data.url = url;
   renderSections();
