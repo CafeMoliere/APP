@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - claude/security-audit-LK1RC
+  workflow_dispatch:
 
 jobs:
   deploy:
