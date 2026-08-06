@@ -190,7 +190,7 @@ a:focus-visible,button:focus-visible{outline:2px solid #FF5E00;outline-offset:2p
 <div id="tab-appearance" class="content" style="display:none">
   <div class="card" style="border-color:#FF5E00">
     <div class="card-title">🎨 Bannière <em>Diaporama</em></div>
-    <div class="card-sub">Ajoutez plusieurs images — elles défileront automatiquement en haut du menu (5 sec par image). Cliquez × pour supprimer.</div>
+    <div class="card-sub">Ajoutez plusieurs images — elles défileront automatiquement en haut de la <b>page d'accueil</b> (6 sec par image). Cliquez × pour supprimer.</div>
     <div id="hero-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:16px 0;min-height:50px"></div>
     <label for="hero-file" id="hero-upload-label" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:16px;background:#1A1A1A;border:2px dashed #444;border-radius:10px;cursor:pointer;color:#888;font-size:13px;transition:border-color 0.2s,color 0.2s">
       <span style="font-size:22px;line-height:1">+</span> Ajouter des images
@@ -222,6 +222,15 @@ a:focus-visible,button:focus-visible{outline:2px solid #FF5E00;outline-offset:2p
     <input class="fi" id="f-desc" placeholder="Short description" style="margin-bottom:10px" />
     <label class="field-label">Price (LL)</label>
     <input class="fi" id="f-price" type="number" placeholder="150000" style="margin-bottom:14px" />
+    <label class="field-label">Photo (recommended — shown instead of the emoji)</label>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <img id="f-photo-preview" style="width:54px;height:54px;border-radius:9px;object-fit:cover;display:none;border:1px solid #333;flex-shrink:0" alt="">
+      <label for="f-photo-file" style="padding:9px 14px;background:#333;color:#FCECBB;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">📷 Choose photo</label>
+      <input id="f-photo-file" type="file" accept="image/*" style="display:none" onchange="onItemPhotoChange(event)" />
+      <button id="f-photo-del" onclick="removeItemPhoto()" style="display:none;width:28px;height:28px;background:rgba(192,57,43,0.2);color:#e74c3c;border:none;border-radius:7px;cursor:pointer;font-size:13px;flex-shrink:0">✕</button>
+      <span id="f-photo-status" style="font-size:11px;color:#666"></span>
+    </div>
+    <input type="hidden" id="f-photo" />
     <input type="hidden" id="f-id" />
     <div class="modal-actions">
       <button class="modal-save" onclick="saveItem()">Save Item</button>
@@ -412,7 +421,9 @@ function renderItemRow(id, item) {
       ondragleave="itemDragLeaveRow(event)"
       ondrop="itemDropOnRow(event,'${id}','${item.category}')">
       <span class="item-drag-handle" title="Drag to reorder or move category">⠿</span>
-      <div class="item-emoji-disp">${escapeHtml(item.emoji||'🍽️')}</div>
+      ${item.photo
+        ? `<img src="${escapeHtml(item.photo)}" style="width:34px;height:34px;border-radius:7px;object-fit:cover;flex-shrink:0" alt="">`
+        : `<div class="item-emoji-disp">${escapeHtml(item.emoji||'🍽️')}</div>`}
       <div class="item-details">
         <div class="item-row-name">${escapeHtml(item.name||'')}</div>
         <div class="item-row-desc">${escapeHtml(item.desc||'')}</div>
@@ -538,12 +549,47 @@ function openModal(id, catKey) {
     document.getElementById('f-name').value  = item.name||'';
     document.getElementById('f-desc').value  = item.desc||'';
     document.getElementById('f-price').value = item.price||'';
+    setItemPhotoUI(item.photo || '');
   } else {
     document.getElementById('modal-title').innerHTML = 'Add <em>Item</em>';
     ['f-emoji','f-name','f-desc','f-price'].forEach(fid => document.getElementById(fid).value = '');
+    setItemPhotoUI('');
   }
+  document.getElementById('f-photo-status').textContent = '';
   document.getElementById('item-modal').classList.add('visible');
   setTimeout(() => document.getElementById('f-name').focus(), 350);
+}
+
+function setItemPhotoUI(url) {
+  document.getElementById('f-photo').value = url;
+  const pv  = document.getElementById('f-photo-preview');
+  const del = document.getElementById('f-photo-del');
+  if (url) { pv.src = url; pv.style.display = 'block'; del.style.display = 'inline-block'; }
+  else     { pv.removeAttribute('src'); pv.style.display = 'none'; del.style.display = 'none'; }
+}
+
+async function onItemPhotoChange(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const st = document.getElementById('f-photo-status');
+  st.textContent = 'Uploading...';
+  try {
+    const storage = firebase.app().storage('gs://cafe-moliere.firebasestorage.app').ref();
+    const ref = storage.child('menu/' + Date.now() + '-' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_'));
+    const upload = await compressImage(file, 800, 0.8);
+    const snap = await ref.put(upload, { cacheControl: 'public, max-age=604800' });
+    const url  = await snap.ref.getDownloadURL();
+    setItemPhotoUI(url);
+    st.textContent = '✓ Ready — save the item';
+  } catch(err) {
+    st.textContent = 'Upload failed: ' + (err.message || err.code);
+  }
+  e.target.value = '';
+}
+
+function removeItemPhoto() {
+  setItemPhotoUI('');
+  document.getElementById('f-photo-status').textContent = '';
 }
 
 function closeModal() { document.getElementById('item-modal').classList.remove('visible'); }
@@ -587,7 +633,10 @@ async function saveItem() {
   const cat   = document.getElementById('f-cat').value;
   if (!name)  { alert('Please enter item name.');  return; }
   if (!price) { alert('Please enter a valid price.'); return; }
+  const photo = document.getElementById('f-photo').value;
   const data = { name, price, emoji, desc, category: cat, available: true };
+  if (photo) data.photo = photo;
+  else if (id) data.photo = firebase.firestore.FieldValue.delete();
   if (id) { await db.collection('menu').doc(id).update(data); toast('Item updated!'); }
   else    { await db.collection('menu').add({ ...data, order: Date.now() }); toast('Item added!'); }
   bumpMenuVersion();
