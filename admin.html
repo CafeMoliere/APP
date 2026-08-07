@@ -235,6 +235,7 @@ a:focus-visible,button:focus-visible{outline:2px solid #FF5E00;outline-offset:2p
       <div style="display:flex;gap:8px;margin-bottom:8px">
         <input class="fi" id="sugg-q" placeholder="Mots-clés (anglais de préférence)" style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();searchPhotoSuggestions();}">
         <button onclick="searchPhotoSuggestions()" style="padding:0 14px;background:#FF5E00;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">🔍</button>
+        <button onclick="generateAiPhotos()" title="Générer des photos par IA" style="padding:0 14px;background:#7c4dff;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">✨</button>
       </div>
       <div id="sugg-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
       <div id="sugg-status" style="font-size:11px;color:#666;margin-top:8px">Photos libres de droits (CC0 / domaine public) via Openverse.</div>
@@ -765,6 +766,32 @@ async function searchPhotoSuggestions() {
     grid.appendChild(img);
   });
   st.textContent = 'Cliquez une photo pour l\'utiliser.';
+}
+
+// AI generation (Pollinations, free, no key): always finds "the dish",
+// even ones missing from stock libraries. Images are illustrative.
+function generateAiPhotos() {
+  const q    = document.getElementById('sugg-q').value.trim() || suggestQueryFromName();
+  const grid = document.getElementById('sugg-grid');
+  const st   = document.getElementById('sugg-status');
+  if (!q) { st.textContent = 'Entrez des mots-clés d\'abord.'; return; }
+  grid.innerHTML = '';
+  st.textContent = 'Génération en cours (10–30 sec)...';
+  const prompt = encodeURIComponent('professional food photography of ' + q + ', appetizing, cafe table, soft natural light');
+  let loaded = 0;
+  for (let i = 0; i < 3; i++) {
+    const seed = Math.floor(Math.random() * 1e6);
+    const url = `https://image.pollinations.ai/prompt/${prompt}?width=800&height=800&nologo=true&seed=${seed}`;
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = 'Photo générée par IA';
+    img.title = 'Photo générée par IA — cliquez pour l\'utiliser';
+    img.style.cssText = 'width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid transparent;background:#222';
+    img.onload  = () => { loaded++; st.textContent = 'Cliquez une photo pour l\'utiliser (générées par IA — illustratives).'; };
+    img.onerror = () => { img.remove(); if (!grid.children.length) st.textContent = 'Génération impossible — réessayez dans un instant.'; };
+    img.onclick = () => pickSuggestion({ thumb: url, full: url }, img);
+    grid.appendChild(img);
+  }
 }
 
 async function pickSuggestion(res, imgEl) {
