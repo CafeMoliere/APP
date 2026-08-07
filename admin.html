@@ -648,26 +648,49 @@ async function searchPhotoSuggestions() {
   if (!q) return;
   st.textContent = 'Recherche...';
   grid.innerHTML = '';
-  try {
-    const r = await fetch('https://api.openverse.org/v1/images/?q=' + encodeURIComponent(q) + '&license=cc0,pdm&per_page=9');
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const d = await r.json();
-    const results = (d.results || []).filter(x => x.thumbnail);
-    if (!results.length) { st.textContent = 'Aucun résultat — essayez d\'autres mots-clés (en anglais).'; return; }
-    results.forEach(res => {
-      const img = document.createElement('img');
-      img.src = res.thumbnail;
-      img.loading = 'lazy';
-      img.alt = res.title || '';
-      img.title = res.title || '';
-      img.style.cssText = 'width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid transparent;background:#222';
-      img.onclick = () => pickSuggestion(res, img);
-      grid.appendChild(img);
-    });
-    st.textContent = 'Cliquez une photo pour l\'utiliser.';
-  } catch(e) {
-    st.textContent = 'Recherche impossible (' + e.message + ') — vérifiez la connexion.';
+
+  const results = [];
+  // Source 1: Openverse (CC0 / public domain)
+  const openverse = fetch('https://api.openverse.org/v1/images/?q=' + encodeURIComponent(q) + '&license=cc0,pdm&per_page=12')
+    .then(r => r.ok ? r.json() : null)
+    .then(d => {
+      (d && d.results || []).forEach(x => {
+        if (x.thumbnail) results.push({ thumb: x.thumbnail, full: x.url, title: x.title || '' });
+      });
+    }).catch(()=>{});
+  // Source 2: Wikimedia Commons (kept only if licence is CC0 / public domain)
+  const commons = fetch('https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*'
+      + '&generator=search&gsrsearch=' + encodeURIComponent(q) + '&gsrnamespace=6&gsrlimit=12'
+      + '&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=640')
+    .then(r => r.ok ? r.json() : null)
+    .then(d => {
+      Object.values((d && d.query && d.query.pages) || {}).forEach(p => {
+        const ii = p.imageinfo && p.imageinfo[0];
+        if (!ii || !/\.(jpe?g|png|webp)$/i.test(ii.url || '')) return;
+        const lic = ((ii.extmetadata || {}).LicenseShortName || {}).value || '';
+        if (!/cc0|public domain|^pd/i.test(lic)) return;
+        results.push({ thumb: ii.thumburl || ii.url, full: ii.url, title: p.title || '' });
+      });
+    }).catch(()=>{});
+
+  await Promise.all([openverse, commons]);
+
+  if (!results.length) {
+    st.textContent = 'Aucun résultat — essayez d\'autres mots-clés (en anglais, ex: "iced tea glass").';
+    return;
   }
+  results.slice(0, 12).forEach(res => {
+    const img = document.createElement('img');
+    img.src = res.thumb;
+    img.loading = 'lazy';
+    img.alt = res.title;
+    img.title = res.title;
+    img.style.cssText = 'width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid transparent;background:#222';
+    img.onerror = () => img.remove();
+    img.onclick = () => pickSuggestion(res, img);
+    grid.appendChild(img);
+  });
+  st.textContent = 'Cliquez une photo pour l\'utiliser.';
 }
 
 async function pickSuggestion(res, imgEl) {
@@ -676,19 +699,24 @@ async function pickSuggestion(res, imgEl) {
   imgEl.style.borderColor = '#FF5E00';
   st.textContent = 'Téléchargement...';
   try {
+    // The 640px preview copy is the reliable download (the original file's
+    // host often blocks cross-site downloads); it's plenty for the menu card.
     let blob = null;
-    for (const u of [res.url, res.thumbnail]) {
+    for (const u of [res.thumb, res.full]) {
       if (!u) continue;
       try {
         const rr = await fetch(u);
-        if (rr.ok) { blob = await rr.blob(); break; }
+        if (rr.ok) {
+          const b = await rr.blob();
+          if (b && b.size > 5000 && /^image\//.test(b.type || '')) { blob = b; break; }
+        }
       } catch(e) {}
     }
-    if (!blob || !blob.size) throw new Error('image non téléchargeable');
-    const file = new File([blob], 'openverse.jpg', { type: blob.type || 'image/jpeg' });
+    if (!blob) throw new Error('cette image est bloquée par sa source — essayez-en une autre');
+    const file = new File([blob], 'suggestion.jpg', { type: blob.type || 'image/jpeg' });
     st.textContent = 'Envoi...';
     const storage = firebase.app().storage('gs://cafe-moliere.firebasestorage.app').ref();
-    const ref = storage.child('menu/' + Date.now() + '-openverse.jpg');
+    const ref = storage.child('menu/' + Date.now() + '-suggestion.jpg');
     const upload = await compressImage(file, 800, 0.8);
     const snap = await ref.put(upload, { cacheControl: 'public, max-age=604800' });
     const url  = await snap.ref.getDownloadURL();
