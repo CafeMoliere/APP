@@ -777,7 +777,7 @@ function generateAiPhotos() {
   if (!q) { st.textContent = 'Entrez des mots-clés d\'abord.'; return; }
   grid.innerHTML = '';
   st.textContent = 'Génération en cours (10–30 sec)...';
-  const prompt = encodeURIComponent('professional food photography of ' + q + ', appetizing, cafe table, soft natural light');
+  const prompt = encodeURIComponent('close-up food photography of ' + q + ', the dish is the only subject and fills the frame, centered, appetizing detail, plain neutral blurred background, no scenery, no people, soft studio light');
   let loaded = 0;
   for (let i = 0; i < 3; i++) {
     const seed = Math.floor(Math.random() * 1e6);
